@@ -6,7 +6,7 @@ class NumberGenerator
 {
     public static function generate(string $prefix, string $model): string
     {
-        $last = $model::latest('id')->first();
+        $last = $model::withoutGlobalScopes()->latest('id')->first();
 
         $number = $last ? $last->id + 1 : 1;
 

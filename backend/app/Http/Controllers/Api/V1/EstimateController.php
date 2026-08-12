@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\EstimateRequest;
+use App\Http\Resources\EstimateResource;
+use App\Models\Estimate;
+use App\Services\EstimateService;
 use Illuminate\Http\Request;
 
 class EstimateController extends Controller
@@ -12,7 +16,9 @@ class EstimateController extends Controller
      */
     public function index()
     {
-        //
+        return EstimateResource::collection(
+            Estimate::with('customer')->latest()->paginate(10)
+        );
     }
 
     /**

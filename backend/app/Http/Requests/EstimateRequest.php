@@ -23,15 +23,13 @@ class EstimateRequest extends FormRequest
 
             'estimate_date'=>'required|date',
 
+            'valid_until'=>'nullable|date',
+
             'pickup'=>'required',
 
             'destination'=>'required',
 
             'service_type'=>'required|in:goods,vehicle',
-
-            'margin'=>'nullable|numeric',
-
-            'margin_type'=>'nullable|in:fixed,percentage',
 
             'remarks'=>'nullable',
 

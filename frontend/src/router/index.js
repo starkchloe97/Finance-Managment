@@ -19,33 +19,41 @@ const routes = [
         children: [
             {
                 path: "",
-                component: Dashboard
-            }
-        ]
-    },
-    {
-        path: "/customers",
-        component: () => import("@/pages/customers/CustomersList.vue"),
-    },
-    {
-        path: "/customers/create",
-        component: () => import("@/pages/customers/CustomerCreate.vue"),
-    },
-    {
-        path: "/customers/:id/edit",
-        component: () => import("@/pages/customers/CustomerEdit.vue"),
-    },
-    {
-        path: "/estimates",
-        component: () => import("@/pages/estimates/EstimatesList.vue"),
-    },
-    {
-        path: "/estimates/create",
-        component: () => import("@/pages/estimates/EstimateCreate.vue"),
-    },
-    {
-        path: "/estimates/:id/edit",
-        component: () => import("@/pages/estimates/EstimateEdit.vue"),
+                component: Dashboard,
+            },
+            {
+                path: "customers",
+                component: () => import("@/pages/customers/CustomersList.vue"),
+            },
+            {
+                path: "customers/create",
+                component: () => import("@/pages/customers/CustomerCreate.vue"),
+            },
+            {
+                path: "customers/:id/edit",
+                component: () => import("@/pages/customers/CustomerEdit.vue"),
+            },
+            {
+                path: "estimates",
+                component: () => import("@/pages/estimates/EstimatesList.vue"),
+            },
+            {
+                path: "estimates/create",
+                component: () => import("@/pages/estimates/EstimateCreate.vue"),
+            },
+            {
+                path: "estimates/:id/edit",
+                component: () => import("@/pages/estimates/EstimateEdit.vue"),
+            },
+            {
+                path: "jobs",
+                component: () => import("@/pages/jobs/JobsList.vue"),
+            },
+            {
+                path: "jobs/:id",
+                component: () => import("@/pages/jobs/JobDetail.vue"),
+            },
+        ],
     },
 ];
 

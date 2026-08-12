@@ -17,9 +17,6 @@ class Estimate extends Model
         'pickup',
         'destination',
         'service_type',
-        'subtotal',
-        'margin',
-        'margin_type',
         'total',
         'status',
         'remarks'

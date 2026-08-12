@@ -3,52 +3,33 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Resources\TransportJobResource;
+use App\Models\Estimate;
+use App\Models\TransportJob;
+use App\Services\TransportJobService;
 
 class TransportJobController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        return TransportJobResource::collection(
+            TransportJob::with('customer')->latest()->paginate(10)
+        );
+    }
+
+    public function show(TransportJob $job)
+    {
+        return new TransportJobResource(
+            $job->load('customer', 'estimate', 'budgetItems', 'expenses')
+        );
     }
 
     /**
-     * Store a newly created resource in storage.
+     * The customer accepted the quote, so turn it into a job to work on.
      */
-    public function store(Request $request)
+    public function convert(Estimate $estimate, TransportJobService $service)
     {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
-    public function convert(Estimate $estimate, JobService $service)
-    {
-        return new JobResource(
+        return new TransportJobResource(
             $service->convert($estimate)
         );
     }

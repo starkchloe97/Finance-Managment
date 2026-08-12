@@ -22,6 +22,10 @@ class TransportJob extends Model
         'remarks'
     ];
 
+    protected $casts = [
+        'job_date' => 'date'
+    ];
+
     public function estimate()
     {
         return $this->belongsTo(Estimate::class);
@@ -34,11 +38,33 @@ class TransportJob extends Model
 
     public function budgetItems()
     {
-        return $this->hasMany(TransportJobBudget::class);
+        return $this->hasMany(TransportJobBudget::class, 'job_id');
     }
 
     public function expenses()
     {
-        return $this->hasMany(TransportJobExpense::class);
+        return $this->hasMany(TransportJobExpense::class, 'job_id');
+    }
+
+    /**
+     * Re-add the job's money columns from its budget lines and expenses.
+     * Called whenever either of those changes. quoted_amount is never touched
+     * here — that price was promised to the customer.
+     */
+    public function recalculate(): void
+    {
+        $this->planned_cost = $this->budgetItems()->sum('total');
+
+        $this->actual_cost = $this->expenses()->sum('amount');
+
+        // Once real expenses exist they decide the profit; before that we go by
+        // the budget, which is still only an expectation.
+        $cost = $this->actual_cost > 0
+            ? $this->actual_cost
+            : $this->planned_cost;
+
+        $this->profit = $this->quoted_amount - $cost;
+
+        $this->save();
     }
 }

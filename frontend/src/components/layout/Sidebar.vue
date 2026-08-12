@@ -6,6 +6,8 @@ import { RouterLink } from "vue-router";
 
 <aside class="sidebar">
 
+    <div class="brand">Transport ERP</div>
+
     <RouterLink to="/">Dashboard</RouterLink>
 
     <RouterLink to="/customers">Customers</RouterLink>
@@ -13,10 +15,6 @@ import { RouterLink } from "vue-router";
     <RouterLink to="/estimates">Estimates</RouterLink>
 
     <RouterLink to="/jobs">Jobs</RouterLink>
-
-    <RouterLink to="/investors">Investors</RouterLink>
-
-    <RouterLink to="/reports">Reports</RouterLink>
 
 </aside>
 

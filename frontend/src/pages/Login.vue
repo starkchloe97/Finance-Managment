@@ -30,21 +30,29 @@ const submit = async () => {
 
             <h2>Transport ERP</h2>
 
-            <input
-                type="email"
-                v-model="form.email"
-                placeholder="Email"
-            />
+            <p class="sub">Sign in to continue</p>
 
-            <input
-                type="password"
-                v-model="form.password"
-                placeholder="Password"
-            />
+            <div class="field">
+                <label>Email</label>
+                <input
+                    type="email"
+                    v-model="form.email"
+                    placeholder="you@company.com"
+                />
+            </div>
 
-            <button type="submit">
+            <div class="field">
+                <label>Password</label>
+                <input
+                    type="password"
+                    v-model="form.password"
+                    placeholder="••••••••"
+                />
+            </div>
 
-                Login
+            <button type="submit" :disabled="auth.loading">
+
+                {{ auth.loading ? "Signing in…" : "Sign in" }}
 
             </button>
 

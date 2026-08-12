@@ -4,21 +4,31 @@ namespace App\Services;
 
 use App\Models\TransportJob;
 use App\Models\Estimate;
-use App\Models\TransportJobBudget ;
+use App\Models\TransportJobBudget;
 use App\Helpers\NumberGenerator;
 use Illuminate\Support\Facades\DB;
 
-class JobService
+/**
+ * Turns an accepted estimate into a job.
+ *
+ * The estimate total carries over as quoted_amount — the price promised to the
+ * customer, which never changes afterwards. The budget lines start at zero cost
+ * because they are the company's expected spend, which the operations team
+ * fills in next; only their titles are copied across as a starting checklist.
+ */
+class TransportJobService
 {
     public function convert(Estimate $estimate)
     {
         return DB::transaction(function () use ($estimate) {
 
-            if ($estimate->job) {
+            if ($estimate->transportJob) {
                 throw new \Exception('Job already exists.');
             }
 
-            $TransportJob = TransportJob::create([
+            $estimate->update(['status' => 'accepted']);
+
+            $job = TransportJob::create([
                 'code' => NumberGenerator::generate('JOB', TransportJob::class),
                 'estimate_id' => $estimate->id,
                 'customer_id' => $estimate->customer_id,
@@ -32,7 +42,7 @@ class JobService
 
             foreach ($estimate->items as $item) {
 
-                TransportJobBudget ::create([
+                TransportJobBudget::create([
 
                     'job_id' => $job->id,
 
@@ -52,7 +62,7 @@ class JobService
 
             }
 
-            return $job->load('customer','estimate','budgetItems');
+            return $job->load('customer', 'estimate', 'budgetItems');
 
         });
     }

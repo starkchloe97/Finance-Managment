@@ -1,6 +1,4 @@
 <script setup>
-import { computed } from "vue";
-
 const props = defineProps({
     form: Object
 });
@@ -41,22 +39,20 @@ const calculateRow = (item) => {
 
 };
 
-const subtotal = computed(() => {
-
-    return props.form.items.reduce((sum,item)=>{
-
-        return sum + Number(item.total);
-
-    },0);
-
-});
+const money = (value) => Number(value || 0).toLocaleString();
 </script>
 
 <template>
 
 <div class="estimate-items">
 
-<h3>Cost Breakdown</h3>
+<h3>Quoted Items</h3>
+
+<p class="hint">
+    What the customer pays for each item. Company cost is entered later, in the job budget.
+</p>
+
+<div class="table-wrap">
 
 <table>
 
@@ -68,13 +64,13 @@ const subtotal = computed(() => {
 
 <th>Category</th>
 
-<th width="100">Qty</th>
+<th width="110">Qty</th>
 
-<th width="150">Rate</th>
+<th width="150">Unit Price</th>
 
-<th width="150">Total</th>
+<th width="140" class="right">Amount</th>
 
-<th width="80"></th>
+<th width="60"></th>
 
 </tr>
 
@@ -91,16 +87,14 @@ v-for="(item,index) in form.items"
 
 <input
 v-model="item.title"
-placeholder="Labor"
+placeholder="Freight"
 />
 
 </td>
 
 <td>
 
-<select
-v-model="item.category"
->
+<select v-model="item.category">
 
 <option value="">Category</option>
 
@@ -144,20 +138,21 @@ v-model="item.unit_price"
 
 </td>
 
-<td>
+<td class="right">
 
-{{ item.total.toLocaleString() }}
+{{ money(item.total) }}
 
 </td>
 
-<td>
+<td class="right">
 
 <button
 type="button"
+class="btn-danger btn-sm"
 @click="removeRow(index)"
 >
 
-X
+&times;
 
 </button>
 
@@ -169,24 +164,19 @@ X
 
 </table>
 
+</div>
+
+<div class="actions">
+
 <button
 type="button"
+class="btn-light btn-sm"
 @click="addRow"
 >
 
 + Add Item
 
 </button>
-
-<div class="subtotal">
-
-<h3>
-
-Subtotal
-
-{{ subtotal.toLocaleString() }}
-
-</h3>
 
 </div>
 

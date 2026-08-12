@@ -38,27 +38,50 @@ const submit = async () => {
 
 <template>
 
-<h2>Edit Customer</h2>
+<div class="page-head">
+    <h1>Edit Customer</h1>
+</div>
 
-<form @submit.prevent="submit">
+<form class="card" @submit.prevent="submit">
 
-<input v-model="form.name">
+    <div class="grid">
 
-<input v-model="form.phone">
+        <div class="field">
+            <label>Name</label>
+            <input v-model="form.name" required>
+        </div>
 
-<input v-model="form.email">
+        <div class="field">
+            <label>Phone</label>
+            <input v-model="form.phone">
+        </div>
 
-<input v-model="form.company">
+        <div class="field">
+            <label>Email</label>
+            <input type="email" v-model="form.email">
+        </div>
 
-<textarea v-model="form.address"></textarea>
+        <div class="field">
+            <label>Company</label>
+            <input v-model="form.company">
+        </div>
 
-<textarea v-model="form.notes"></textarea>
+    </div>
 
-<button>
+    <div class="field">
+        <label>Address</label>
+        <textarea v-model="form.address"></textarea>
+    </div>
 
-Update
+    <div class="field">
+        <label>Notes</label>
+        <textarea v-model="form.notes"></textarea>
+    </div>
 
-</button>
+    <div class="actions">
+        <button type="submit">Update Customer</button>
+        <RouterLink class="btn btn-light" to="/customers">Cancel</RouterLink>
+    </div>
 
 </form>
 

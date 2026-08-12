@@ -1,5 +1,5 @@
 <script setup>
-import EstimateForm from "@/components/estimate/EstimateForm.vue";
+import EstimateForm from "@/components/layout/estimate/EstimateForm.vue";
 </script>
 
 <template>

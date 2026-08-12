@@ -25,27 +25,50 @@ const submit = async () => {
 
 <template>
 
-<h2>Create Customer</h2>
+<div class="page-head">
+    <h1>New Customer</h1>
+</div>
 
-<form @submit.prevent="submit">
+<form class="card" @submit.prevent="submit">
 
-<input v-model="form.name" placeholder="Name">
+    <div class="grid">
 
-<input v-model="form.phone" placeholder="Phone">
+        <div class="field">
+            <label>Name</label>
+            <input v-model="form.name" placeholder="Customer name" required>
+        </div>
 
-<input v-model="form.email" placeholder="Email">
+        <div class="field">
+            <label>Phone</label>
+            <input v-model="form.phone" placeholder="03001234567">
+        </div>
 
-<input v-model="form.company" placeholder="Company">
+        <div class="field">
+            <label>Email</label>
+            <input type="email" v-model="form.email" placeholder="ops@company.com">
+        </div>
 
-<textarea v-model="form.address"></textarea>
+        <div class="field">
+            <label>Company</label>
+            <input v-model="form.company" placeholder="Company name">
+        </div>
 
-<textarea v-model="form.notes"></textarea>
+    </div>
 
-<button>
+    <div class="field">
+        <label>Address</label>
+        <textarea v-model="form.address"></textarea>
+    </div>
 
-Save
+    <div class="field">
+        <label>Notes</label>
+        <textarea v-model="form.notes"></textarea>
+    </div>
 
-</button>
+    <div class="actions">
+        <button type="submit">Save Customer</button>
+        <RouterLink class="btn btn-light" to="/customers">Cancel</RouterLink>
+    </div>
 
 </form>
 

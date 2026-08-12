@@ -16,7 +16,7 @@ return new class extends Migration
     $table->id();
 
     $table->foreignId('job_id')
-          ->constrained()
+          ->constrained('transport_jobs')
           ->cascadeOnDelete();
 
     $table->string('title');

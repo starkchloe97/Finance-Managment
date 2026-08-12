@@ -32,15 +32,8 @@ return new class extends Migration
         'vehicle'
     ]);
 
-    $table->decimal('subtotal', 15, 2)->default(0);
-
-    $table->decimal('margin', 15, 2)->default(0);
-
-    $table->enum('margin_type', [
-        'fixed',
-        'percentage'
-    ])->default('fixed');
-
+    // What the customer pays. Internal cost lives on the job (planned_cost /
+    // actual_cost) — never here.
     $table->decimal('total', 15, 2)->default(0);
 
     $table->enum('status', [
