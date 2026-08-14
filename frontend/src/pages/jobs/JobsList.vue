@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { getJobs } from "@/services/transportJobService";
+import { money } from "@/utils/money";
 
 const jobs = ref([]);
 const loading = ref(true);
@@ -10,8 +11,6 @@ onMounted(async () => {
     jobs.value = data?.data ?? [];
     loading.value = false;
 });
-
-const money = (value) => Number(value || 0).toLocaleString();
 </script>
 
 <template>
@@ -23,7 +22,8 @@ const money = (value) => Number(value || 0).toLocaleString();
 <div class="card">
 
     <p class="hint">
-        Quoted is what the customer pays. Planned and actual are what it costs us.
+        Base profit is sell minus cost, agreed at quotation. Extra costs are unexpected
+        and come off it to give the final profit.
     </p>
 
     <div class="table-wrap">
@@ -34,10 +34,11 @@ const money = (value) => Number(value || 0).toLocaleString();
                 <tr>
                     <th>Code</th>
                     <th>Customer</th>
-                    <th class="right">Quoted</th>
-                    <th class="right">Planned</th>
-                    <th class="right">Actual</th>
-                    <th class="right">Profit</th>
+                    <th class="right">Sell</th>
+                    <th class="right">Cost</th>
+                    <th class="right">Base Profit</th>
+                    <th class="right">Extra Costs</th>
+                    <th class="right">Final Profit</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -51,13 +52,17 @@ const money = (value) => Number(value || 0).toLocaleString();
 
                     <td>{{ job.customer?.name }}</td>
 
-                    <td class="right">{{ money(job.quoted_amount) }}</td>
+                    <td class="right">{{ money(job.sell_price) }}</td>
 
-                    <td class="right">{{ money(job.planned_cost) }}</td>
+                    <td class="right">{{ money(job.cost_price) }}</td>
 
-                    <td class="right">{{ money(job.actual_cost) }}</td>
+                    <td class="right">{{ money(job.base_profit) }}</td>
 
-                    <td class="right">{{ money(job.profit) }}</td>
+                    <td class="right">{{ money(job.extra_costs) }}</td>
+
+                    <td class="right" :class="{ loss: Number(job.final_profit) < 0 }">
+                        {{ money(job.final_profit) }}
+                    </td>
 
                     <td><span class="badge">{{ job.status }}</span></td>
 

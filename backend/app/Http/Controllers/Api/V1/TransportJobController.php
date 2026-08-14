@@ -20,7 +20,7 @@ class TransportJobController extends Controller
     public function show(TransportJob $job)
     {
         return new TransportJobResource(
-            $job->load('customer', 'estimate', 'budgetItems', 'expenses')
+            $job->load('customer', 'estimate.items', 'expenses')
         );
     }
 

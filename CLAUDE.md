@@ -37,7 +37,7 @@ There is no frontend test runner or linter configured — only Prettier.
 
 ## Backend architecture
 
-**Route layering.** `bootstrap/app.php` → [backend/routes/api.php](backend/routes/api.php) applies the `v1` prefix → [backend/routes/api_v1.php](backend/routes/api_v1.php) `require`s one file per domain from `routes/api/v1/`. To add endpoints, create/extend the domain file and require it from `api_v1.php`. `investors.php`, `expenses.php`, `reports.php`, and `settings.php` exist but are empty placeholders.
+**Route layering.** `bootstrap/app.php` → [backend/routes/api.php](backend/routes/api.php) applies the `v1` prefix → [backend/routes/api_v1.php](backend/routes/api_v1.php) `require`s one file per domain from `routes/api/v1/`. To add a domain, create the file and require it from `api_v1.php`. Every route file that exists has routes in it — don't leave empty ones lying around, and only register the actions a controller actually implements (`estimates` is `->only(['index','store'])` because editing isn't built).
 
 **Request layering.** Route → `App\Http\Controllers\Api\V1\*` → `App\Http\Requests\*` (validation) → `App\Services\*` (business logic, `DB::transaction`) → Eloquent model → `App\Http\Resources\*`. Controllers stay thin; anything writing more than one table belongs in a Service. Services are injected either via constructor (`CustomerController`) or method injection (`TransportJobBudgetController::update`) — both patterns are in use.
 
@@ -47,29 +47,34 @@ There is no frontend test runner or linter configured — only Prettier.
 
 ## Domain model
 
-**The one distinction the whole system rests on: selling price, expected cost, and actual cost are three separate things.**
+**Cost and sell are captured together on the estimate, so profit is known at quotation time. Expenses are only the unexpected costs found later, and they eat into that profit.**
+
+```
+Base Profit  = Sell Price − Cost Price          (fixed when the job is created)
+Final Profit = Base Profit − Total Extra Costs  (moves as expenses are recorded)
+```
 
 | Concept | Question it answers | Where it lives | Customer sees it? |
 |---|---|---|---|
-| **Estimate** | what will we charge? | `estimates.total` | yes — it's the quote |
-| **Budget** | what do we expect to spend? | `transport_jobs.planned_cost` | never |
-| **Expenses** | what did we actually spend? | `transport_jobs.actual_cost` | never |
-
-Profit is `quoted_amount − cost`. So an estimate holds **no cost and no margin** — its line items are what the customer pays for each item, and its total is simply their sum. Do not add markup, margin, or cost fields to `Estimate`; internal money belongs on the job.
+| **Estimate line** | what does this cost us, and what do we charge? | `estimate_items.cost_price` / `.sell_price` | only the sell side |
+| **Estimate** | what's the deal worth? | `estimates.estimated_cost` / `_sell` / `_profit` | only `estimated_sell` |
+| **Job** | what did we sign up for? | `transport_jobs.sell_price` / `.cost_price` / `.base_profit` | no |
+| **Expense** | what went wrong and what did it cost? | `job_expenses.amount` → `transport_jobs.extra_costs` | no |
 
 ```
-Customer → Estimate (+ EstimateItem[])   total = sum of lines            e.g. 70,000
+Customer → Estimate (+ EstimateItem[])   each line has cost_price and sell_price
+                            estimated_cost 61,500 / estimated_sell 70,000 / profit 8,500
          → TransportJob     POST /estimates/{estimate}/convert
-                            quoted_amount = estimate total, estimate marked 'accepted'
-         → TransportJobBudget[]   PUT /jobs/{job}/budget (full replace)  e.g. 61,500
-                            → planned_cost                               → profit 8,500
-         → TransportJobExpense[]  POST /jobs/{job}/expenses              e.g. 66,500
-                            → actual_cost                                → profit 3,500
+                            copies all three, estimate marked 'accepted'  → base_profit 8,500
+         → TransportJobExpense[]  POST /jobs/{job}/expenses   e.g. 5,000 truck repair
+                            → extra_costs 5,000               → final_profit 3,500
 ```
 
-The quote never changes once promised: if costs overrun, `planned_cost`/`actual_cost` rise and profit shrinks, but `quoted_amount` stays put. Converting copies the estimate's line titles into budget lines at **zero cost** — they're a checklist for operations to price, not the customer's prices.
+There is **no separate budget step** — it was merged into the estimate, so `job_budget_items`, `TransportJobBudget` and `PUT /jobs/{job}/budget` no longer exist. Don't reintroduce a cost table on the job; cost lives on the estimate lines.
 
-**All three money columns are derived, and only `TransportJob::recalculate()` writes them.** It re-sums the budget lines and expenses and sets `profit = quoted_amount − cost`, where cost is the actual spend once any expense exists and the budget before that. Both `TransportJobBudgetService` and `TransportJobExpenseService` call it after changing their rows — never compute these totals anywhere else, or the two paths will drift.
+`sell_price`, `cost_price` and `base_profit` are **copied** onto the job rather than read through the estimate relation, so editing an estimate later cannot silently rewrite a job already under way.
+
+**`extra_costs`, `base_profit` and `final_profit` are derived, and only `TransportJob::recalculate()` writes them.** It re-sums the expenses and applies the two formulas above. `TransportJobExpenseService` calls it after every add/remove — never compute these totals anywhere else. `final_profit` is deliberately allowed to go negative: that's a real loss on the job.
 
 `Customer`, `Estimate`, and `TransportJob` use `SoftDeletes`; the line-item tables do not.
 
@@ -78,10 +83,9 @@ The quote never changes once promised: if costs overrun, `planned_cost`/`actual_
 | Model | Actual table | FK column |
 |---|---|---|
 | `TransportJob` | `transport_jobs` | — |
-| `TransportJobBudget` | `job_budget_items` | `job_id` |
 | `TransportJobExpense` | `job_expenses` | `job_id` |
 
-Both models therefore declare `$table` explicitly, and `TransportJob::budgetItems()` / `expenses()` pass `'job_id'` explicitly — Eloquent's inferred `transport_job_budgets` / `transport_job_id` would not match the schema.
+`TransportJobExpense` therefore declares `$table` explicitly, and `TransportJob::expenses()` passes `'job_id'` explicitly — Eloquent's inferred `transport_job_expenses` / `transport_job_id` would not match the schema.
 
 **When adding a child table of `transport_jobs`, never use a bare `->constrained()` on a `job_id` column.** Laravel infers the table from the column name (`job_id` → `jobs`) and Laravel's own **queue** `jobs` table exists, so the FK is created against the wrong table with no error. Write `->constrained('transport_jobs')`. Migration order matters too: `transport_jobs` is timestamped `2026_08_11_220900` so it precedes its children.
 
@@ -93,9 +97,11 @@ Both models therefore declare `$table` explicitly, and `TransportJob::budgetItem
 - `router/index.js` guards on `meta.requiresAuth` / `meta.guest` and hydrates the user from the token before resolving. Note only the `/` route currently sets `requiresAuth` — `/customers`, `/estimates`, etc. are unguarded.
 - `@/` aliases `src/` (declared in both `vite.config.js` and `jsconfig.json`).
 - Lazy-load page components with `() => import(...)` in the router, as the customer and estimate routes do.
-- Several files are still **zero-byte** stubs: `components/layout/ui/Base{Button,Card,Input}.vue`, `estimate/EstimateHeader.vue`, `estimate/EstimateRemarks.vue`, `estimate/EstimateSummary.vue`, and the top-level `pages/{Estimates,Jobs,Investors,Reports,Settings}.vue`. An empty `.vue` file is **not** a valid SFC — importing one fails the build with "At least one `<template>` or `<script>` is required", so give a stub content before wiring it up. `stores/counter.js` and `services/systemService.js` are scaffolding leftovers.
+- Every file under `src/` is reachable from `main.js` — there are no leftover stubs or scaffolding. Keep it that way: an empty `.vue` file is **not** a valid SFC and fails the build with "At least one `<template>` or `<script>` is required", so never commit a placeholder component.
+- `money()` from `@/utils/money` formats every displayed figure; don't redefine it per component.
 - All styling is one global stylesheet, `src/style.css`, imported once in `main.js` — no CSS framework and no scoped component styles. It styles bare elements (`input`, `table`, `button`, `label`, `h1`–`h3`), so new pages generally need no classes beyond `.card`, `.page-head`, `.grid`, `.field` and `.actions`. Colours come from CSS variables on `:root`; change `--accent` to re-theme.
-- Only `/` renders inside `AppLayout` (via `Home.vue`). `/customers`, `/estimates`, etc. are top-level routes, so they render without the sidebar/navbar chrome.
+- Every page renders inside `AppLayout` — they are children of the `/` route in `router/index.js`, so `meta.requiresAuth` on that parent covers all of them.
+- The profit formula is shown, not just stored: the `.chain` block (dashboard and job detail) lays out `sell − cost = base profit − unexpected = final profit` as literal steps, so the numbers explain themselves. Reuse it rather than inventing another totals layout.
 
 ## Conventions
 
@@ -107,6 +113,6 @@ Both models therefore declare `$table` explicitly, and `TransportJob::budgetItem
 
 The estimate → job → budget → expenses chain is complete end to end. Remaining gaps:
 
-- **Editing an estimate.** `EstimateController@show/update/destroy` are still empty stubs, so `/estimates/:id/edit` is a placeholder page. Estimates can be created and listed but not changed.
-- **Investors, reports, settings.** `routes/api/v1/{investors,reports,settings}.php` are empty files with no models behind them.
-- `pages/{Customers,Estimates,Jobs,Investors,Reports,Settings}.vue` at the top level of `pages/` are unused leftovers — the live pages are the ones in `pages/customers/`, `pages/estimates/` and `pages/jobs/`.
+- **Editing an estimate.** Estimates can be created and listed but not changed — there is no `show`/`update`/`destroy` on `EstimateController` and no edit page. Since cost and sell now live on the estimate lines, this is the biggest remaining gap: a mispriced quote can only be fixed by creating a new one.
+- **Investors and settings.** `routes/api/v1/{investors,settings}.php` are empty files with no models behind them. `reports.php` has only `GET /reports/summary`, which feeds the dashboard.
+- **Job status is decorative.** Jobs are created `draft` and nothing advances them, so `transport_jobs.status` and the dashboard's totals cover every job ever created rather than only live or completed ones.

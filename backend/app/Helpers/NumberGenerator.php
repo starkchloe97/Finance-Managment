@@ -4,12 +4,17 @@ namespace App\Helpers;
 
 class NumberGenerator
 {
+    /**
+     * Build the next human-readable code for a model, e.g. CUS-000042.
+     *
+     * Soft-deleted rows still hold their code, so global scopes are dropped
+     * here — counting only the visible rows would hand out a code that is
+     * already taken and hit the unique index.
+     */
     public static function generate(string $prefix, string $model): string
     {
-        $last = $model::withoutGlobalScopes()->latest('id')->first();
+        $number = $model::withoutGlobalScopes()->max('id') + 1;
 
-        $number = $last ? $last->id + 1 : 1;
-
-        return $prefix . '-' . str_pad($number, 6, '0', STR_PAD_LEFT);
+        return $prefix.'-'.str_pad($number, 6, '0', STR_PAD_LEFT);
     }
 }

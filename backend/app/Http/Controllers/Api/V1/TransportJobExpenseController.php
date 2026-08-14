@@ -20,7 +20,7 @@ class TransportJobExpenseController extends Controller
         $this->service->add($job, $request->validated());
 
         return new TransportJobResource(
-            $job->fresh(['customer', 'budgetItems', 'expenses'])
+            $job->fresh(['customer', 'estimate.items', 'expenses'])
         );
     }
 
@@ -31,7 +31,7 @@ class TransportJobExpenseController extends Controller
         $this->service->remove($expense);
 
         return new TransportJobResource(
-            $job->fresh(['customer', 'budgetItems', 'expenses'])
+            $job->fresh(['customer', 'estimate.items', 'expenses'])
         );
     }
 }

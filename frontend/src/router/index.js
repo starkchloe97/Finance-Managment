@@ -1,10 +1,12 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
 
+import AppLayout from "@/layouts/AppLayout.vue";
 import Login from "@/pages/Login.vue";
 import Dashboard from "@/pages/Dashboard.vue";
-import Home from "@/pages/Home.vue";
 
+// Everything except /login lives inside AppLayout, so requiresAuth on the
+// parent covers every page below it.
 const routes = [
     {
         path: "/login",
@@ -14,13 +16,10 @@ const routes = [
     },
     {
         path: "/",
-        component: Home,
+        component: AppLayout,
         meta: { requiresAuth: true },
         children: [
-            {
-                path: "",
-                component: Dashboard,
-            },
+            { path: "", component: Dashboard },
             {
                 path: "customers",
                 component: () => import("@/pages/customers/CustomersList.vue"),
@@ -40,10 +39,6 @@ const routes = [
             {
                 path: "estimates/create",
                 component: () => import("@/pages/estimates/EstimateCreate.vue"),
-            },
-            {
-                path: "estimates/:id/edit",
-                component: () => import("@/pages/estimates/EstimateEdit.vue"),
             },
             {
                 path: "jobs",

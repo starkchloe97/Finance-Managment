@@ -1,4 +1,6 @@
 <script setup>
+import { money } from "@/utils/money";
+
 const props = defineProps({
     form: Object
 });
@@ -32,8 +34,6 @@ const calculateRow = (item) => {
     item.sell_total = quantity * sellPrice;
     item.profit = item.sell_total - item.cost_total;
 };
-
-const money = (value) => Number(value || 0).toLocaleString();
 </script>
 
 <template>

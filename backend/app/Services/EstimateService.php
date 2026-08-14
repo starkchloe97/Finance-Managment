@@ -7,31 +7,21 @@ use App\Helpers\NumberGenerator;
 use Illuminate\Support\Facades\DB;
 
 /**
- * An estimate is the quote we send the customer — the selling price.
+ * An estimate captures both sides of a job in one step: what each line costs
+ * us and what we charge the customer for it. Profit is therefore known as soon
+ * as the quote is built, rather than being worked out later by comparing
+ * separate documents.
  *
- * Each line is what the customer pays for that item, so the estimate total is
- * simply the sum of its lines. What the job actually costs us is tracked
- * separately on the job (planned_cost from the budget, actual_cost from
- * expenses), and profit is the difference. No cost or margin belongs here.
+ * Only the sell figures are ever shown to the customer; cost and profit are
+ * internal.
  */
 class EstimateService
 {
     public function create(array $data)
     {
         return DB::transaction(function () use ($data) {
-            $estimatedCost = 0;
-            $estimatedSell = 0;
-            $estimatedProfit = 0;
 
-            foreach ($data['items'] as $item) {
-                $costTotal = $item['quantity'] * $item['cost_price'];
-                $sellTotal = $item['quantity'] * $item['sell_price'];
-                $profit = $sellTotal - $costTotal;
-
-                $estimatedCost += $costTotal;
-                $estimatedSell += $sellTotal;
-                $estimatedProfit += $profit;
-            }
+            $lines = array_map($this->buildLine(...), $data['items']);
 
             $estimate = Estimate::create([
                 'code' => NumberGenerator::generate('EST', Estimate::class),
@@ -41,32 +31,39 @@ class EstimateService
                 'pickup' => $data['pickup'],
                 'destination' => $data['destination'],
                 'service_type' => $data['service_type'],
-                'estimated_cost' => $estimatedCost,
-                'estimated_sell' => $estimatedSell,
-                'estimated_profit' => $estimatedProfit,
+                'estimated_cost' => array_sum(array_column($lines, 'cost_total')),
+                'estimated_sell' => array_sum(array_column($lines, 'sell_total')),
+                'estimated_profit' => array_sum(array_column($lines, 'profit')),
                 'status' => 'draft',
                 'remarks' => $data['remarks'] ?? null,
             ]);
 
-            foreach ($data['items'] as $item) {
-                $costTotal = $item['quantity'] * $item['cost_price'];
-                $sellTotal = $item['quantity'] * $item['sell_price'];
-                $profit = $sellTotal - $costTotal;
-
-                $estimate->items()->create([
-                    'title' => $item['title'],
-                    'category' => $item['category'],
-                    'quantity' => $item['quantity'],
-                    'cost_price' => $item['cost_price'],
-                    'sell_price' => $item['sell_price'],
-                    'cost_total' => $costTotal,
-                    'sell_total' => $sellTotal,
-                    'profit' => $profit,
-                    'remarks' => $item['remarks'] ?? null,
-                ]);
-            }
+            $estimate->items()->createMany($lines);
 
             return $estimate->load('customer', 'items');
+
         });
+    }
+
+    /**
+     * Price one line. The estimate totals are just the sum of these, so the
+     * arithmetic only lives here.
+     */
+    private function buildLine(array $item): array
+    {
+        $costTotal = $item['quantity'] * $item['cost_price'];
+        $sellTotal = $item['quantity'] * $item['sell_price'];
+
+        return [
+            'title' => $item['title'],
+            'category' => $item['category'],
+            'quantity' => $item['quantity'],
+            'cost_price' => $item['cost_price'],
+            'sell_price' => $item['sell_price'],
+            'cost_total' => $costTotal,
+            'sell_total' => $sellTotal,
+            'profit' => $sellTotal - $costTotal,
+            'remarks' => $item['remarks'] ?? null,
+        ];
     }
 }

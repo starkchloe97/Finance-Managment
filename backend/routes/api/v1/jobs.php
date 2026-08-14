@@ -2,7 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\TransportJobController;
-use App\Http\Controllers\Api\V1\TransportJobBudgetController;
 
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -10,16 +9,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/jobs/{job}', [TransportJobController::class, 'show']);
 
-    // The customer accepted the estimate.
+    // The customer accepted the estimate, so start the job.
     Route::post(
         '/estimates/{estimate}/convert',
         [TransportJobController::class, 'convert']
-    );
-
-    // Expected cost. Replaces every budget line.
-    Route::put(
-        '/jobs/{job}/budget',
-        [TransportJobBudgetController::class, 'update']
     );
 
 });

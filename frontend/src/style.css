@@ -181,6 +181,112 @@ main {
     margin: -6px 0 14px;
 }
 
+/* A job that ended up losing money */
+.loss {
+    color: var(--danger);
+}
+
+/* ---------------------------------------------------------------
+   Profit chain — shows the formula itself:
+   sell - cost = base profit - unexpected = final profit
+   --------------------------------------------------------------- */
+.chain {
+    display: flex;
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px 20px;
+}
+
+.chain .step {
+    flex: 1 1 130px;
+    min-width: 120px;
+}
+
+.chain .step span {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 5px;
+}
+
+.chain .step b {
+    font-size: 21px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.chain .op {
+    display: flex;
+    align-items: center;
+    font-size: 17px;
+    color: var(--muted);
+    padding-top: 16px;
+}
+
+.chain .final b {
+    color: var(--ok);
+}
+.chain .final b.loss {
+    color: var(--danger);
+}
+
+/* ---------------------------------------------------------------
+   Flow steps (dashboard)
+   --------------------------------------------------------------- */
+.flow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+}
+
+.flow .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px 18px;
+}
+
+.flow .step .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 9px;
+}
+
+.flow .step h4 {
+    margin: 0 0 4px;
+    font-size: 15px;
+}
+
+.flow .step p {
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin: 26px 0 12px;
+}
+.section-head h2 {
+    margin: 0;
+}
+
 /* ---------------------------------------------------------------
    Forms
    --------------------------------------------------------------- */

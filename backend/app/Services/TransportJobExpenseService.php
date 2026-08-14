@@ -6,8 +6,10 @@ use App\Models\TransportJob;
 use App\Models\TransportJobExpense;
 
 /**
- * Expenses are what the company actually spent on a job. Each one is recorded
- * as it happens, so the job's actual_cost and profit move with them.
+ * Expenses are the unexpected costs that turn up once a job is under way —
+ * a breakdown, a delay, an extra permit. They are not part of the agreed cost
+ * price, so each one is added to the job's extra_costs and comes off the
+ * profit the job was taken on.
  */
 class TransportJobExpenseService
 {

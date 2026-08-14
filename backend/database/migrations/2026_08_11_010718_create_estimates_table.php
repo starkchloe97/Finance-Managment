@@ -32,8 +32,8 @@ return new class extends Migration
         'vehicle'
     ]);
 
-    // What the customer pays. Internal cost lives on the job (planned_cost /
-    // actual_cost) — never here.
+    // Cost and sell are captured together, so profit is known as soon as the
+    // quote is built. All three are sums of the line items.
     $table->decimal('estimated_cost', 15, 2)->default(0);
 
     $table->decimal('estimated_sell', 15, 2)->default(0);

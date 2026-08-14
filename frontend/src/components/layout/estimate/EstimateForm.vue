@@ -5,6 +5,7 @@ import { createEstimate } from "@/services/estimateService";
 
 import EstimateInformation from "./EstimateInformation.vue";
 import EstimateItemsTable from "./EstimateItemsTable.vue";
+import { money } from "@/utils/money";
 
 const router = useRouter();
 
@@ -34,9 +35,14 @@ const form = reactive({
     ]
 });
 
-const total = computed(() =>
-    form.items.reduce((sum, item) => sum + Number(item.sell_total || 0), 0)
-);
+const sum = (field) =>
+    form.items.reduce((total, item) => total + Number(item[field] || 0), 0);
+
+const totalCost = computed(() => sum("cost_total"));
+
+const totalSell = computed(() => sum("sell_total"));
+
+const totalProfit = computed(() => totalSell.value - totalCost.value);
 
 const save = async () => {
     saving.value = true;
@@ -80,9 +86,17 @@ const save = async () => {
 
         <div class="totals">
             <dl>
+                <div>
+                    <dt>Our cost</dt>
+                    <dd>{{ money(totalCost) }}</dd>
+                </div>
+                <div>
+                    <dt>Customer pays</dt>
+                    <dd>{{ money(totalSell) }}</dd>
+                </div>
                 <div class="grand">
-                    <dt>Customer Total</dt>
-                    <dd>{{ total.toLocaleString() }}</dd>
+                    <dt>Profit</dt>
+                    <dd>{{ money(totalProfit) }}</dd>
                 </div>
             </dl>
         </div>

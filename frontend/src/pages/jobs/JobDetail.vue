@@ -1,16 +1,13 @@
 <script setup>
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { getJob } from "@/services/transportJobService";
-import { updateBudget } from "@/services/transportJobBudgetService";
 import { addExpense, deleteExpense } from "@/services/transportJobExpenseService";
+import { money } from "@/utils/money";
 
 const route = useRoute();
 
 const job = ref(null);
-
-// Budget lines are edited locally and saved as one full list.
-const budget = ref([]);
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -21,52 +18,17 @@ const expense = reactive({
     expense_date: today(),
 });
 
-const money = (value) => Number(value || 0).toLocaleString();
-
-const apply = (data) => {
-    job.value = data;
-
-    budget.value = (data.budget_items ?? []).map((item) => ({
-        title: item.title,
-        category: item.category,
-        quantity: Number(item.quantity),
-        unit_cost: Number(item.unit_cost),
-        notes: item.notes,
-    }));
-};
-
 const load = async () => {
     const { data } = await getJob(route.params.id);
-    apply(data.data);
+    job.value = data.data;
 };
 
 onMounted(load);
 
-const budgetTotal = computed(() =>
-    budget.value.reduce(
-        (sum, item) => sum + Number(item.quantity || 0) * Number(item.unit_cost || 0),
-        0
-    )
-);
-
-const addRow = () =>
-    budget.value.push({ title: "", category: "", quantity: 1, unit_cost: 0, notes: "" });
-
-const removeRow = (index) => budget.value.splice(index, 1);
-
-const saveBudget = async () => {
-    try {
-        await updateBudget(job.value.id, { items: budget.value });
-        await load();
-    } catch (error) {
-        alert(error.response?.data?.message || "Could not save budget");
-    }
-};
-
 const saveExpense = async () => {
     try {
         const { data } = await addExpense(job.value.id, expense);
-        apply(data.data);
+        job.value = data.data;
         Object.assign(expense, { title: "", category: "", amount: 0, expense_date: today() });
     } catch (error) {
         alert(error.response?.data?.message || "Could not add expense");
@@ -75,7 +37,7 @@ const saveExpense = async () => {
 
 const removeExpense = async (id) => {
     const { data } = await deleteExpense(id);
-    apply(data.data);
+    job.value = data.data;
 };
 </script>
 
@@ -88,92 +50,61 @@ const removeExpense = async (id) => {
         <span class="badge">{{ job.status }}</span>
     </div>
 
-    <div class="stats">
+    <div class="chain">
 
-        <div class="stat">
-            <div class="label">Quoted to customer</div>
-            <div class="value">{{ money(job.quoted_amount) }}</div>
+        <div class="step">
+            <span>Customer pays</span>
+            <b>{{ money(job.sell_price) }}</b>
         </div>
 
-        <div class="stat">
-            <div class="label">Planned cost</div>
-            <div class="value">{{ money(job.planned_cost) }}</div>
+        <div class="op">−</div>
+
+        <div class="step">
+            <span>Our cost</span>
+            <b>{{ money(job.cost_price) }}</b>
         </div>
 
-        <div class="stat">
-            <div class="label">Actual cost</div>
-            <div class="value">{{ money(job.actual_cost) }}</div>
+        <div class="op">=</div>
+
+        <div class="step">
+            <span>Base profit</span>
+            <b>{{ money(job.base_profit) }}</b>
         </div>
 
-        <div class="stat">
-            <div class="label">Profit</div>
-            <div class="value">{{ money(job.profit) }}</div>
+        <div class="op">−</div>
+
+        <div class="step">
+            <span>Unexpected</span>
+            <b>{{ money(job.extra_costs) }}</b>
         </div>
 
-    </div>
+        <div class="op">=</div>
 
-    <!-- Budget: what we expect to spend -->
-    <div class="card" style="margin-top: 18px">
-
-        <h3>Budget</h3>
-
-        <p class="hint">What we expect to spend. The customer never sees this.</p>
-
-        <div class="table-wrap">
-
-            <table>
-
-                <thead>
-                    <tr>
-                        <th>Title</th>
-                        <th>Category</th>
-                        <th width="110">Qty</th>
-                        <th width="150">Unit Cost</th>
-                        <th width="140" class="right">Amount</th>
-                        <th width="60"></th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    <tr v-for="(item, index) in budget" :key="index">
-
-                        <td><input v-model="item.title" placeholder="Transportation"></td>
-
-                        <td><input v-model="item.category" placeholder="Transport"></td>
-
-                        <td><input type="number" min="0" v-model="item.quantity"></td>
-
-                        <td><input type="number" min="0" v-model="item.unit_cost"></td>
-
-                        <td class="right">
-                            {{ money(Number(item.quantity || 0) * Number(item.unit_cost || 0)) }}
-                        </td>
-
-                        <td class="right">
-                            <button class="btn-danger btn-sm" @click="removeRow(index)">&times;</button>
-                        </td>
-
-                    </tr>
-                </tbody>
-
-            </table>
-
-        </div>
-
-        <div class="actions">
-            <button class="btn-light btn-sm" @click="addRow">+ Add Line</button>
-            <button @click="saveBudget">Save Budget</button>
-            <span class="muted">Planned total: {{ money(budgetTotal) }}</span>
+        <div class="step final">
+            <span>Final profit</span>
+            <b :class="{ loss: Number(job.final_profit) < 0 }">
+                {{ money(job.final_profit) }}
+            </b>
         </div>
 
     </div>
 
-    <!-- Expenses: what we actually spent -->
+    <p class="hint" style="margin-top: 12px">
+        Base profit was agreed when the job was quoted and does not change. Anything
+        unexpected below is a company loss and comes straight off it.
+    </p>
+
+    <p v-if="Number(job.final_profit) < 0" class="hint loss">
+        Unexpected costs have overtaken the profit — this job is running at a loss.
+    </p>
+
     <div class="card">
 
-        <h3>Expenses</h3>
+        <h3>Unexpected Costs</h3>
 
-        <p class="hint">What we actually spent. Each one lowers the profit.</p>
+        <p class="hint">
+            Only costs that were not in the quote. Each one lowers the final profit.
+        </p>
 
         <div class="table-wrap">
 
@@ -213,7 +144,9 @@ const removeExpense = async (id) => {
 
         </div>
 
-        <p v-if="!job.expenses?.length" class="empty">Nothing spent yet.</p>
+        <p v-if="!job.expenses?.length" class="empty">
+            Nothing unexpected so far — the job is running to plan.
+        </p>
 
         <form class="grid" style="margin-top: 14px" @submit.prevent="saveExpense">
 
@@ -224,7 +157,7 @@ const removeExpense = async (id) => {
 
             <div class="field">
                 <label>Category</label>
-                <input v-model="expense.category" placeholder="Other" required>
+                <input v-model="expense.category" placeholder="Breakdown" required>
             </div>
 
             <div class="field">
@@ -238,10 +171,45 @@ const removeExpense = async (id) => {
             </div>
 
             <div class="field" style="align-self: end">
-                <button type="submit">Add Expense</button>
+                <button type="submit">Add Cost</button>
             </div>
 
         </form>
+
+    </div>
+
+    <!-- The quote the job was taken on, for reference -->
+    <div class="card" v-if="job.estimate">
+
+        <h3>Quoted Lines</h3>
+
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th class="right">Qty</th>
+                        <th class="right">Cost</th>
+                        <th class="right">Sell</th>
+                        <th class="right">Profit</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <tr v-for="item in job.estimate.items" :key="item.id">
+                        <td>{{ item.title }}</td>
+                        <td class="right">{{ Number(item.quantity) }}</td>
+                        <td class="right">{{ money(item.cost_total) }}</td>
+                        <td class="right">{{ money(item.sell_total) }}</td>
+                        <td class="right">{{ money(item.profit) }}</td>
+                    </tr>
+                </tbody>
+
+            </table>
+
+        </div>
 
     </div>
 

@@ -15,10 +15,11 @@ class TransportJob extends Model
         'customer_id',
         'job_date',
         'status',
-        'quoted_amount',
-        'planned_cost',
-        'actual_cost',
-        'profit',
+        'sell_price',
+        'cost_price',
+        'base_profit',
+        'extra_costs',
+        'final_profit',
         'remarks'
     ];
 
@@ -36,34 +37,28 @@ class TransportJob extends Model
         return $this->belongsTo(Customer::class);
     }
 
-    public function budgetItems()
-    {
-        return $this->hasMany(TransportJobBudget::class, 'job_id');
-    }
-
     public function expenses()
     {
         return $this->hasMany(TransportJobExpense::class, 'job_id');
     }
 
     /**
-     * Re-add the job's money columns from its budget lines and expenses.
-     * Called whenever either of those changes. quoted_amount is never touched
-     * here — that price was promised to the customer.
+     * Re-add the job's profit figures.
+     *
+     * sell_price and cost_price are agreed up front and are not touched here,
+     * so base_profit is the profit the job was taken on. Unexpected costs are
+     * summed from the expenses and come straight off it.
+     *
+     * final_profit is allowed to go negative — that is a real loss on the job,
+     * and hiding it behind a zero would be worse than showing it.
      */
     public function recalculate(): void
     {
-        $this->planned_cost = $this->budgetItems()->sum('total');
+        $this->extra_costs = $this->expenses()->sum('amount');
 
-        $this->actual_cost = $this->expenses()->sum('amount');
+        $this->base_profit = $this->sell_price - $this->cost_price;
 
-        // Once real expenses exist they decide the profit; before that we go by
-        // the budget, which is still only an expectation.
-        $cost = $this->actual_cost > 0
-            ? $this->actual_cost
-            : $this->planned_cost;
-
-        $this->profit = $this->quoted_amount - $cost;
+        $this->final_profit = $this->base_profit - $this->extra_costs;
 
         $this->save();
     }
