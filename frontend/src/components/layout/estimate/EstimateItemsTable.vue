@@ -4,39 +4,33 @@ const props = defineProps({
 });
 
 const addRow = () => {
-
     props.form.items.push({
-
         title: "",
-
         category: "",
-
         quantity: 1,
-
-        unit_price: 0,
-
-        total: 0,
-
-        notes: ""
-
+        cost_price: 0,
+        sell_price: 0,
+        cost_total: 0,
+        sell_total: 0,
+        profit: 0,
+        remarks: ""
     });
-
 };
 
 const removeRow = (index) => {
-
     if (props.form.items.length === 1) return;
 
-    props.form.items.splice(index,1);
-
+    props.form.items.splice(index, 1);
 };
 
 const calculateRow = (item) => {
+    const quantity = Number(item.quantity || 0);
+    const costPrice = Number(item.cost_price || 0);
+    const sellPrice = Number(item.sell_price || 0);
 
-    item.total =
-        Number(item.quantity) *
-        Number(item.unit_price);
-
+    item.cost_total = quantity * costPrice;
+    item.sell_total = quantity * sellPrice;
+    item.profit = item.sell_total - item.cost_total;
 };
 
 const money = (value) => Number(value || 0).toLocaleString();
@@ -49,7 +43,7 @@ const money = (value) => Number(value || 0).toLocaleString();
 <h3>Quoted Items</h3>
 
 <p class="hint">
-    What the customer pays for each item. Company cost is entered later, in the job budget.
+    Each line calculates cost, sell, and profit from the quantity and pricing entered here.
 </p>
 
 <div class="table-wrap">
@@ -66,9 +60,11 @@ const money = (value) => Number(value || 0).toLocaleString();
 
 <th width="110">Qty</th>
 
-<th width="150">Unit Price</th>
+<th width="150">Cost Price</th>
 
-<th width="140" class="right">Amount</th>
+<th width="150">Sell Price</th>
+
+<th width="140" class="right">Sell Total</th>
 
 <th width="60"></th>
 
@@ -132,7 +128,18 @@ v-model="item.quantity"
 <input
 type="number"
 min="0"
-v-model="item.unit_price"
+v-model="item.cost_price"
+@input="calculateRow(item)"
+/>
+
+</td>
+
+<td>
+
+<input
+type="number"
+min="0"
+v-model="item.sell_price"
 @input="calculateRow(item)"
 />
 
@@ -140,7 +147,7 @@ v-model="item.unit_price"
 
 <td class="right">
 
-{{ money(item.total) }}
+{{ money(item.sell_total) }}
 
 </td>
 

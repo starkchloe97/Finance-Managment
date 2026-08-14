@@ -18,31 +18,20 @@ class EstimateRequest extends FormRequest
     public function rules(): array
     {
         return [
-
-            'customer_id'=>'required|exists:customers,id',
-
-            'estimate_date'=>'required|date',
-
-            'valid_until'=>'nullable|date',
-
-            'pickup'=>'required',
-
-            'destination'=>'required',
-
-            'service_type'=>'required|in:goods,vehicle',
-
-            'remarks'=>'nullable',
-
-            'items'=>'required|array|min:1',
-
-            'items.*.title'=>'required',
-
-            'items.*.category'=>'required',
-
-            'items.*.quantity'=>'required|numeric|min:1',
-
-            'items.*.unit_price'=>'required|numeric|min:0'
-
+            'customer_id' => 'required|exists:customers,id',
+            'estimate_date' => 'required|date',
+            'valid_until' => 'nullable|date',
+            'pickup' => 'required',
+            'destination' => 'required',
+            'service_type' => 'required|in:goods,vehicle',
+            'remarks' => 'nullable',
+            'items' => 'required|array|min:1',
+            'items.*.title' => 'required',
+            'items.*.category' => 'required',
+            'items.*.quantity' => 'required|numeric|min:1',
+            'items.*.cost_price' => 'required|numeric|min:0',
+            'items.*.sell_price' => 'required|numeric|min:0',
+            'items.*.remarks' => 'nullable',
         ];
     }
 }

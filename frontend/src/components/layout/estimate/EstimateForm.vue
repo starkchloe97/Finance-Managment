@@ -24,16 +24,18 @@ const form = reactive({
             title: "",
             category: "",
             quantity: 1,
-            unit_price: 0,
-            total: 0,
-            notes: ""
+            cost_price: 0,
+            sell_price: 0,
+            cost_total: 0,
+            sell_total: 0,
+            profit: 0,
+            remarks: ""
         }
     ]
 });
 
-// The estimate is the selling price, so the total is just the sum of the lines.
 const total = computed(() =>
-    form.items.reduce((sum, item) => sum + Number(item.total || 0), 0)
+    form.items.reduce((sum, item) => sum + Number(item.sell_total || 0), 0)
 );
 
 const save = async () => {

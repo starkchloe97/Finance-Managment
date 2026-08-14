@@ -65,7 +65,7 @@ const money = (value) => Number(value ?? 0).toLocaleString();
 
                     <td>{{ String(estimate.estimate_date).slice(0, 10) }}</td>
 
-                    <td class="right">{{ money(estimate.total) }}</td>
+                    <td class="right">{{ money(estimate.estimated_sell ?? estimate.total) }}</td>
 
                     <td><span class="badge">{{ estimate.status }}</span></td>
 

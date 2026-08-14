@@ -11,9 +11,12 @@ class EstimateItem extends Model
         'title',
         'category',
         'quantity',
-        'unit_price',
-        'total',
-        'notes'
+        'cost_price',
+        'sell_price',
+        'cost_total',
+        'sell_total',
+        'profit',
+        'remarks'
     ];
 
     public function estimate()

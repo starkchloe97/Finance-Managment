@@ -34,7 +34,11 @@ return new class extends Migration
 
     // What the customer pays. Internal cost lives on the job (planned_cost /
     // actual_cost) — never here.
-    $table->decimal('total', 15, 2)->default(0);
+    $table->decimal('estimated_cost', 15, 2)->default(0);
+
+    $table->decimal('estimated_sell', 15, 2)->default(0);
+
+    $table->decimal('estimated_profit', 15, 2)->default(0);
 
     $table->enum('status', [
         'draft',

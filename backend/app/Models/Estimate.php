@@ -17,9 +17,11 @@ class Estimate extends Model
         'pickup',
         'destination',
         'service_type',
-        'total',
+        'estimated_cost',
+        'estimated_sell',
+        'estimated_profit',
         'status',
-        'remarks'
+        'remarks',
     ];
 
     protected $casts = [

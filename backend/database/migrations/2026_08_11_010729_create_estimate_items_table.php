@@ -20,16 +20,19 @@ return new class extends Migration
           ->cascadeOnDelete();
 
     $table->string('title');
+$table->string('category')->nullable();
 
-    $table->string('category');
+$table->decimal('quantity', 12, 2);
 
-    $table->decimal('quantity', 12, 2)->default(1);
+$table->decimal('cost_price', 15, 2)->default(0);
+$table->decimal('sell_price', 15, 2)->default(0);
 
-    $table->decimal('unit_price', 15, 2);
+$table->decimal('cost_total', 15, 2)->default(0);
+$table->decimal('sell_total', 15, 2)->default(0);
 
-    $table->decimal('total', 15, 2);
+$table->decimal('profit', 15, 2)->default(0);
 
-    $table->text('notes')->nullable();
+$table->text('remarks')->nullable();
 
     $table->timestamps();
 

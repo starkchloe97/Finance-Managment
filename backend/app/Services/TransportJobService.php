@@ -28,12 +28,14 @@ class TransportJobService
 
             $estimate->update(['status' => 'accepted']);
 
+            $quotedAmount = $estimate->estimated_sell ?? $estimate->total ?? 0;
+
             $job = TransportJob::create([
                 'code' => NumberGenerator::generate('JOB', TransportJob::class),
                 'estimate_id' => $estimate->id,
                 'customer_id' => $estimate->customer_id,
                 'job_date' => now(),
-                'quoted_amount' => $estimate->total,
+                'quoted_amount' => $quotedAmount,
                 'planned_cost' => 0,
                 'actual_cost' => 0,
                 'profit' => 0,
