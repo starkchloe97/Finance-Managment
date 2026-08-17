@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreExpenseRequest;
+use App\Http\Requests\UpdateExpenseRequest;
 use App\Http\Resources\TransportJobResource;
 use App\Models\TransportJob;
 use App\Models\TransportJobExpense;
@@ -18,6 +19,17 @@ class TransportJobExpenseController extends Controller
     public function store(StoreExpenseRequest $request, TransportJob $job)
     {
         $this->service->add($job, $request->validated());
+
+        return new TransportJobResource(
+            $job->fresh(['customer', 'estimate.items', 'expenses'])
+        );
+    }
+
+    public function update(UpdateExpenseRequest $request, TransportJobExpense $expense)
+    {
+        $job = $expense->transportJob;
+
+        $this->service->update($expense, $request->validated());
 
         return new TransportJobResource(
             $job->fresh(['customer', 'estimate.items', 'expenses'])
