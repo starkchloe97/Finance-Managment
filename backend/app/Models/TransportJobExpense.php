@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ExpenseCategory;
 use Illuminate\Database\Eloquent\Model;
 
 class TransportJobExpense extends Model
@@ -14,12 +15,13 @@ class TransportJobExpense extends Model
         'category',
         'amount',
         'expense_date',
-        'notes'
+        'notes',
     ];
 
     protected $casts = [
         'expense_date' => 'date',
-        'amount' => 'decimal:2'
+        'amount' => 'decimal:2',
+        'category' => ExpenseCategory::class,
     ];
 
     public function transportJob()

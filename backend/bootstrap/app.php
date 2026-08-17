@@ -13,7 +13,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // There is no server-rendered login page — the SPA owns that route. The
+        // default guest redirect calls route('login') eagerly, which throws
+        // RouteNotFoundException and turns every unauthenticated request that
+        // did not ask for JSON into a 500 with a stack trace. Returning null
+        // leaves it as an AuthenticationException, which renders as 401 JSON.
+        $middleware->redirectGuestsTo(fn () => null);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

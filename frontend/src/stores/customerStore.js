@@ -1,49 +1,57 @@
 import { defineStore } from "pinia";
 import * as service from "@/services/customerService";
 
-export const useCustomerStore=defineStore("customers",{
+// Enough to fill the estimate form's customer dropdown in one request. The API
+// caps per_page at 100; past that the dropdown needs to become searchable.
+const OPTIONS_PAGE_SIZE = 100;
 
+export const useCustomerStore = defineStore("customers", {
     state: () => ({
-    customers: [],
-    loading: false,
-    search: "",
-}),
+        customers: [],
+        loading: false,
+        search: "",
+        // Search runs on every keystroke, so responses can land out of order.
+        // Only the newest request is allowed to write to the list.
+        latestRequest: 0,
+    }),
 
-    actions:{
+    actions: {
+        async fetchCustomers() {
+            const request = ++this.latestRequest;
 
-    async fetchCustomers() {
+            this.loading = true;
 
-        this.loading = true;
+            try {
+                const response = await service.getCustomers({ search: this.search });
 
-        try {
+                if (request === this.latestRequest) {
+                    this.customers = response.data.data;
+                }
+            } finally {
+                if (request === this.latestRequest) {
+                    this.loading = false;
+                }
+            }
+        },
 
-            const response = await service.getCustomers({
-                search: this.search,
-            });
+        async deleteCustomer(id) {
+            await service.deleteCustomer(id);
 
-            this.customers = response.data.data;
+            await this.fetchCustomers();
+        },
 
-        } finally {
+        /**
+         * Every customer, for the estimate form's dropdown — unfiltered and
+         * unpaginated, unlike the list above.
+         */
+        async loadOptions() {
+            const request = ++this.latestRequest;
 
-            this.loading = false;
+            const response = await service.getCustomers({ per_page: OPTIONS_PAGE_SIZE });
 
-        }
-        },  
-    async deleteCustomer(id) {
-
-        await service.deleteCustomer(id);
-
-        await this.fetchCustomers();
-
+            if (request === this.latestRequest) {
+                this.customers = response.data.data;
+            }
+        },
     },
-    async loadOptions() {
-
-    const response = await service.getCustomers();
-
-    this.customers = response.data.data;
-
-}
-
-    }
-
 });

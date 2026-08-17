@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\JobStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -20,11 +21,23 @@ class TransportJob extends Model
         'base_profit',
         'extra_costs',
         'final_profit',
-        'remarks'
+        'remarks',
+        'internal_notes',
     ];
 
     protected $casts = [
-        'job_date' => 'date'
+        'job_date' => 'date',
+        'status' => JobStatus::class,
+    ];
+
+    /**
+     * Internal notes are hidden by default so a job that is serialised
+     * incidentally — nested inside an estimate on GET /estimates, say — cannot
+     * carry them out to a quotation. TransportJobResource, which serves the
+     * job page, adds the field back explicitly.
+     */
+    protected $hidden = [
+        'internal_notes',
     ];
 
     public function estimate()
@@ -40,6 +53,11 @@ class TransportJob extends Model
     public function expenses()
     {
         return $this->hasMany(TransportJobExpense::class, 'job_id');
+    }
+
+    public function activities()
+    {
+        return $this->hasMany(TransportJobActivity::class, 'job_id');
     }
 
     /**

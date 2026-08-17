@@ -15,15 +15,26 @@ class ReportController extends Controller
      */
     public function summary()
     {
+        // One pass over transport_jobs for all five figures — the previous
+        // version ran a separate aggregate query per column.
+        $totals = TransportJob::selectRaw('
+            count(*) as jobs,
+            coalesce(sum(sell_price), 0) as sell_price,
+            coalesce(sum(cost_price), 0) as cost_price,
+            coalesce(sum(base_profit), 0) as base_profit,
+            coalesce(sum(extra_costs), 0) as extra_costs,
+            coalesce(sum(final_profit), 0) as final_profit
+        ')->first();
+
         return response()->json([
             'customers' => Customer::count(),
             'estimates' => Estimate::count(),
-            'jobs' => TransportJob::count(),
-            'sell_price' => TransportJob::sum('sell_price'),
-            'cost_price' => TransportJob::sum('cost_price'),
-            'base_profit' => TransportJob::sum('base_profit'),
-            'extra_costs' => TransportJob::sum('extra_costs'),
-            'final_profit' => TransportJob::sum('final_profit'),
+            'jobs' => $totals->jobs,
+            'sell_price' => $totals->sell_price,
+            'cost_price' => $totals->cost_price,
+            'base_profit' => $totals->base_profit,
+            'extra_costs' => $totals->extra_costs,
+            'final_profit' => $totals->final_profit,
         ]);
     }
 }

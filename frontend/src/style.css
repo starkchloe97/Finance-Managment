@@ -156,6 +156,20 @@ main {
     flex-wrap: wrap;
 }
 
+/* Keeps the heading and its badge together so page-head's space-between
+   pushes only the trailing control to the far side */
+.head-title,
+.status-move {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-move select {
+    width: auto;
+    min-width: 160px;
+}
+
 .toolbar {
     display: flex;
     gap: 10px;
@@ -233,6 +247,18 @@ main {
 }
 .chain .final b.loss {
     color: var(--danger);
+}
+
+/* Sits under the figure, so a loss reads as: label, number, LOSS. The
+   selector has to out-rank both `.badge` and `.chain .step span` above. */
+.chain .final .badge-loss {
+    display: inline-block;
+    margin-top: 7px;
+    background: var(--danger);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
 }
 
 /* ---------------------------------------------------------------
@@ -454,6 +480,109 @@ td a + .btn {
 /* Let wide tables scroll instead of breaking the layout */
 .table-wrap {
     overflow-x: auto;
+}
+
+/* ---------------------------------------------------------------
+   Form feedback — server-side messages, per field and per form
+   --------------------------------------------------------------- */
+.error {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: var(--danger);
+}
+
+input.invalid,
+select.invalid,
+textarea.invalid {
+    border-color: var(--danger);
+}
+
+input.invalid:focus,
+select.invalid:focus,
+textarea.invalid:focus {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.12);
+}
+
+.notice {
+    margin: 12px 0 0;
+    padding: 9px 12px;
+    border-radius: 8px;
+    background: #eef4ff;
+    border: 1px solid var(--border);
+    font-size: 13px;
+}
+
+button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------
+   Grouped cost table — category headings, subtotals, grand total
+   --------------------------------------------------------------- */
+.group-head th {
+    padding-top: 16px;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.group-total td {
+    font-weight: 500;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+}
+
+.grand-total td {
+    font-weight: 600;
+    font-size: 15px;
+    border-top: 2px solid var(--text);
+}
+
+/* The row currently loaded into the form below */
+tr.editing td {
+    background: #fff8e1;
+}
+
+/* Notes sit under the title rather than taking a column of their own */
+td .hint {
+    display: block;
+    margin-top: 2px;
+}
+
+/* ---------------------------------------------------------------
+   Activity timeline — read-only history, newest first
+   --------------------------------------------------------------- */
+.timeline {
+    list-style: none;
+    margin: 14px 0 0;
+    padding: 0;
+}
+
+.timeline li {
+    display: flex;
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.timeline li:last-child {
+    border-bottom: none;
+}
+
+.timeline-when {
+    flex: 0 0 170px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.timeline-what {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 /* ---------------------------------------------------------------

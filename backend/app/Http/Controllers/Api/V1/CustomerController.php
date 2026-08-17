@@ -7,27 +7,41 @@ use App\Http\Requests\CustomerRequest;
 use App\Http\Resources\CustomerResource;
 use App\Models\Customer;
 use App\Services\CustomerService;
+use Illuminate\Http\Request;
 
 class CustomerController extends Controller
 {
     public function __construct(
         private CustomerService $service
-    ){}
+    ) {}
 
-    public function index()
-{
-    $query = Customer::query();
+    /**
+     * The search terms must be grouped. Left ungrouped they bind as
+     * `(deleted_at is null and name like ?) or phone like ? or company like ?`,
+     * which hands soft-deleted customers back as soon as their phone or company
+     * matches.
+     *
+     * per_page is capped because this also feeds the customer dropdown on the
+     * estimate form, which needs more than one page at a time.
+     */
+    public function index(Request $request)
+    {
+        $query = Customer::query();
 
-    if (request('search')) {
-        $query->where('name', 'like', '%' . request('search') . '%')
-              ->orWhere('phone', 'like', '%' . request('search') . '%')
-              ->orWhere('company', 'like', '%' . request('search') . '%');
+        if ($search = $request->input('search')) {
+            $query->where(function ($grouped) use ($search) {
+                $grouped->where('name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('company', 'like', "%{$search}%");
+            });
+        }
+
+        $perPage = min(max((int) $request->input('per_page', 10), 1), 100);
+
+        return CustomerResource::collection(
+            $query->latest()->paginate($perPage)
+        );
     }
-
-    return CustomerResource::collection(
-        $query->latest()->paginate(10)
-    );
-}
 
     public function store(CustomerRequest $request)
     {
@@ -41,7 +55,7 @@ class CustomerController extends Controller
         return new CustomerResource($customer);
     }
 
-    public function update(CustomerRequest $request,Customer $customer)
+    public function update(CustomerRequest $request, Customer $customer)
     {
         return new CustomerResource(
             $this->service->update(
@@ -56,7 +70,7 @@ class CustomerController extends Controller
         $customer->delete();
 
         return response()->json([
-            'message'=>'Customer deleted.'
+            'message' => 'Customer deleted.',
         ]);
     }
 }

@@ -2,6 +2,7 @@
 import { ref, onMounted } from "vue";
 import { getJobs } from "@/services/transportJobService";
 import { money } from "@/utils/money";
+import { statusLabel } from "@/utils/jobStatus";
 
 const jobs = ref([]);
 const loading = ref(true);
@@ -64,7 +65,7 @@ onMounted(async () => {
                         {{ money(job.final_profit) }}
                     </td>
 
-                    <td><span class="badge">{{ job.status }}</span></td>
+                    <td><span class="badge">{{ statusLabel(job.status) }}</span></td>
 
                 </tr>
             </tbody>

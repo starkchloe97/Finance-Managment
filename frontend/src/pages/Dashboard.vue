@@ -9,11 +9,20 @@ const auth = useAuthStore();
 
 const summary = ref(null);
 const jobs = ref([]);
+const loading = ref(true);
+const failed = ref(false);
 
 onMounted(async () => {
-    const [summaryResponse, jobsResponse] = await Promise.all([getSummary(), getJobs()]);
-    summary.value = summaryResponse.data;
-    jobs.value = (jobsResponse.data?.data ?? []).slice(0, 5);
+    try {
+        const [summaryResponse, jobsResponse] = await Promise.all([getSummary(), getJobs()]);
+        summary.value = summaryResponse.data;
+        jobs.value = (jobsResponse.data?.data ?? []).slice(0, 5);
+    } catch {
+        // Without this the page sits blank forever on a failed request.
+        failed.value = true;
+    } finally {
+        loading.value = false;
+    }
 });
 </script>
 
@@ -23,6 +32,12 @@ onMounted(async () => {
     <h1>Dashboard</h1>
     <span class="muted">{{ auth.user?.name }}</span>
 </div>
+
+<p v-if="loading" class="empty">Loading…</p>
+
+<p v-else-if="failed" class="empty loss">
+    Could not load the dashboard. Check that the API is running and try again.
+</p>
 
 <!-- The money story across every job, in the order it happens -->
 <div class="chain" v-if="summary">

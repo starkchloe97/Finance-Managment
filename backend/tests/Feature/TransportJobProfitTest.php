@@ -56,7 +56,7 @@ class TransportJobProfitTest extends TestCase
 
         app(TransportJobExpenseService::class)->add($job, [
             'title' => 'Truck repair',
-            'category' => 'Breakdown',
+            'category' => 'repair',
             'amount' => 5000,
             'expense_date' => '2026-08-15',
         ]);
@@ -80,7 +80,7 @@ class TransportJobProfitTest extends TestCase
         foreach ([1000, 2000, 500] as $amount) {
             $service->add($job, [
                 'title' => 'Extra',
-                'category' => 'Other',
+                'category' => 'miscellaneous',
                 'amount' => $amount,
                 'expense_date' => '2026-08-15',
             ]);
@@ -98,7 +98,7 @@ class TransportJobProfitTest extends TestCase
 
         app(TransportJobExpenseService::class)->add($job, [
             'title' => 'Engine replacement',
-            'category' => 'Breakdown',
+            'category' => 'repair',
             'amount' => 20000,
             'expense_date' => '2026-08-15',
         ]);
@@ -117,7 +117,7 @@ class TransportJobProfitTest extends TestCase
 
         $expense = $service->add($job, [
             'title' => 'Truck repair',
-            'category' => 'Breakdown',
+            'category' => 'repair',
             'amount' => 5000,
             'expense_date' => '2026-08-15',
         ]);

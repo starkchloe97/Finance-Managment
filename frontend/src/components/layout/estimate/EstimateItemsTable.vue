@@ -25,6 +25,10 @@ const removeRow = (index) => {
     props.form.items.splice(index, 1);
 };
 
+// A live preview only. EstimateService::buildLine recomputes all three from
+// quantity and the two prices and ignores whatever is posted, so these values
+// never decide anything — they just save the user a round trip to see the line
+// total while typing.
 const calculateRow = (item) => {
     const quantity = Number(item.quantity || 0);
     const costPrice = Number(item.cost_price || 0);

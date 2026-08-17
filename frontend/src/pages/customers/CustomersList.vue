@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import { useCustomerStore } from "@/stores/customerStore";
 
 const store = useCustomerStore();
@@ -7,6 +7,16 @@ const store = useCustomerStore();
 onMounted(() => {
     store.fetchCustomers();
 });
+
+// Wait for a pause in typing rather than sending a request per keystroke.
+const searchTimer = ref(null);
+
+const searchLater = () => {
+    clearTimeout(searchTimer.value);
+    searchTimer.value = setTimeout(() => store.fetchCustomers(), 300);
+};
+
+onUnmounted(() => clearTimeout(searchTimer.value));
 
 const remove = (customer) => {
     if (confirm(`Delete ${customer.name}?`)) {
@@ -32,7 +42,7 @@ const remove = (customer) => {
     <div class="toolbar">
         <input
             v-model="store.search"
-            @input="store.fetchCustomers()"
+            @input="searchLater"
             placeholder="Search by name, phone or company…"
         />
     </div>
