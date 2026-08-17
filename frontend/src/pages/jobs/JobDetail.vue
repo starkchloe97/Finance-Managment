@@ -2,21 +2,29 @@
 import { ref, reactive, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { getJob } from "@/services/transportJobService";
-import { addExpense, deleteExpense } from "@/services/transportJobExpenseService";
+import {
+    addExpense,
+    updateExpense,
+    deleteExpense,
+} from "@/services/transportJobExpenseService";
 import { money } from "@/utils/money";
 
 const route = useRoute();
 
 const job = ref(null);
+const editingExpenseId = ref(null);
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-const expense = reactive({
+const emptyExpense = () => ({
     title: "",
     category: "",
     amount: 0,
     expense_date: today(),
+    notes: "",
 });
+
+const expense = reactive(emptyExpense());
 
 const load = async () => {
     const { data } = await getJob(route.params.id);
@@ -25,19 +33,48 @@ const load = async () => {
 
 onMounted(load);
 
+const resetExpense = () => {
+    Object.assign(expense, emptyExpense());
+    editingExpenseId.value = null;
+};
+
 const saveExpense = async () => {
     try {
-        const { data } = await addExpense(job.value.id, expense);
+        const { data } = editingExpenseId.value
+            ? await updateExpense(editingExpenseId.value, expense)
+            : await addExpense(job.value.id, expense);
+
         job.value = data.data;
-        Object.assign(expense, { title: "", category: "", amount: 0, expense_date: today() });
+        resetExpense();
     } catch (error) {
-        alert(error.response?.data?.message || "Could not add expense");
+        alert(error.response?.data?.message || "Could not save unexpected cost");
     }
 };
 
+const startEditExpense = (item) => {
+    editingExpenseId.value = item.id;
+    Object.assign(expense, {
+        title: item.title || "",
+        category: item.category || "",
+        amount: Number(item.amount || 0),
+        expense_date: String(item.expense_date).slice(0, 10),
+        notes: item.notes || "",
+    });
+};
+
 const removeExpense = async (id) => {
-    const { data } = await deleteExpense(id);
-    job.value = data.data;
+    if (!confirm("Delete this unexpected cost?")) return;
+
+    try {
+        const { data } = await deleteExpense(id);
+        job.value = data.data;
+
+        if (editingExpenseId.value === id) {
+            resetExpense();
+        }
+    } catch (error) {
+        alert(error.response?.data?.message || "Could not delete unexpected cost");
+    }
 };
 </script>
 
@@ -116,7 +153,7 @@ const removeExpense = async (id) => {
                         <th>Category</th>
                         <th>Date</th>
                         <th class="right">Amount</th>
-                        <th width="60"></th>
+                        <th width="120"></th>
                     </tr>
                 </thead>
 
@@ -132,7 +169,10 @@ const removeExpense = async (id) => {
                         <td class="right">{{ money(item.amount) }}</td>
 
                         <td class="right">
-                            <button class="btn-danger btn-sm" @click="removeExpense(item.id)">
+                            <button class="btn-light btn-sm" type="button" @click="startEditExpense(item)">
+                                Edit
+                            </button>
+                            <button class="btn-danger btn-sm" type="button" @click="removeExpense(item.id)">
                                 &times;
                             </button>
                         </td>
@@ -151,18 +191,18 @@ const removeExpense = async (id) => {
         <form class="grid" style="margin-top: 14px" @submit.prevent="saveExpense">
 
             <div class="field">
-                <label>Title</label>
+                <label>{{ editingExpenseId ? "Edit Cost" : "Add Cost" }} — Title</label>
                 <input v-model="expense.title" placeholder="Truck repair" required>
             </div>
 
             <div class="field">
                 <label>Category</label>
-                <input v-model="expense.category" placeholder="Breakdown" required>
+                <input v-model="expense.category" placeholder="Repair" required>
             </div>
 
             <div class="field">
                 <label>Amount</label>
-                <input type="number" min="0" v-model="expense.amount" required>
+                <input type="number" min="0" step="0.01" v-model="expense.amount" required>
             </div>
 
             <div class="field">
@@ -170,8 +210,18 @@ const removeExpense = async (id) => {
                 <input type="date" v-model="expense.expense_date" required>
             </div>
 
-            <div class="field" style="align-self: end">
-                <button type="submit">Add Cost</button>
+            <div class="field">
+                <label>Notes</label>
+                <input v-model="expense.notes" placeholder="Optional details">
+            </div>
+
+            <div class="field actions" style="align-self: end">
+                <button type="submit">
+                    {{ editingExpenseId ? "Update Cost" : "Add Cost" }}
+                </button>
+                <button v-if="editingExpenseId" class="btn-light" type="button" @click="resetExpense">
+                    Cancel
+                </button>
             </div>
 
         </form>
