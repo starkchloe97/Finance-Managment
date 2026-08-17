@@ -5,10 +5,14 @@ use App\Http\Controllers\Api\V1\TransportJobExpenseController;
 
 Route::middleware('auth:sanctum')->group(function () {
 
-    // Actual cost. Each expense is recorded as it happens.
     Route::post(
         '/jobs/{job}/expenses',
         [TransportJobExpenseController::class, 'store']
+    );
+
+    Route::put(
+        '/expenses/{expense}',
+        [TransportJobExpenseController::class, 'update']
     );
 
     Route::delete(
