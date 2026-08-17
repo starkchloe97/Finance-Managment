@@ -22,6 +22,16 @@ class TransportJobExpenseService
         return $expense;
     }
 
+    public function update(TransportJobExpense $expense, array $data)
+    {
+        $expense->update($data);
+
+        $job = $expense->transportJob;
+        $job->recalculate();
+
+        return $expense->fresh();
+    }
+
     public function remove(TransportJobExpense $expense)
     {
         $job = $expense->transportJob;
