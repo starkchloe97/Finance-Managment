@@ -4,18 +4,22 @@ import { RouterLink } from "vue-router";
 
 <template>
 
-<aside class="sidebar">
+    <aside class="sidebar">
 
-    <div class="brand">Transport ERP</div>
+        <div class="brand">Transport ERP</div>
 
-    <RouterLink to="/">Dashboard</RouterLink>
+        <RouterLink to="/">Dashboard</RouterLink>
 
-    <RouterLink to="/customers">Customers</RouterLink>
+        <RouterLink to="/customers">Customers</RouterLink>
 
-    <RouterLink to="/estimates">Estimates</RouterLink>
+        <RouterLink to="/estimates">Estimates</RouterLink>
 
-    <RouterLink to="/jobs">Jobs</RouterLink>
+        <RouterLink to="/jobs">Jobs</RouterLink>
+        
+        <RouterLink to="/investors">Investors</RouterLink>
 
-</aside>
+        <RouterLink :to="{ name: 'investments.index' }">Investments</RouterLink>
+
+    </aside>
 
 </template>

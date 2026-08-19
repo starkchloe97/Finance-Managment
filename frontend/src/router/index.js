@@ -48,6 +48,62 @@ const routes = [
                 path: "jobs/:id",
                 component: () => import("@/pages/jobs/JobDetail.vue"),
             },
+            {
+                path: '/investors',
+                name: 'investors',
+                component: () => import('@/pages/Investors/Investors.vue'),
+                meta: {
+                    requiresAuth: true,
+                },
+            },
+            {
+                path: '/investors/create',
+                name: 'investor-create',
+                component: () => import('@/pages/Investors/InvestorCreate.vue'),
+                meta: {
+                    requiresAuth: true,
+                },
+            },
+            {
+                path: '/investors/:id',
+                name: 'investor-show',
+                component: () => import('@/pages/Investors/InvestorShow.vue'),
+                meta: {
+                    requiresAuth: true,
+                },
+            },
+            {
+                path: '/investors/:id/edit',
+                name: 'investor-edit',
+                component: () => import('@/pages/Investors/InvestorEdit.vue'),
+                meta: {
+                    requiresAuth: true,
+                },
+            },
+            {
+    path: '/investments',
+    name: 'investments.index',
+    component: () => import('@/pages/investments/Investments.vue'),
+},
+
+{
+    path: '/investments/create',
+    name: 'investments.create',
+    component: () => import('@/pages/investments/InvestmentCreate.vue'),
+},
+
+{
+    path: '/investments/:id',
+    name: 'investments.show',
+    component: () => import('@/pages/investments/InvestmentShow.vue'),
+},
+
+{
+    path: '/investments/:id/edit',
+    name: 'investments.edit',
+    component: () => import('@/pages/investments/InvestmentEdit.vue'),
+},
+
         ],
     },
 ];
