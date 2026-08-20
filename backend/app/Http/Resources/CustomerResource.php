@@ -14,23 +14,37 @@ class CustomerResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $summary = $this->jobs_summary;
+
         return [
 
-            'id'=>$this->id,
+            'id' => $this->id,
 
-            'name'=>$this->name,
+            'code' => $this->code,
 
-            'phone'=>$this->phone,
+            'name' => $this->name,
 
-            'email'=>$this->email,
+            'phone' => $this->phone,
 
-            'company'=>$this->company,
+            'email' => $this->email,
 
-            'address'=>$this->address,
+            'company' => $this->company,
 
-            'notes'=>$this->notes,
+            'address' => $this->address,
 
-            'created_at'=>$this->created_at,
+            'notes' => $this->notes,
+
+            'job_count' => $summary['job_count'],
+
+            'revenue' => $summary['revenue'],
+
+            'cost' => $summary['cost'],
+
+            'profit' => $summary['profit'],
+
+            'estimate_count' => $this->estimate_count,
+
+            'created_at' => $this->created_at,
 
         ];
     }

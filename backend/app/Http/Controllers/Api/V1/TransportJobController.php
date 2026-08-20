@@ -9,13 +9,35 @@ use App\Http\Resources\TransportJobResource;
 use App\Models\Estimate;
 use App\Models\TransportJob;
 use App\Services\TransportJobService;
+use Illuminate\Http\Request;
 
 class TransportJobController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $query = TransportJob::with('customer');
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($grouped) use ($search) {
+                $grouped->where('code', 'like', "%{$search}%")
+                    ->orWhereHas('customer', function ($customer) use ($search) {
+                        $customer->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        if ($status = $request->input('status')) {
+            $query->where('status', $status);
+        }
+
+        if ($customerId = $request->input('customer_id')) {
+            $query->where('customer_id', $customerId);
+        }
+
+        $perPage = min(max((int) $request->input('per_page', 10), 1), 100);
+
         return TransportJobResource::collection(
-            TransportJob::with('customer')->latest()->paginate(10)
+            $query->latest()->paginate($perPage)
         );
     }
 

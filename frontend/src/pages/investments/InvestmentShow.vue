@@ -5,7 +5,11 @@ import { storeToRefs } from 'pinia'
 import { useInvestmentStore } from '@/stores/investmentStore'
 import { money } from '@/utils/money'
 import AllocationForm from '@/components/AllocationForm.vue'
-import { getAllocations, getInvestmentDistributions, releaseAllocation } from '@/services/investmentFinanceService'
+import {
+  getAllocations,
+  getInvestmentDistributions,
+  releaseAllocation,
+} from '@/services/investmentFinanceService'
 
 const route = useRoute()
 const router = useRouter()
@@ -44,7 +48,10 @@ onMounted(async () => {
 })
 
 const loadFinance = async () => {
-  const [allocationResponse, distributionResponse] = await Promise.all([getAllocations(route.params.id), getInvestmentDistributions(route.params.id)])
+  const [allocationResponse, distributionResponse] = await Promise.all([
+    getAllocations(route.params.id),
+    getInvestmentDistributions(route.params.id),
+  ])
   allocations.value = allocationResponse.data.data
   distributions.value = distributionResponse.data.data
 }
@@ -440,26 +447,86 @@ const editInvestment = () => {
         </div>
 
         <div class="details-grid capital-grid">
-          <div class="detail-card capital-card"><span>Total capital</span><strong>{{ money(investment.amount) }}</strong></div>
-          <div class="detail-card capital-card"><span>Allocated capital</span><strong>{{ money(investment.allocated_amount) }}</strong></div>
-          <div class="detail-card capital-card"><span>Available capital</span><strong>{{ money(investment.remaining_capital) }}</strong></div>
+          <div class="detail-card capital-card">
+            <span>Total capital</span><strong>{{ money(investment.amount) }}</strong>
+          </div>
+          <div class="detail-card capital-card">
+            <span>Allocated capital</span><strong>{{ money(investment.allocated_amount) }}</strong>
+          </div>
+          <div class="detail-card capital-card">
+            <span>Available capital</span><strong>{{ money(investment.remaining_capital) }}</strong>
+          </div>
         </div>
 
         <div v-if="investment.status === 'active'" class="capital-form">
-          <AllocationForm :investment="investment" @created="async () => { await investmentStore.fetchInvestment(route.params.id); await loadFinance() }" />
+          <AllocationForm
+            :investment="investment"
+            @created="
+              async () => {
+                await investmentStore.fetchInvestment(route.params.id)
+                await loadFinance()
+              }
+            "
+          />
         </div>
       </section>
 
       <section class="detail-section">
         <h2>Allocations</h2>
         <p v-if="!allocations.length">No allocations yet.</p>
-        <div v-else class="table-wrap"><table><thead><tr><th>Job</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody><tr v-for="allocation in allocations" :key="allocation.id"><td>{{ allocation.job?.code }}</td><td>{{ money(allocation.amount) }}</td><td><span class="status-label">{{ allocation.status }}</span></td><td><button v-if="allocation.status === 'active'" class="btn-sm" @click="release(allocation)">Release</button></td></tr></tbody></table></div>
+        <div v-else class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Job</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="allocation in allocations" :key="allocation.id">
+                <td>{{ allocation.job?.code }}</td>
+                <td>{{ money(allocation.amount) }}</td>
+                <td>
+                  <span class="status-label">{{ allocation.status }}</span>
+                </td>
+                <td>
+                  <button
+                    v-if="allocation.status === 'active'"
+                    class="btn-sm"
+                    @click="release(allocation)"
+                  >
+                    Release
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section class="detail-section">
         <h2>Profit Distributions</h2>
         <p v-if="!distributions.length">No distributions yet.</p>
-        <div v-else class="table-wrap"><table><thead><tr><th>Job</th><th>Basis</th><th>Profit</th></tr></thead><tbody><tr v-for="distribution in distributions" :key="distribution.id"><td>{{ distribution.transport_job_id }}</td><td>{{ money(distribution.profit_basis) }}</td><td>{{ money(distribution.profit_amount) }}</td></tr></tbody></table></div>
+        <div v-else class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Job</th>
+                <th>Basis</th>
+                <th>Profit</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="distribution in distributions" :key="distribution.id">
+                <td>{{ distribution.transport_job_id }}</td>
+                <td>{{ money(distribution.profit_basis) }}</td>
+                <td>{{ money(distribution.profit_amount) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <div v-if="investment.notes" class="detail-section">

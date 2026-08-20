@@ -36,10 +36,18 @@ class CustomerController extends Controller
             });
         }
 
+        $sort = $request->input('sort', 'latest');
+
+        if ($sort === 'name') {
+            $query->orderBy('name');
+        } else {
+            $query->latest();
+        }
+
         $perPage = min(max((int) $request->input('per_page', 10), 1), 100);
 
         return CustomerResource::collection(
-            $query->latest()->paginate($perPage)
+            $query->paginate($perPage)
         );
     }
 
@@ -52,7 +60,9 @@ class CustomerController extends Controller
 
     public function show(Customer $customer)
     {
-        return new CustomerResource($customer);
+        return new CustomerResource(
+            $customer->load(['jobs', 'estimates', 'activities'])
+        );
     }
 
     public function update(CustomerRequest $request, Customer $customer)

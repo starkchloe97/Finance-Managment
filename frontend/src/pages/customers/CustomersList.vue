@@ -1,95 +1,123 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from "vue";
-import { useCustomerStore } from "@/stores/customerStore";
+import { onMounted, onUnmounted, ref } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useCustomerStore } from '@/stores/customerStore'
+import SearchInput from '@/components/ui/SearchInput.vue'
+import FilterSelect from '@/components/ui/FilterSelect.vue'
+import Pagination from '@/components/ui/Pagination.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import StatePanel from '@/components/ui/StatePanel.vue'
+import CustomerTable from '@/components/customers/CustomerTable.vue'
+import CustomerCard from '@/components/customers/CustomerCard.vue'
+import { money } from '@/utils/money'
 
-const store = useCustomerStore();
+const store = useCustomerStore()
+const { customers, loading, error, search, pagination } = storeToRefs(store)
+
+const deleting = ref(null)
+const isMobile = ref(false)
+
+const checkMobile = () => {
+  isMobile.value = window.innerWidth < 820
+}
+
+const searchTimer = ref(null)
+const onSearch = (value) => {
+  search.value = value
+  clearTimeout(searchTimer.value)
+  searchTimer.value = setTimeout(() => store.setSearch(value), 300)
+}
+
+const sortOptions = [
+  { value: 'latest', label: 'Newest' },
+  { value: 'name', label: 'Name' },
+]
 
 onMounted(() => {
-    store.fetchCustomers();
-});
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+  store.setSearch(store.search)
+})
 
-// Wait for a pause in typing rather than sending a request per keystroke.
-const searchTimer = ref(null);
+onUnmounted(() => {
+  clearTimeout(searchTimer.value)
+  window.removeEventListener('resize', checkMobile)
+})
 
-const searchLater = () => {
-    clearTimeout(searchTimer.value);
-    searchTimer.value = setTimeout(() => store.fetchCustomers(), 300);
-};
+const confirmDelete = (customer) => {
+  deleting.value = customer
+}
 
-onUnmounted(() => clearTimeout(searchTimer.value));
-
-const remove = (customer) => {
-    if (confirm(`Delete ${customer.name}?`)) {
-        store.deleteCustomer(customer.id);
-    }
-};
+const doDelete = async () => {
+  if (!deleting.value) return
+  await store.deleteCustomer(deleting.value.id)
+  deleting.value = null
+}
 </script>
 
 <template>
+  <div>
+    <div class="page-head">
+      <h1>Customers</h1>
+      <RouterLink class="btn" to="/customers/create">+ New Customer</RouterLink>
+    </div>
 
-<div class="page-head">
-
-    <h1>Customers</h1>
-
-    <RouterLink class="btn" to="/customers/create">
-        New Customer
-    </RouterLink>
-
-</div>
-
-<div class="card">
-
-    <div class="toolbar">
-        <input
-            v-model="store.search"
-            @input="searchLater"
-            placeholder="Search by name, phone or company…"
+    <div class="card">
+      <div class="toolbar">
+        <SearchInput
+          :model-value="search"
+          placeholder="Search by name, phone or company…"
+          @update:model-value="onSearch"
         />
+        <FilterSelect
+          :model-value="store.sort"
+          :options="sortOptions"
+          placeholder="Sort"
+          @update:model-value="store.setSort"
+        />
+      </div>
+
+      <StatePanel
+        :loading="loading && !customers.length"
+        :error="error"
+        :empty="!loading && !error && !customers.length"
+        empty-title="No customers yet — create your first customer to start quoting jobs."
+        empty-action="Create customer"
+        empty-to="/customers/create"
+      >
+        <!-- Desktop table -->
+        <template v-if="!isMobile">
+          <CustomerTable :customers="customers" @delete="confirmDelete" />
+        </template>
+
+        <!-- Mobile card grid -->
+        <div v-else class="entity-card-grid">
+          <CustomerCard
+            v-for="customer in customers"
+            :key="customer.id"
+            :customer="customer"
+            @delete="confirmDelete"
+          />
+        </div>
+
+        <Pagination
+          :page="pagination.current_page"
+          :last-page="pagination.last_page"
+          :total="pagination.total"
+          :per-page="pagination.per_page"
+          @update:page="store.setPage"
+        />
+      </StatePanel>
     </div>
 
-    <div class="table-wrap">
-
-        <table>
-
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Phone</th>
-                    <th>Company</th>
-                    <th class="right">Actions</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                <tr v-for="customer in store.customers" :key="customer.id">
-
-                    <td>{{ customer.name }}</td>
-
-                    <td>{{ customer.phone || "—" }}</td>
-
-                    <td>{{ customer.company || "—" }}</td>
-
-                    <td class="right">
-                        <RouterLink :to="`/customers/${customer.id}/edit`">
-                            Edit
-                        </RouterLink>
-
-                        <button class="btn-danger btn-sm" @click="remove(customer)">
-                            Delete
-                        </button>
-                    </td>
-
-                </tr>
-            </tbody>
-
-        </table>
-
-    </div>
-
-    <p v-if="!store.loading && !store.customers.length" class="empty">
-        No customers yet.
-    </p>
-
-</div>
-
+    <ConfirmDialog
+      :open="Boolean(deleting)"
+      title="Delete customer?"
+      :message="deleting ? `Delete ${deleting.name}? This cannot be undone.` : ''"
+      confirm-label="Delete"
+      variant="danger"
+      @confirm="doDelete"
+      @cancel="deleting = null"
+    />
+  </div>
 </template>

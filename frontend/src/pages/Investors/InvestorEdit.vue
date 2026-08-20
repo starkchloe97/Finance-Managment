@@ -9,8 +9,7 @@ const router = useRouter()
 
 const investorStore = useInvestorStore()
 
-const { investor, loading } =
-  storeToRefs(investorStore)
+const { investor, loading } = storeToRefs(investorStore)
 
 const submitting = ref(false)
 const validationErrors = ref({})
@@ -44,16 +43,12 @@ async function submit() {
   validationErrors.value = {}
 
   try {
-    await investorStore.updateInvestor(
-      route.params.id,
-      form,
-    )
+    await investorStore.updateInvestor(route.params.id, form)
 
     router.push(`/investors/${route.params.id}`)
   } catch (error) {
     if (error.response?.status === 422) {
-      validationErrors.value =
-        error.response.data.errors || {}
+      validationErrors.value = error.response.data.errors || {}
     }
   } finally {
     submitting.value = false
@@ -67,9 +62,7 @@ function cancel() {
 
 <template>
   <div class="page">
-    <div v-if="loading && !investor">
-      Loading investor...
-    </div>
+    <div v-if="loading && !investor">Loading investor...</div>
 
     <template v-else-if="investor">
       <div class="page-head">
@@ -79,20 +72,12 @@ function cancel() {
         </div>
       </div>
 
-      <form
-        class="card"
-        @submit.prevent="submit"
-      >
+      <form class="card" @submit.prevent="submit">
         <div class="grid">
           <div class="field">
             <label for="name">Name</label>
 
-            <input
-              id="name"
-              v-model="form.name"
-              type="text"
-              required
-            />
+            <input id="name" v-model="form.name" type="text" required />
 
             <small v-if="validationErrors.name">
               {{ validationErrors.name[0] }}
@@ -102,11 +87,7 @@ function cancel() {
           <div class="field">
             <label for="email">Email</label>
 
-            <input
-              id="email"
-              v-model="form.email"
-              type="email"
-            />
+            <input id="email" v-model="form.email" type="email" />
 
             <small v-if="validationErrors.email">
               {{ validationErrors.email[0] }}
@@ -116,63 +97,36 @@ function cancel() {
           <div class="field">
             <label for="phone">Phone</label>
 
-            <input
-              id="phone"
-              v-model="form.phone"
-              type="text"
-            />
+            <input id="phone" v-model="form.phone" type="text" />
           </div>
 
           <div class="field">
             <label for="status">Status</label>
 
-            <select
-              id="status"
-              v-model="form.status"
-            >
-              <option value="active">
-                Active
-              </option>
+            <select id="status" v-model="form.status">
+              <option value="active">Active</option>
 
-              <option value="inactive">
-                Inactive
-              </option>
+              <option value="inactive">Inactive</option>
             </select>
           </div>
 
           <div class="field">
             <label for="address">Address</label>
 
-            <textarea
-              id="address"
-              v-model="form.address"
-              rows="3"
-            />
+            <textarea id="address" v-model="form.address" rows="3" />
           </div>
 
           <div class="field">
             <label for="notes">Notes</label>
 
-            <textarea
-              id="notes"
-              v-model="form.notes"
-              rows="3"
-            />
+            <textarea id="notes" v-model="form.notes" rows="3" />
           </div>
         </div>
 
         <div class="actions">
-          <button
-            type="button"
-            @click="cancel"
-          >
-            Cancel
-          </button>
+          <button type="button" @click="cancel">Cancel</button>
 
-          <button
-            type="submit"
-            :disabled="submitting"
-          >
+          <button type="submit" :disabled="submitting">
             {{ submitting ? 'Saving...' : 'Save Changes' }}
           </button>
         </div>

@@ -2,9 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\Estimate;
 use App\Helpers\NumberGenerator;
+use App\Models\Estimate;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * An estimate captures both sides of a job in one step: what each line costs
@@ -37,6 +38,46 @@ class EstimateService
                 'status' => 'draft',
                 'remarks' => $data['remarks'] ?? null,
             ]);
+
+            $estimate->items()->createMany($lines);
+
+            return $estimate->load('customer', 'items');
+
+        });
+    }
+
+    /**
+     * Edit a quote that has not been converted. Totals are rebuilt from the
+     * line items exactly as they were on create; the job keeps its own copy of
+     * the figures once conversion has happened.
+     */
+    public function update(Estimate $estimate, array $data)
+    {
+        return DB::transaction(function () use ($estimate, $data) {
+
+            if ($estimate->transportJob) {
+                throw ValidationException::withMessages([
+                    'estimate' => 'This estimate has already been converted and cannot be edited.',
+                ]);
+            }
+
+            $lines = array_map($this->buildLine(...), $data['items']);
+
+            $estimate->update([
+                'customer_id' => $data['customer_id'],
+                'estimate_date' => $data['estimate_date'],
+                'valid_until' => $data['valid_until'] ?? null,
+                'pickup' => $data['pickup'],
+                'destination' => $data['destination'],
+                'service_type' => $data['service_type'],
+                'estimated_cost' => array_sum(array_column($lines, 'cost_total')),
+                'estimated_sell' => array_sum(array_column($lines, 'sell_total')),
+                'estimated_profit' => array_sum(array_column($lines, 'profit')),
+                'status' => $data['status'] ?? $estimate->status,
+                'remarks' => $data['remarks'] ?? null,
+            ]);
+
+            $estimate->items()->delete();
 
             $estimate->items()->createMany($lines);
 

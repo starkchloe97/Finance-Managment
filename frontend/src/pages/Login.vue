@@ -1,62 +1,48 @@
 <script setup>
-import { reactive } from "vue";
-import { useRouter } from "vue-router";
-import { useAuthStore } from "@/stores/authStore";
+import { reactive } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore'
 
-const router = useRouter();
+const router = useRouter()
 
-const auth = useAuthStore();
+const auth = useAuthStore()
 
 const form = reactive({
-    email: "",
-    password: "",
-});
+  email: '',
+  password: '',
+})
 
 const submit = async () => {
-    try {
-        await auth.login(form);
+  try {
+    await auth.login(form)
 
-        router.push("/");
-    } catch (error) {
-        alert(error.response?.data?.message || "Login failed");
-    }
-};
+    router.push('/')
+  } catch (error) {
+    alert(error.response?.data?.message || 'Login failed')
+  }
+}
 </script>
 
 <template>
-    <div class="login">
+  <div class="login">
+    <form @submit.prevent="submit">
+      <h2>Transport ERP</h2>
 
-        <form @submit.prevent="submit">
+      <p class="sub">Sign in to continue</p>
 
-            <h2>Transport ERP</h2>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" v-model="form.email" placeholder="you@company.com" />
+      </div>
 
-            <p class="sub">Sign in to continue</p>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" v-model="form.password" placeholder="••••••••" />
+      </div>
 
-            <div class="field">
-                <label>Email</label>
-                <input
-                    type="email"
-                    v-model="form.email"
-                    placeholder="you@company.com"
-                />
-            </div>
-
-            <div class="field">
-                <label>Password</label>
-                <input
-                    type="password"
-                    v-model="form.password"
-                    placeholder="••••••••"
-                />
-            </div>
-
-            <button type="submit" :disabled="auth.loading">
-
-                {{ auth.loading ? "Signing in…" : "Sign in" }}
-
-            </button>
-
-        </form>
-
-    </div>
+      <button type="submit" :disabled="auth.loading">
+        {{ auth.loading ? 'Signing in…' : 'Sign in' }}
+      </button>
+    </form>
+  </div>
 </template>

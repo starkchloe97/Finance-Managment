@@ -9,25 +9,21 @@ import { money } from '@/utils/money'
 const route = useRoute()
 const router = useRouter()
 
-const investmentStore =
-    useInvestmentStore()
+const investmentStore = useInvestmentStore()
 
 const {
-    investments,
-    loading: investmentsLoading,
+  investments,
+  loading: investmentsLoading,
   error: investmentsError,
 } = storeToRefs(investmentStore)
 
 const investorStore = useInvestorStore()
 
-const { investor, loading, error } =
-  storeToRefs(investorStore)
+const { investor, loading, error } = storeToRefs(investorStore)
 
 onMounted(() => {
   investorStore.fetchInvestor(route.params.id)
-  investmentStore.fetchInvestorInvestments(
-    route.params.id
-)
+  investmentStore.fetchInvestorInvestments(route.params.id)
 })
 
 function editInvestor() {
@@ -48,9 +44,7 @@ function viewInvestment(id) {
 
 <template>
   <div class="page">
-    <div v-if="loading">
-      Loading investor...
-    </div>
+    <div v-if="loading">Loading investor...</div>
 
     <div v-else-if="error" class="card">
       {{ error }}
@@ -67,19 +61,9 @@ function viewInvestment(id) {
         </div>
 
         <div class="actions">
-          <button
-            type="button"
-            @click="goBack"
-          >
-            Back
-          </button>
+          <button type="button" @click="goBack">Back</button>
 
-          <button
-            type="button"
-            @click="editInvestor"
-          >
-            Edit
-          </button>
+          <button type="button" @click="editInvestor">Edit</button>
         </div>
       </div>
 
@@ -127,17 +111,13 @@ function viewInvestment(id) {
       <div class="card">
         <h2>Investments</h2>
 
-        <div v-if="investmentsLoading" class="empty">
-          Loading investments...
-        </div>
+        <div v-if="investmentsLoading" class="empty">Loading investments...</div>
 
         <div v-else-if="investmentsError" class="error-state">
           {{ investmentsError }}
         </div>
 
-        <div v-else-if="investments.length === 0" class="empty">
-          No investments found.
-        </div>
+        <div v-else-if="investments.length === 0" class="empty">No investments found.</div>
 
         <div v-else class="table-container">
           <table>
@@ -152,15 +132,9 @@ function viewInvestment(id) {
             </thead>
 
             <tbody>
-              <tr
-                v-for="investment in investments"
-                :key="investment.id"
-              >
+              <tr v-for="investment in investments" :key="investment.id">
                 <td>
-                  <a
-                    href="#"
-                    @click.prevent="viewInvestment(investment.id)"
-                  >
+                  <a href="#" @click.prevent="viewInvestment(investment.id)">
                     {{ investment.investment_code }}
                   </a>
                 </td>
@@ -168,9 +142,7 @@ function viewInvestment(id) {
                 <td>{{ money(investment.amount) }}</td>
                 <td>{{ investment.investment_date }}</td>
                 <td>
-                  {{ investment.period_months
-                    ? `${investment.period_months} months`
-                    : '-' }}
+                  {{ investment.period_months ? `${investment.period_months} months` : '-' }}
                 </td>
                 <td>{{ investment.status }}</td>
               </tr>

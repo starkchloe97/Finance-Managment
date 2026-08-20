@@ -7,8 +7,7 @@ import { useInvestorStore } from '@/stores/investorStore'
 const router = useRouter()
 const investorStore = useInvestorStore()
 
-const { investors, loading, error, pagination } =
-  storeToRefs(investorStore)
+const { investors, loading, error, pagination } = storeToRefs(investorStore)
 
 onMounted(() => {
   investorStore.fetchInvestors()
@@ -27,9 +26,7 @@ function editInvestor(id) {
 }
 
 async function deleteInvestor(id) {
-  const confirmed = window.confirm(
-    'Are you sure you want to delete this investor?',
-  )
+  const confirmed = window.confirm('Are you sure you want to delete this investor?')
 
   if (!confirmed) {
     return
@@ -52,9 +49,7 @@ async function deleteInvestor(id) {
       </div>
 
       <div class="actions">
-        <button type="button" @click="createInvestor">
-          Add Investor
-        </button>
+        <button type="button" @click="createInvestor">Add Investor</button>
       </div>
     </div>
 
@@ -63,13 +58,9 @@ async function deleteInvestor(id) {
     </div>
 
     <div class="card">
-      <div v-if="loading">
-        Loading investors...
-      </div>
+      <div v-if="loading">Loading investors...</div>
 
-      <div v-else-if="investors.length === 0">
-        No investors found.
-      </div>
+      <div v-else-if="investors.length === 0">No investors found.</div>
 
       <table v-else>
         <thead>
@@ -84,10 +75,7 @@ async function deleteInvestor(id) {
         </thead>
 
         <tbody>
-          <tr
-            v-for="investor in investors"
-            :key="investor.id"
-          >
+          <tr v-for="investor in investors" :key="investor.id">
             <td>{{ investor.investor_code }}</td>
 
             <td>{{ investor.name }}</td>
@@ -102,26 +90,11 @@ async function deleteInvestor(id) {
 
             <td>
               <div class="actions">
-                <button
-                  type="button"
-                  @click="viewInvestor(investor.id)"
-                >
-                  View
-                </button>
+                <button type="button" @click="viewInvestor(investor.id)">View</button>
 
-                <button
-                  type="button"
-                  @click="editInvestor(investor.id)"
-                >
-                  Edit
-                </button>
+                <button type="button" @click="editInvestor(investor.id)">Edit</button>
 
-                <button
-                  type="button"
-                  @click="deleteInvestor(investor.id)"
-                >
-                  Delete
-                </button>
+                <button type="button" @click="deleteInvestor(investor.id)">Delete</button>
               </div>
             </td>
           </tr>
@@ -129,10 +102,7 @@ async function deleteInvestor(id) {
       </table>
 
       <div v-if="pagination.total > 0">
-        <p>
-          Showing {{ investors.length }} of
-          {{ pagination.total }} investors
-        </p>
+        <p>Showing {{ investors.length }} of {{ pagination.total }} investors</p>
       </div>
     </div>
   </div>

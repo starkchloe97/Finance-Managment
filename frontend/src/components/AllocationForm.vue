@@ -10,21 +10,36 @@ const jobId = ref('')
 const amount = ref('')
 const error = ref('')
 const saving = ref(false)
-const canSubmit = computed(() => Number(amount.value) > 0 && Number(amount.value) <= Number(props.investment.remaining_capital) && jobId.value)
+const canSubmit = computed(
+  () =>
+    Number(amount.value) > 0 &&
+    Number(amount.value) <= Number(props.investment.remaining_capital) &&
+    jobId.value,
+)
 
-getJobs().then((response) => { jobs.value = response.data.data })
+getJobs().then((response) => {
+  jobs.value = response.data.data
+})
 const submit = async () => {
   if (!canSubmit.value || saving.value) return
   saving.value = true
   error.value = ''
   try {
-    await createAllocation(props.investment.id, { transport_job_id: jobId.value, amount: amount.value })
+    await createAllocation(props.investment.id, {
+      transport_job_id: jobId.value,
+      amount: amount.value,
+    })
     jobId.value = ''
     amount.value = ''
     emit('created')
   } catch (e) {
-    error.value = e.response?.data?.errors?.amount?.[0] || e.response?.data?.message || 'Could not create allocation.'
-  } finally { saving.value = false }
+    error.value =
+      e.response?.data?.errors?.amount?.[0] ||
+      e.response?.data?.message ||
+      'Could not create allocation.'
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 
@@ -55,8 +70,19 @@ const submit = async () => {
 
 <template>
   <form class="allocation-form" @submit.prevent="submit">
-    <select v-model="jobId" :disabled="saving"><option value="">Choose a job</option><option v-for="job in jobs" :key="job.id" :value="job.id">{{ job.code }}</option></select>
-    <input v-model="amount" type="number" min="0.01" step="0.01" :max="investment.remaining_capital" placeholder="Amount" :disabled="saving">
+    <select v-model="jobId" :disabled="saving">
+      <option value="">Choose a job</option>
+      <option v-for="job in jobs" :key="job.id" :value="job.id">{{ job.code }}</option>
+    </select>
+    <input
+      v-model="amount"
+      type="number"
+      min="0.01"
+      step="0.01"
+      :max="investment.remaining_capital"
+      placeholder="Amount"
+      :disabled="saving"
+    />
     <button type="submit" :disabled="!canSubmit || saving">Allocate</button>
     <small v-if="error" class="error">{{ error }}</small>
   </form>
