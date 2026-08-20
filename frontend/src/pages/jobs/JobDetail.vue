@@ -15,6 +15,7 @@ import {
 import { money } from "@/utils/money";
 import { nextStatuses, statusLabel } from "@/utils/jobStatus";
 import { EXPENSE_CATEGORIES, categoryLabel } from "@/utils/expenseCategories";
+import { createDistribution, getJobDistributions, createFinancialAdjustment } from "@/services/investmentFinanceService";
 
 const route = useRoute();
 
@@ -27,6 +28,11 @@ const notes = ref("");
 const notesSaved = ref(false);
 
 const activities = ref([]);
+const distributions = ref([]);
+const distributing = ref(false);
+const adjustmentSaving = ref(false);
+const adjustmentError = ref("");
+const adjustment = reactive({ field: "", old_value: "", new_value: "", reason: "" });
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -89,7 +95,42 @@ const apply = (updated) => {
 const load = async () => {
     const { data } = await getJob(route.params.id);
     apply(data.data);
+    distributions.value = (await getJobDistributions(route.params.id)).data.data;
     await loadActivities();
+};
+
+const distribute = async (allocation) => {
+    if (distributing.value || job.value.financially_locked_at) return;
+
+    distributing.value = true;
+    try {
+        await createDistribution(job.value.id, { investment_id: allocation.investment_id });
+        await load();
+    } catch (error) {
+        alert(error.response?.data?.message || "Could not calculate distribution");
+    } finally {
+        distributing.value = false;
+    }
+};
+
+const saveAdjustment = async () => {
+    if (adjustmentSaving.value) return;
+
+    adjustmentSaving.value = true;
+    adjustmentError.value = "";
+
+    try {
+        await createFinancialAdjustment(job.value.id, adjustment);
+        Object.assign(adjustment, { field: "", old_value: "", new_value: "", reason: "" });
+        await load();
+    } catch (error) {
+        adjustmentError.value = error.response?.data?.errors?.reason?.[0]
+            || error.response?.data?.errors?.field?.[0]
+            || error.response?.data?.message
+            || "Could not record the adjustment.";
+    } finally {
+        adjustmentSaving.value = false;
+    }
 };
 
 onMounted(load);
@@ -288,6 +329,41 @@ const when = (value) => new Date(value).toLocaleString();
     <p v-if="isLoss" class="hint loss">
         Unexpected costs have overtaken the profit — this job is running at a loss.
     </p>
+
+    <div class="card">
+        <h3>Funding</h3>
+        <p v-if="!job.allocations?.length" class="empty">No investor funding allocated.</p>
+        <table v-else>
+            <thead><tr><th>Investor</th><th>Allocation</th><th></th></tr></thead>
+            <tbody><tr v-for="allocation in job.allocations" :key="allocation.id"><td>{{ allocation.investment?.investor?.name || '-' }}</td><td class="right">{{ money(allocation.amount) }}</td><td><button v-if="allocation.status === 'active' && !job.financially_locked_at" :disabled="distributing" @click="distribute(allocation)">Calculate distribution</button></td></tr></tbody>
+        </table>
+        <p v-if="job.financially_locked_at" class="hint">Financially locked.</p>
+    </div>
+
+    <div class="card">
+        <h3>Profit Distributions</h3>
+        <p v-if="!distributions.length" class="empty">No distributions calculated.</p>
+        <table v-else><thead><tr><th>Investor</th><th>Share</th><th class="right">Profit</th></tr></thead><tbody><tr v-for="distribution in distributions" :key="distribution.id"><td>{{ distribution.investor?.name }}</td><td>{{ distribution.profit_share_value }}</td><td class="right">{{ money(distribution.profit_amount) }}</td></tr></tbody></table>
+    </div>
+
+    <div class="card">
+        <h3>Financial Adjustments</h3>
+        <p class="hint">Keep a reasoned audit record for any correction made after financial review.</p>
+        <p v-if="!job.financial_adjustments?.length" class="empty">No financial adjustments recorded.</p>
+        <table v-else>
+            <thead><tr><th>Field</th><th>Previous</th><th>Corrected</th><th>Reason</th><th>By</th></tr></thead>
+            <tbody><tr v-for="item in job.financial_adjustments" :key="item.id"><td>{{ item.field }}</td><td>{{ item.old_value || '-' }}</td><td>{{ item.new_value || '-' }}</td><td>{{ item.reason }}</td><td>{{ item.author?.name || 'system' }}</td></tr></tbody>
+        </table>
+
+        <form class="grid" style="margin-top: 14px" @submit.prevent="saveAdjustment">
+            <div class="field"><label>Field corrected</label><input v-model="adjustment.field" :disabled="adjustmentSaving" placeholder="Unexpected cost"></div>
+            <div class="field"><label>Previous value</label><input v-model="adjustment.old_value" :disabled="adjustmentSaving"></div>
+            <div class="field"><label>Corrected value</label><input v-model="adjustment.new_value" :disabled="adjustmentSaving"></div>
+            <div class="field"><label>Reason</label><input v-model="adjustment.reason" :disabled="adjustmentSaving" required placeholder="Supporting document corrected the amount"></div>
+            <div class="field actions" style="align-self: end"><button type="submit" :disabled="adjustmentSaving">{{ adjustmentSaving ? 'Recording…' : 'Record Adjustment' }}</button></div>
+        </form>
+        <p v-if="adjustmentError" class="error">{{ adjustmentError }}</p>
+    </div>
 
     <div class="card">
 

@@ -20,6 +20,10 @@ class TransportJobResource extends JsonResource
     {
         return parent::toArray($request) + [
             'internal_notes' => $this->internal_notes,
+            'financially_locked_at' => $this->financially_locked_at?->toISOString(),
+            'financial_adjustments' => FinancialAdjustmentResource::collection(
+                $this->whenLoaded('financialAdjustments')
+            ),
         ];
     }
 }

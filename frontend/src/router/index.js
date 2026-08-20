@@ -1,132 +1,46 @@
-import { createRouter, createWebHistory } from "vue-router";
-import { useAuthStore } from "@/stores/authStore";
+import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore'
+import AppLayout from '@/layouts/AppLayout.vue'
+import Login from '@/pages/Login.vue'
+import Dashboard from '@/pages/Dashboard.vue'
 
-import AppLayout from "@/layouts/AppLayout.vue";
-import Login from "@/pages/Login.vue";
-import Dashboard from "@/pages/Dashboard.vue";
+const secure = (breadcrumb) => ({ requiresAuth: true, breadcrumb })
 
-// Everything except /login lives inside AppLayout, so requiresAuth on the
-// parent covers every page below it.
 const routes = [
+    { path: '/login', name: 'login', component: Login, meta: { guest: true } },
     {
-        path: "/login",
-        name: "login",
-        component: Login,
-        meta: { guest: true },
-    },
-    {
-        path: "/",
+        path: '/',
         component: AppLayout,
-        meta: { requiresAuth: true },
+        meta: secure('Dashboard'),
         children: [
-            { path: "", component: Dashboard },
-            {
-                path: "customers",
-                component: () => import("@/pages/customers/CustomersList.vue"),
-            },
-            {
-                path: "customers/create",
-                component: () => import("@/pages/customers/CustomerCreate.vue"),
-            },
-            {
-                path: "customers/:id/edit",
-                component: () => import("@/pages/customers/CustomerEdit.vue"),
-            },
-            {
-                path: "estimates",
-                component: () => import("@/pages/estimates/EstimatesList.vue"),
-            },
-            {
-                path: "estimates/create",
-                component: () => import("@/pages/estimates/EstimateCreate.vue"),
-            },
-            {
-                path: "jobs",
-                component: () => import("@/pages/jobs/JobsList.vue"),
-            },
-            {
-                path: "jobs/:id",
-                component: () => import("@/pages/jobs/JobDetail.vue"),
-            },
-            {
-                path: '/investors',
-                name: 'investors',
-                component: () => import('@/pages/Investors/Investors.vue'),
-                meta: {
-                    requiresAuth: true,
-                },
-            },
-            {
-                path: '/investors/create',
-                name: 'investor-create',
-                component: () => import('@/pages/Investors/InvestorCreate.vue'),
-                meta: {
-                    requiresAuth: true,
-                },
-            },
-            {
-                path: '/investors/:id',
-                name: 'investor-show',
-                component: () => import('@/pages/Investors/InvestorShow.vue'),
-                meta: {
-                    requiresAuth: true,
-                },
-            },
-            {
-                path: '/investors/:id/edit',
-                name: 'investor-edit',
-                component: () => import('@/pages/Investors/InvestorEdit.vue'),
-                meta: {
-                    requiresAuth: true,
-                },
-            },
-            {
-    path: '/investments',
-    name: 'investments.index',
-    component: () => import('@/pages/investments/Investments.vue'),
-},
-
-{
-    path: '/investments/create',
-    name: 'investments.create',
-    component: () => import('@/pages/investments/InvestmentCreate.vue'),
-},
-
-{
-    path: '/investments/:id',
-    name: 'investments.show',
-    component: () => import('@/pages/investments/InvestmentShow.vue'),
-},
-
-{
-    path: '/investments/:id/edit',
-    name: 'investments.edit',
-    component: () => import('@/pages/investments/InvestmentEdit.vue'),
-},
-
+            { path: '', name: 'dashboard', component: Dashboard, meta: secure('Dashboard') },
+            { path: 'customers', component: () => import('@/pages/customers/CustomersList.vue'), meta: secure('Operations / Customers') },
+            { path: 'customers/create', component: () => import('@/pages/customers/CustomerCreate.vue'), meta: secure('Operations / Customers / New customer') },
+            { path: 'customers/:id/edit', component: () => import('@/pages/customers/CustomerEdit.vue'), meta: secure('Operations / Customers / Edit customer') },
+            { path: 'estimates', component: () => import('@/pages/estimates/EstimatesList.vue'), meta: secure('Operations / Estimates') },
+            { path: 'estimates/create', component: () => import('@/pages/estimates/EstimateCreate.vue'), meta: secure('Operations / Estimates / New estimate') },
+            { path: 'jobs', component: () => import('@/pages/jobs/JobsList.vue'), meta: secure('Operations / Transport Jobs') },
+            { path: 'jobs/:id', component: () => import('@/pages/jobs/JobDetail.vue'), meta: secure('Operations / Transport Jobs / Job details') },
+            { path: 'investors', name: 'investors', component: () => import('@/pages/Investors/Investors.vue'), meta: secure('Finance / Investors') },
+            { path: 'investors/create', name: 'investor-create', component: () => import('@/pages/Investors/InvestorCreate.vue'), meta: secure('Finance / Investors / New investor') },
+            { path: 'investors/:id', name: 'investor-show', component: () => import('@/pages/Investors/InvestorShow.vue'), meta: secure('Finance / Investors / Investor details') },
+            { path: 'investors/:id/edit', name: 'investor-edit', component: () => import('@/pages/Investors/InvestorEdit.vue'), meta: secure('Finance / Investors / Edit investor') },
+            { path: 'investments', name: 'investments.index', component: () => import('@/pages/investments/Investments.vue'), meta: secure('Finance / Investments') },
+            { path: 'investments/create', name: 'investments.create', component: () => import('@/pages/investments/InvestmentCreate.vue'), meta: secure('Finance / Investments / New investment') },
+            { path: 'investments/:id', name: 'investments.show', component: () => import('@/pages/investments/InvestmentShow.vue'), meta: secure('Finance / Investments / Investment details') },
+            { path: 'investments/:id/edit', name: 'investments.edit', component: () => import('@/pages/investments/InvestmentEdit.vue'), meta: secure('Finance / Investments / Edit investment') },
         ],
     },
-];
+]
 
-const router = createRouter({
-    history: createWebHistory(),
-    routes,
-});
+const router = createRouter({ history: createWebHistory(), routes })
 
 router.beforeEach(async (to) => {
-    const auth = useAuthStore();
+    const auth = useAuthStore()
 
-    if (auth.token && !auth.user) {
-        await auth.getUser();
-    }
+    if (auth.token && !auth.user) await auth.getUser()
+    if (to.meta.requiresAuth && !auth.isAuthenticated) return '/login'
+    if (to.meta.guest && auth.isAuthenticated) return '/'
+})
 
-    if (to.meta.requiresAuth && !auth.isAuthenticated) {
-        return "/login";
-    }
-
-    if (to.meta.guest && auth.isAuthenticated) {
-        return "/";
-    }
-});
-
-export default router;
+export default router

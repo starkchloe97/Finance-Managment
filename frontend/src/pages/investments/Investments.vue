@@ -45,6 +45,16 @@ const deleteInvestment = async (id) => {
 }
 </script>
 
+<style scoped>
+.investment-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 190px;
+}
+</style>
+
 <template>
   <div class="page-container">
     <div class="page-header">
@@ -108,7 +118,7 @@ const deleteInvestment = async (id) => {
               {{ investment.status }}
             </td>
 
-            <td>
+            <td class="investment-actions">
               <button type="button" @click="viewInvestment(investment.id)">View</button>
 
               <button
@@ -121,6 +131,7 @@ const deleteInvestment = async (id) => {
 
               <button
                 v-if="investment.status === 'active'"
+                class="btn-danger"
                 type="button"
                 @click="deleteInvestment(investment.id)"
               >

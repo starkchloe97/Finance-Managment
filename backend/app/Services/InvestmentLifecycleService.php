@@ -9,6 +9,7 @@ use Illuminate\Validation\ValidationException;
 
 class InvestmentLifecycleService
 {
+    public function __construct(private InvestmentSettlementService $settlements) {}
     public function mature(Investment $investment): Investment
     {
         return $this->transition(
@@ -38,12 +39,16 @@ class InvestmentLifecycleService
 
     public function settle(Investment $investment): Investment
     {
-        return $this->transition(
-            $investment,
-            InvestmentStatus::Settled,
-            [InvestmentStatus::Matured, InvestmentStatus::Withdrawn],
-            'settled_at'
-        );
+        return DB::transaction(function () use ($investment) {
+            $this->settlements->calculateActualSettlement($investment);
+
+            return $this->transition(
+                $investment,
+                InvestmentStatus::Settled,
+                [InvestmentStatus::Matured, InvestmentStatus::Withdrawn],
+                'settled_at'
+            );
+        });
     }
 
     public function cancel(Investment $investment): Investment

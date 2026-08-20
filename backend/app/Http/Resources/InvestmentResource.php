@@ -32,6 +32,14 @@ class InvestmentResource extends JsonResource
 
             'amount' => $this->amount,
 
+            'return_type' => $this->return_type?->value,
+
+            'return_rate' => $this->return_rate,
+
+            'allocated_amount' => $this->allocated_amount,
+
+            'remaining_capital' => $this->remaining_capital,
+
             'period_months' => $this->period_months,
 
             'return_policy_days' => $this->return_policy_days,

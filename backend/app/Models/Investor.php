@@ -24,8 +24,13 @@ class Investor extends Model
     protected $casts = [
         'deleted_at' => 'datetime',
     ];
-    public function investments(): HasMany
+public function investments(): HasMany
 {
     return $this->hasMany(Investment::class);
 }
+
+    public function profitDistributions(): HasMany
+    {
+        return $this->hasMany(InvestorProfitDistribution::class);
+    }
 }

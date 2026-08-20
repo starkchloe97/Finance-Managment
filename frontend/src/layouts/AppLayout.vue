@@ -1,19 +1,28 @@
 <script setup>
+import { ref } from 'vue'
 import Sidebar from "@/components/layout/Sidebar.vue";
 import Navbar from "@/components/layout/Navbar.vue";
+
+const collapsed = ref(false)
+const mobileOpen = ref(false)
 </script>
 
 <template>
 
 <div class="app">
 
-    <Sidebar />
+    <Sidebar
+        :collapsed="collapsed"
+        :mobile-open="mobileOpen"
+        @close="mobileOpen = false"
+        @toggle-collapse="collapsed = !collapsed"
+    />
 
-    <div class="content">
+    <div class="content" :class="{ 'content-collapsed': collapsed }">
 
-        <Navbar />
+        <Navbar @open-menu="mobileOpen = true" />
 
-        <main>
+        <main class="app-content">
 
             <RouterView />
 

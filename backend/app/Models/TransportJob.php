@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Enums\JobStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TransportJob extends Model
 {
@@ -21,6 +23,7 @@ class TransportJob extends Model
         'base_profit',
         'extra_costs',
         'final_profit',
+        'financially_locked_at',
         'remarks',
         'internal_notes',
     ];
@@ -28,6 +31,7 @@ class TransportJob extends Model
     protected $casts = [
         'job_date' => 'date',
         'status' => JobStatus::class,
+        'financially_locked_at' => 'datetime',
     ];
 
     /**
@@ -58,6 +62,16 @@ class TransportJob extends Model
     public function activities()
     {
         return $this->hasMany(TransportJobActivity::class, 'job_id');
+    }
+
+    public function allocations(): HasMany { return $this->hasMany(InvestmentAllocation::class, 'transport_job_id'); }
+    public function profitDistributions(): HasMany { return $this->hasMany(InvestorProfitDistribution::class, 'transport_job_id'); }
+    public function financialAdjustments(): HasMany { return $this->hasMany(FinancialAdjustment::class, 'transport_job_id'); }
+    public function investors(): BelongsToMany
+    {
+        return $this->belongsToMany(Investor::class, 'investment_allocations', 'transport_job_id', 'investment_id')
+            ->join('investments', 'investments.id', '=', 'investment_allocations.investment_id')
+            ->select('investors.*')->distinct();
     }
 
     /**

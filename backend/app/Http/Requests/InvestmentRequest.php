@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Enums\InvestmentReturnType;
 
 class InvestmentRequest extends FormRequest
 {
@@ -31,6 +32,9 @@ class InvestmentRequest extends FormRequest
                 'numeric',
                 'min:0.01',
             ],
+
+            'return_type' => ['nullable', Rule::enum(InvestmentReturnType::class)],
+            'return_rate' => ['nullable', 'numeric', 'min:0'],
 
             'period_months' => [
                 'required',

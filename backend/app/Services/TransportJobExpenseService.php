@@ -6,6 +6,7 @@ use App\Enums\ActivityEvent;
 use App\Models\TransportJob;
 use App\Models\TransportJobExpense;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Expenses are the unexpected costs that turn up once a job is under way —
@@ -28,6 +29,9 @@ class TransportJobExpenseService
     {
         return DB::transaction(function () use ($job, $data) {
 
+            $job = TransportJob::query()->lockForUpdate()->findOrFail($job->id);
+            $this->ensureUnlocked($job);
+
             $expense = $job->expenses()->create($data);
 
             $job->recalculate();
@@ -49,6 +53,7 @@ class TransportJobExpenseService
         return DB::transaction(function () use ($expense, $data) {
 
             $job = $expense->transportJob;
+            $this->ensureUnlocked($job);
 
             // Both sides are kept whole rather than just the fields that moved,
             // so the timeline can show the change without needing the row it
@@ -76,6 +81,7 @@ class TransportJobExpenseService
         DB::transaction(function () use ($expense) {
 
             $job = $expense->transportJob;
+            $this->ensureUnlocked($job);
 
             // Read the expense before it goes, so the timeline can still say what
             // was removed.
@@ -123,5 +129,12 @@ class TransportJobExpenseService
     private function amount(TransportJobExpense $expense): string
     {
         return number_format((float) $expense->amount, 2);
+    }
+
+    private function ensureUnlocked(TransportJob $job): void
+    {
+        if ($job->financially_locked_at) {
+            throw ValidationException::withMessages(['job' => ['Financially locked jobs require an adjustment record for changes.']]);
+        }
     }
 }
