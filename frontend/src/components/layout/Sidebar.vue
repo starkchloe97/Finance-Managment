@@ -85,8 +85,8 @@ onUnmounted(() => document.body.classList.remove('nav-drawer-open'))
   <aside class="sidebar" :class="{ 'sidebar-collapsed': collapsed, 'sidebar-open': mobileOpen }">
     <div class="sidebar-top">
       <RouterLink class="brand" to="/" @click="close">
-        <span class="brand-mark">T</span>
-        <span class="brand-name">Transport ERP</span>
+        <span class="brand-mark">A</span>
+        <span class="brand-name">ABC Company</span>
       </RouterLink>
       <button
         class="collapse-toggle"
