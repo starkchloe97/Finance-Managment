@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useInvestorStore } from '@/stores/investorStore'
@@ -13,9 +13,16 @@ const investmentStore = useInvestmentStore()
 
 const {
   investments,
+  investorInvestmentTotals,
   loading: investmentsLoading,
   error: investmentsError,
 } = storeToRefs(investmentStore)
+
+const investmentTotals = computed(() => [
+  { label: 'Pool investments', value: investorInvestmentTotals.value.pool },
+  { label: 'Normal investments', value: investorInvestmentTotals.value.normal },
+  { label: 'Subtotal', value: investorInvestmentTotals.value.total },
+])
 
 const investorStore = useInvestorStore()
 
@@ -41,6 +48,34 @@ function viewInvestment(id) {
   })
 }
 </script>
+
+<style scoped>
+.investment-totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.investment-totals strong {
+  display: block;
+}
+
+.investment-totals p {
+  margin: 6px 0 0;
+  color: var(--accent-hover);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .investment-totals {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
 
 <template>
   <div class="page">
@@ -104,6 +139,13 @@ function viewInvestment(id) {
           <div>
             <strong>Notes</strong>
             <p>{{ investor.notes || '—' }}</p>
+          </div>
+        </div>
+
+        <div class="investment-totals">
+          <div v-for="total in investmentTotals" :key="total.label">
+            <strong>{{ total.label }}</strong>
+            <p>{{ money(total.value) }}</p>
           </div>
         </div>
       </div>

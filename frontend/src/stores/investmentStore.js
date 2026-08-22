@@ -12,6 +12,11 @@ export const useInvestmentStore = defineStore('investment', {
   state: () => ({
     investments: [],
     investment: null,
+    investorInvestmentTotals: {
+      pool: 0,
+      normal: 0,
+      total: 0,
+    },
 
     loading: false,
     error: null,
@@ -33,6 +38,11 @@ export const useInvestmentStore = defineStore('investment', {
         const response = await investmentService.getInvestments(params)
 
         this.investments = response.data || []
+        this.investorInvestmentTotals = response.meta?.investment_totals || {
+          pool: 0,
+          normal: 0,
+          total: 0,
+        }
 
         this.setPagination(response.meta)
 

@@ -76,9 +76,23 @@ public function investorInvestments(
         ->latest()
         ->paginate(15);
 
+    $totals = Investment::query()
+        ->where('investor_id', $investor->id)
+        ->selectRaw("SUM(CASE WHEN investment_category = 'pool' THEN amount ELSE 0 END) as pool")
+        ->selectRaw("SUM(CASE WHEN investment_category = 'normal' THEN amount ELSE 0 END) as normal")
+        ->first();
+
     return InvestmentResource::collection(
         $investments
-    );
+    )->additional([
+        'meta' => [
+            'investment_totals' => [
+                'pool' => (float) ($totals->pool ?? 0),
+                'normal' => (float) ($totals->normal ?? 0),
+                'total' => (float) (($totals->pool ?? 0) + ($totals->normal ?? 0)),
+            ],
+        ],
+    ]);
 }
 public function mature(
     Investment $investment,
