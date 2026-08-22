@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\InvestmentReturnType;
 use App\Enums\InvestmentStatus;
 use App\Models\Investment;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -28,6 +29,7 @@ class InvestmentService
     public function create(array $data): Investment
     {
         return DB::transaction(function () use ($data) {
+            $data = $this->normalizeReturnConfiguration($data);
             $data['investment_code'] = $this->generateInvestmentCode();
             $data['status'] = InvestmentStatus::Active;
 
@@ -53,7 +55,7 @@ class InvestmentService
                 ]);
             }
 
-            $investment->update($data);
+            $investment->update($this->normalizeReturnConfiguration($data));
 
             return $investment
                 ->refresh()
@@ -74,6 +76,21 @@ class InvestmentService
 
             $investment->delete();
         });
+    }
+
+    private function normalizeReturnConfiguration(array $data): array
+    {
+        $returnType = $data['return_type'] instanceof InvestmentReturnType
+            ? $data['return_type']->value
+            : $data['return_type'];
+
+        if ($returnType === InvestmentReturnType::Fixed->value) {
+            $data['return_percentage'] = null;
+        } else {
+            $data['fixed_return_amount'] = null;
+        }
+
+        return $data;
     }
 
     private function generateInvestmentCode(): string

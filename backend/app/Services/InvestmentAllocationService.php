@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\AllocationStatus;
+use App\Enums\InvestmentCategory;
 use App\Enums\InvestmentStatus;
 use App\Models\Investment;
 use App\Models\InvestmentAllocation;
@@ -17,6 +18,7 @@ class InvestmentAllocationService
         return DB::transaction(function () use ($investment, $job, $amount, $notes) {
             $investment = Investment::query()->lockForUpdate()->findOrFail($investment->id);
 
+            if ($investment->investment_category === InvestmentCategory::Pool) $this->reject('investment', 'Pool investments cannot be allocated to jobs.');
             if ($amount <= 0) $this->reject('amount', 'Allocation amount must be greater than zero.');
             if ($investment->status !== InvestmentStatus::Active) $this->reject('investment', 'Only active investments can receive allocations.');
             if ($job->financially_locked_at) $this->reject('job', 'Financially locked jobs cannot receive allocations.');

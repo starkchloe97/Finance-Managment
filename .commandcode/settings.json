@@ -4,7 +4,21 @@
       "Shell(npm:*)",
       "Shell(php artisan test)",
       "Shell(if:*)",
-      "Shell({:*)"
+      "Shell({:*)",
+      "Shell(npx prettier --write src/components/investments/InvestmentForm.vue src/pages/investments/InvestmentShow.vue)",
+      "Shell(npx prettier --check src/components/investments/InvestmentForm.vue src/pages/investments/InvestmentCreate.vue src/pages/investments/InvestmentEdit.vue src/pages/investments/InvestmentShow.vue)",
+      "Shell(php -l appModelsInvestment.php)",
+      "Shell(php -l appHttpRequestsInvestmentRequest.php)",
+      "Shell(php -l appHttpResourcesInvestmentResource.php)",
+      "Shell(php -l appServicesInvestmentService.php)",
+      "Shell(php -l appServicesInvestorPayoutService.php)",
+      "Shell(php -l databasemigrations2026_08_21_000000_add_investment_return_configuration.php)",
+      "Shell(php -l databasemigrations2026_08_21_000100_drop_legacy_investment_return_columns.php)",
+      "Shell(php -l testsFeatureInvestmentLifecycleTest.php)",
+      "Shell(php -l testsFeatureInvestmentReturnConfigurationTest.php)",
+      "Shell(php artisan route:list --path=investments --except-vendor)",
+      "Shell(vendorbinpint:*)",
+      "Shell(php -l app\\Http\\Requests\\InvestmentRequest.php)"
     ],
     "deny": [],
     "defaultMode": "default"

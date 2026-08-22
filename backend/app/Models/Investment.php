@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use App\Enums\InvestmentStatus;
+use App\Enums\InvestmentCategory;
 use App\Enums\InvestmentReturnType;
+use App\Enums\InvestmentStatus;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -20,12 +21,12 @@ class Investment extends Model
         'investor_id',
         'investment_date',
         'amount',
+        'investment_category',
         'return_type',
-        'return_rate',
+        'return_percentage',
+        'fixed_return_amount',
         'period_months',
         'return_policy_days',
-        'min_return_percent',
-        'max_return_percent',
         'status',
         'matured_at',
         'withdrawn_at',
@@ -38,11 +39,11 @@ class Investment extends Model
     protected $casts = [
         'investment_date' => 'date',
         'amount' => 'decimal:2',
+        'investment_category' => InvestmentCategory::class,
         'return_type' => InvestmentReturnType::class,
-        'return_rate' => 'decimal:2',
+        'return_percentage' => 'decimal:2',
+        'fixed_return_amount' => 'decimal:2',
         'deduction_amount' => 'decimal:2',
-        'min_return_percent' => 'decimal:2',
-        'max_return_percent' => 'decimal:2',
         'status' => InvestmentStatus::class,
         'matured_at' => 'datetime',
         'withdrawn_at' => 'datetime',
@@ -55,9 +56,20 @@ class Investment extends Model
         return $this->belongsTo(Investor::class);
     }
 
-    public function allocations(): HasMany { return $this->hasMany(InvestmentAllocation::class); }
-    public function profitDistributions(): HasMany { return $this->hasMany(InvestorProfitDistribution::class); }
-    public function settlements(): HasMany { return $this->hasMany(InvestmentSettlement::class); }
+    public function allocations(): HasMany
+    {
+        return $this->hasMany(InvestmentAllocation::class);
+    }
+
+    public function profitDistributions(): HasMany
+    {
+        return $this->hasMany(InvestorProfitDistribution::class);
+    }
+
+    public function settlements(): HasMany
+    {
+        return $this->hasMany(InvestmentSettlement::class);
+    }
 
     public function getAllocatedAmountAttribute(): float
     {
@@ -78,36 +90,22 @@ class Investment extends Model
         return Carbon::parse($this->investment_date)->addMonths($this->period_months);
     }
 
-    public function getMinimumReturnAmountAttribute(): float
+    public function getCalculatedReturnAmountAttribute(): float
     {
-        if ($this->min_return_percent === null) {
-            return 0;
+        if ($this->return_type === InvestmentReturnType::Fixed) {
+            return round((float) ($this->fixed_return_amount ?? 0), 2);
         }
 
-        return round((float) $this->amount * ((float) $this->min_return_percent / 100), 2);
-    }
-
-    public function getMaximumReturnAmountAttribute(): float
-    {
-        if ($this->max_return_percent === null) {
-            return 0;
-        }
-
-        return round((float) $this->amount * ((float) $this->max_return_percent / 100), 2);
-    }
-
-    public function getMinimumSettlementAmountAttribute(): float
-    {
         return round(
-            (float) $this->amount + $this->minimum_return_amount - (float) ($this->deduction_amount ?? 0),
+            (float) $this->amount * ((float) ($this->return_percentage ?? 0) / 100),
             2
         );
     }
 
-    public function getMaximumSettlementAmountAttribute(): float
+    public function getExpectedSettlementAmountAttribute(): float
     {
         return round(
-            (float) $this->amount + $this->maximum_return_amount - (float) ($this->deduction_amount ?? 0),
+            (float) $this->amount + $this->calculated_return_amount - (float) ($this->deduction_amount ?? 0),
             2
         );
     }

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\InvestmentCategory;
+use App\Enums\InvestmentReturnType;
 use App\Enums\InvestmentStatus;
 use App\Models\Investment;
 use App\Models\Investor;
@@ -27,9 +29,11 @@ class InvestmentLifecycleTest extends TestCase
             'investor_id' => $investor->id,
             'investment_date' => now()->subMonth()->toDateString(),
             'amount' => 500000,
+            'investment_category' => InvestmentCategory::Normal,
+            'return_type' => InvestmentReturnType::Percentage,
+            'return_percentage' => 3,
+            'fixed_return_amount' => null,
             'period_months' => 1,
-            'min_return_percent' => 2,
-            'max_return_percent' => 3,
             'deduction_amount' => 500,
         ], $attributes));
     }
@@ -54,6 +58,10 @@ class InvestmentLifecycleTest extends TestCase
         $this->putJson("/api/v1/investments/{$investment->id}", [
             'investment_date' => $investment->investment_date->toDateString(),
             'amount' => 500000,
+            'investment_category' => 'normal',
+            'return_type' => 'percentage',
+            'return_percentage' => 3,
+            'fixed_return_amount' => null,
             'period_months' => 1,
             'status' => 'settled',
         ])
@@ -75,8 +83,8 @@ class InvestmentLifecycleTest extends TestCase
         $this->postJson("/api/v1/investments/{$investment->id}/settle")
             ->assertOk()
             ->assertJsonPath('data.status', 'settled')
-            ->assertJsonPath('data.minimum_settlement_amount', 509500)
-            ->assertJsonPath('data.maximum_settlement_amount', 514500);
+            ->assertJsonPath('data.calculated_return_amount', 15000)
+            ->assertJsonPath('data.expected_settlement_amount', 514500);
 
         $investment = $investment->fresh();
 

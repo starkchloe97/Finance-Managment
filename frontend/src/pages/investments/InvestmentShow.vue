@@ -388,18 +388,30 @@ const editInvestment = () => {
         </div>
 
         <div class="detail-card">
-          <span>Minimum Return</span>
+          <span>Investment category</span>
+
+          <strong>{{ investment.investment_category || '-' }}</strong>
+        </div>
+
+        <div class="detail-card">
+          <span>Return configuration</span>
 
           <strong>
-            {{ investment.min_return_percent !== null ? `${investment.min_return_percent}%` : '-' }}
+            {{
+              investment.return_type === 'percentage' ? `${investment.return_percentage}%` : 'Fixed'
+            }}
           </strong>
         </div>
 
         <div class="detail-card">
-          <span>Maximum Return</span>
+          <span>Configured return</span>
 
           <strong>
-            {{ investment.max_return_percent !== null ? `${investment.max_return_percent}%` : '-' }}
+            {{
+              investment.return_type === 'percentage'
+                ? `${investment.return_percentage}%`
+                : money(investment.fixed_return_amount)
+            }}
           </strong>
         </div>
 
@@ -438,7 +450,7 @@ const editInvestment = () => {
         </div>
       </div>
 
-      <section class="detail-section capital-section">
+      <section v-if="investment.investment_category === 'normal'" class="detail-section capital-section">
         <div class="section-header">
           <div>
             <h2>Capital</h2>
@@ -471,7 +483,7 @@ const editInvestment = () => {
         </div>
       </section>
 
-      <section class="detail-section">
+      <section v-if="investment.investment_category === 'normal'" class="detail-section">
         <h2>Allocations</h2>
         <p v-if="!allocations.length">No allocations yet.</p>
         <div v-else class="table-wrap">
@@ -565,18 +577,10 @@ const editInvestment = () => {
         </div>
 
         <div class="detail-card">
-          <span>Minimum Return</span>
+          <span>Calculated return</span>
 
           <strong>
-            {{ money(investment.minimum_return_amount) }}
-          </strong>
-        </div>
-
-        <div class="detail-card">
-          <span>Maximum Return</span>
-
-          <strong>
-            {{ money(investment.maximum_return_amount) }}
+            {{ money(investment.calculated_return_amount) }}
           </strong>
         </div>
 
@@ -589,12 +593,10 @@ const editInvestment = () => {
         </div>
 
         <div class="detail-card">
-          <span>Expected Settlement</span>
+          <span>Expected settlement</span>
 
           <strong>
-            {{ money(investment.minimum_settlement_amount) }}
-            -
-            {{ money(investment.maximum_settlement_amount) }}
+            {{ money(investment.expected_settlement_amount) }}
           </strong>
         </div>
       </div>
