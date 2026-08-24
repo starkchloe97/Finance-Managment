@@ -9,9 +9,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('investments', function (Blueprint $table) {
-            $table->renameColumn('return_type', 'legacy_return_type');
-        });
+        if (Schema::hasColumn('investments', 'return_type')) {
+            Schema::table('investments', function (Blueprint $table) {
+                $table->string('legacy_return_type')->nullable()->after('amount');
+            });
+
+            DB::table('investments')->update([
+                'legacy_return_type' => DB::raw('return_type'),
+            ]);
+
+            Schema::table('investments', function (Blueprint $table) {
+                $table->dropColumn('return_type');
+            });
+        }
 
         Schema::table('investments', function (Blueprint $table) {
             $table->enum('investment_category', ['pool', 'normal'])
@@ -74,10 +84,17 @@ return new class extends Migration
                 'return_percentage',
                 'fixed_return_amount',
             ]);
+            $table->enum('return_type', ['fixed_rate', 'profit_share'])
+                ->default('profit_share')
+                ->after('amount');
         });
 
+        DB::table('investments')->update([
+            'return_type' => DB::raw('legacy_return_type'),
+        ]);
+
         Schema::table('investments', function (Blueprint $table) {
-            $table->renameColumn('legacy_return_type', 'return_type');
+            $table->dropColumn('legacy_return_type');
         });
     }
 };

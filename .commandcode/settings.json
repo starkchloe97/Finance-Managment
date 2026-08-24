@@ -18,7 +18,9 @@
       "Shell(php -l testsFeatureInvestmentReturnConfigurationTest.php)",
       "Shell(php artisan route:list --path=investments --except-vendor)",
       "Shell(vendorbinpint:*)",
-      "Shell(php -l app\\Http\\Requests\\InvestmentRequest.php)"
+      "Shell(php -l app\\Http\\Requests\\InvestmentRequest.php)",
+      "Shell(vendor/bin/pint:*)",
+      "Shell(php vendorbinpint testsFeatureSystemFlowScenarioTest.php 2 >& 1)"
     ],
     "deny": [],
     "defaultMode": "default"
