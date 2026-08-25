@@ -12,3 +12,25 @@ defineEmits(['update:period'])
     <DashboardFilters :model-value="period" @update:model-value="$emit('update:period', $event)" />
   </div>
 </template>
+
+<style scoped>
+.dashboard-header {
+  align-items: flex-end;
+  display: flex;
+  gap: var(--space-4);
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+
+.dashboard-header p {
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+}
+
+@media (max-width: 560px) {
+  .dashboard-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+</style>

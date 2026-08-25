@@ -195,3 +195,13 @@ const when = (value) => (value ? new Date(value).toLocaleDateString() : '—')
     </section>
   </EntityDetailLayout>
 </template>
+
+<style scoped>
+.entity-contact-grid {
+  margin-bottom: var(--space-4);
+}
+
+.entity-contact-grid p {
+  margin: var(--space-0);
+}
+</style>

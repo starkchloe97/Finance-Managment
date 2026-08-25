@@ -125,3 +125,10 @@ const openConvert = (estimate) => {
     />
   </div>
 </template>
+
+<style scoped>
+.table-actions {
+  display: flex;
+  justify-content: center;
+}
+</style>

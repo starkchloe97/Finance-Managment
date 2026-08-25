@@ -46,3 +46,37 @@ const submit = async () => {
     </form>
   </div>
 </template>
+
+<style scoped>
+.login {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-6);
+}
+
+.login form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  max-width: var(--login-max-width);
+  padding: var(--space-8);
+  width: 100%;
+}
+
+.login h2,
+.login .sub {
+  text-align: center;
+}
+
+.login .sub {
+  color: var(--text-muted);
+  margin: var(--space-2) var(--space-0) var(--space-6);
+}
+
+.login button {
+  width: 100%;
+}
+</style>

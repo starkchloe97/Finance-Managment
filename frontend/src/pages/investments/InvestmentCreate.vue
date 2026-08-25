@@ -1,17 +1,19 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import InvestmentForm from '@/components/investments/InvestmentForm.vue'
 import { useInvestmentStore } from '@/stores/investmentStore'
 import { useInvestorStore } from '@/stores/investorStore'
 
 const router = useRouter()
+const route = useRoute()
 const investorStore = useInvestorStore()
 const investmentStore = useInvestmentStore()
 
 const investors = computed(() => investorStore.investors)
 const submitting = ref(false)
 const validationErrors = ref({})
+const initialValues = computed(() => ({ investor_id: route.query.investor_id || '' }))
 
 onMounted(async () => {
   await investorStore.fetchInvestors()
@@ -51,6 +53,7 @@ const cancel = () => router.push({ name: 'investments.index' })
 
     <InvestmentForm
       mode="create"
+      :initial-values="initialValues"
       :investors="investors"
       :errors="validationErrors"
       :submitting="submitting"

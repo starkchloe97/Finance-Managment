@@ -1,10 +1,12 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useInvestmentStore } from '@/stores/investmentStore'
 import { money } from '@/utils/money'
 import AllocationForm from '@/components/AllocationForm.vue'
+import EntityDetailLayout from '@/components/ui/EntityDetailLayout.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import {
   getAllocations,
   getInvestmentDistributions,
@@ -12,645 +14,529 @@ import {
 } from '@/services/investmentFinanceService'
 
 const route = useRoute()
-const router = useRouter()
-
 const investmentStore = useInvestmentStore()
-
 const { investment, loading, error } = storeToRefs(investmentStore)
+
+const activeTab = ref('overview')
 const allocations = ref([])
 const distributions = ref([])
+const financeLoading = ref(false)
+const financeError = ref('')
+const actionError = ref('')
+const pendingAction = ref(null)
+const releasing = ref(null)
+
+const tabs = computed(() => {
+  const standard = [{ key: 'overview', label: 'Overview' }]
+  if (investment.value?.investment_category === 'normal') {
+    standard.push({ key: 'capital', label: 'Capital' })
+  }
+  standard.push({ key: 'returns', label: 'Returns' }, { key: 'lifecycle', label: 'Lifecycle' })
+  return standard
+})
+
+const stats = computed(() => [
+  { label: 'Principal', value: money(investment.value?.amount), tone: 'revenue' },
+  {
+    label: 'Expected return',
+    value: money(investment.value?.calculated_return_amount),
+    tone: 'profit',
+  },
+  { label: 'Deduction', value: money(investment.value?.deduction_amount), tone: 'cost' },
+  {
+    label: 'Expected settlement',
+    value: money(investment.value?.expected_settlement_amount),
+    tone: 'neutral',
+  },
+])
 
 const canMature = computed(() => {
-  if (!investment.value?.maturity_date) {
-    return false
-  }
-
-  const now = new Date()
-  const today = [now.getFullYear(), now.getMonth() + 1, now.getDate()]
-    .map((part, index) => (index === 0 ? part : String(part).padStart(2, '0')))
-    .join('-')
-
+  if (!investment.value?.maturity_date) return false
+  const today = new Date().toISOString().slice(0, 10)
   return investment.value.maturity_date <= today
 })
 
-const formatDateTime = (value) => {
-  if (!value) return '-'
-
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value))
-}
-
-onMounted(async () => {
-  await investmentStore.fetchInvestment(route.params.id)
-  await loadFinance()
+const returnTerms = computed(() => {
+  if (investment.value?.return_type === 'percentage') {
+    return `${investment.value.return_percentage || 0}% percentage return`
+  }
+  return `${money(investment.value?.fixed_return_amount)} fixed return`
 })
 
+const statusClass = computed(() => {
+  const status = investment.value?.status
+  if (status === 'active') return 'status-success'
+  if (status === 'cancelled') return 'status-danger'
+  if (status === 'matured' || status === 'withdrawn') return 'status-warning'
+  return 'status-info'
+})
+
+const formatDateTime = (value) => {
+  if (!value) return '—'
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(
+    new Date(value),
+  )
+}
+
 const loadFinance = async () => {
-  const [allocationResponse, distributionResponse] = await Promise.all([
-    getAllocations(route.params.id),
-    getInvestmentDistributions(route.params.id),
-  ])
-  allocations.value = allocationResponse.data.data
-  distributions.value = distributionResponse.data.data
+  financeLoading.value = true
+  financeError.value = ''
+  try {
+    const [allocationResponse, distributionResponse] = await Promise.all([
+      getAllocations(route.params.id),
+      getInvestmentDistributions(route.params.id),
+    ])
+    allocations.value = allocationResponse.data.data
+    distributions.value = distributionResponse.data.data
+  } catch (requestError) {
+    financeError.value =
+      requestError.response?.data?.message || 'Could not load allocation and return records.'
+  } finally {
+    financeLoading.value = false
+  }
+}
+
+const load = async () => {
+  await investmentStore.fetchInvestment(route.params.id)
+  await loadFinance()
+}
+
+const requestAction = (action) => {
+  actionError.value = ''
+  pendingAction.value = action
+}
+
+const performAction = async () => {
+  if (!pendingAction.value || !investment.value) return
+  const action = pendingAction.value
+  try {
+    await investmentStore[action](investment.value.id)
+    pendingAction.value = null
+    await loadFinance()
+  } catch (requestError) {
+    actionError.value =
+      requestError.response?.data?.message || `Could not ${action} this investment.`
+    pendingAction.value = null
+  }
 }
 
 const release = async (allocation) => {
-  if (!confirm('Release this allocation?')) return
-  await releaseAllocation(allocation.id)
+  if (releasing.value) return
+  releasing.value = allocation.id
+  financeError.value = ''
+  try {
+    await releaseAllocation(allocation.id)
+    await investmentStore.fetchInvestment(route.params.id)
+    await loadFinance()
+  } catch (requestError) {
+    financeError.value =
+      requestError.response?.data?.message || 'Could not release this allocation.'
+  } finally {
+    releasing.value = null
+  }
+}
+
+const allocationCreated = async () => {
   await investmentStore.fetchInvestment(route.params.id)
   await loadFinance()
 }
 
-const handleMature = async () => {
-  if (!investment.value) return
-
-  if (!confirm('Mark this investment as matured?')) {
-    return
-  }
-
-  try {
-    await investmentStore.mature(investment.value.id)
-  } catch (error) {
-    console.error(error)
-  }
-}
-
-const handleWithdraw = async () => {
-  if (!investment.value) return
-
-  if (!confirm('Withdraw this investment?')) {
-    return
-  }
-
-  try {
-    await investmentStore.withdraw(investment.value.id)
-  } catch (error) {
-    console.error(error)
-  }
-}
-
-const handleSettle = async () => {
-  if (!investment.value) return
-
-  if (!confirm('Settle this investment?')) {
-    return
-  }
-
-  try {
-    await investmentStore.settle(investment.value.id)
-  } catch (error) {
-    console.error(error)
-  }
-}
-
-const handleCancel = async () => {
-  if (!investment.value) return
-
-  if (!confirm('Cancel this investment?')) {
-    return
-  }
-
-  try {
-    await investmentStore.cancel(investment.value.id)
-  } catch (error) {
-    console.error(error)
-  }
-}
-
-const goBack = () => {
-  router.push({
-    name: 'investments.index',
-  })
-}
-
-const editInvestment = () => {
-  router.push({
-    name: 'investments.edit',
-    params: {
-      id: investment.value.id,
-    },
-  })
-}
+onMounted(() => {
+  load().catch(() => {})
+})
 </script>
 
-<style scoped>
-.details-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.page-container {
-  max-width: 1180px;
-  margin: 0 auto;
-}
-
-.page-header,
-.section-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.page-header {
-  margin-bottom: 22px;
-}
-
-.page-header p,
-.section-header p {
-  margin: 4px 0 0;
-  color: var(--muted);
-}
-
-.page-header > div:last-child,
-.action-buttons {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.detail-card {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 20px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-
-.detail-card span {
-  font-size: 13px;
-}
-
-.detail-card strong {
-  font-size: 18px;
-}
-
-.detail-card small {
-  font-size: 13px;
-}
-
-.detail-section {
-  margin-top: 30px;
-}
-
-.detail-section > h2,
-.section-header h2 {
-  margin-bottom: 14px;
-}
-
-.capital-section {
-  padding: 22px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-
-.capital-section .section-header {
-  margin-bottom: 20px;
-}
-
-.capital-section .section-header h2 {
-  margin-bottom: 0;
-}
-
-.capital-grid {
-  gap: 20px;
-}
-
-.capital-card {
-  min-height: 112px;
-  justify-content: center;
-}
-
-.capital-card strong {
-  color: var(--accent-hover);
-  font-size: 22px;
-}
-
-.capital-form {
-  margin-top: 26px;
-  padding-top: 24px;
-  border-top: 1px solid var(--border);
-}
-
-.table-wrap {
-  overflow-x: auto;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-
-.table-wrap table {
-  min-width: 560px;
-}
-
-.status-label {
-  color: green;
-  font-weight: 600;
-  text-transform: capitalize;
-}
-
-.investment-financial-summary,
-.investment-actions {
-  margin-top: 30px;
-  padding: 22px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-
-.investment-financial-summary .details-grid {
-  margin-top: 18px;
-}
-
-.investment-actions p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-@media (max-width: 900px) {
-  .details-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 600px) {
-  .page-header,
-  .section-header {
-    flex-direction: column;
-  }
-
-  .page-header > div:last-child {
-    width: 100%;
-  }
-
-  .details-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .investment-financial-summary,
-  .investment-actions,
-  .capital-section {
-    padding: 18px;
-  }
-}
-</style>
-
 <template>
-  <div class="page-container">
-    <div v-if="loading" class="loading-state">Loading investment...</div>
+  <EntityDetailLayout
+    v-model="activeTab"
+    :tabs="tabs"
+    :loading="loading && !investment"
+    :error="error"
+    :stats="stats"
+    @retry="load"
+  >
+    <template #title>
+      <h1>{{ investment?.investment_code }}</h1>
+      <span v-if="investment?.status" class="status" :class="statusClass">
+        {{ investment.status }}
+      </span>
+      <span class="hint">{{ investment?.investor?.name || 'Investment details' }}</span>
+    </template>
 
-    <div v-else-if="error" class="error-state">
-      {{ error }}
-    </div>
+    <template #actions>
+      <RouterLink class="btn-light" to="/investments">Back</RouterLink>
+      <RouterLink
+        v-if="investment?.status === 'active'"
+        class="btn"
+        :to="`/investments/${investment.id}/edit`"
+      >
+        Edit
+      </RouterLink>
+    </template>
 
-    <template v-else-if="investment">
-      <div class="page-header">
-        <div>
-          <h1>
-            {{ investment.investment_code }}
-          </h1>
-
-          <p>Investment details</p>
-        </div>
-
-        <div>
-          <button class="btn-light" type="button" @click="goBack">Back</button>
-
-          <button v-if="investment.status === 'active'" type="button" @click="editInvestment">
-            Edit
-          </button>
-        </div>
-      </div>
-
-      <div class="details-grid">
-        <div class="detail-card">
-          <span>Investor</span>
-
-          <strong>
-            {{ investment.investor?.name || '-' }}
-          </strong>
-
-          <small>
-            {{ investment.investor?.investor_code || '' }}
-          </small>
-        </div>
-
-        <div class="detail-card">
-          <span>Amount</span>
-
-          <strong>
-            {{ money(investment.amount) }}
-          </strong>
-        </div>
-
-        <div class="detail-card">
-          <span>Investment Date</span>
-
-          <strong>
-            {{ investment.investment_date }}
-          </strong>
-        </div>
-
-        <div class="detail-card">
-          <span>Status</span>
-
-          <strong class="status-label">
-            {{ investment.status }}
-          </strong>
-        </div>
-
-        <div class="detail-card">
-          <span>Period</span>
-
-          <strong>
-            {{ investment.period_months ? `${investment.period_months} months` : '-' }}
-          </strong>
-        </div>
-
-        <div class="detail-card">
-          <span>Return Policy</span>
-
-          <strong>
-            {{ investment.return_policy_days ? `${investment.return_policy_days} days` : '-' }}
-          </strong>
-        </div>
-
-        <div class="detail-card">
-          <span>Investment category</span>
-
-          <strong>{{ investment.investment_category || '-' }}</strong>
-        </div>
-
-        <div class="detail-card">
-          <span>Return configuration</span>
-
-          <strong>
-            {{
-              investment.return_type === 'percentage' ? `${investment.return_percentage}%` : 'Fixed'
-            }}
-          </strong>
-        </div>
-
-        <div class="detail-card">
-          <span>Configured return</span>
-
-          <strong>
-            {{
-              investment.return_type === 'percentage'
-                ? `${investment.return_percentage}%`
-                : money(investment.fixed_return_amount)
-            }}
-          </strong>
-        </div>
-
-        <div class="detail-card">
-          <span>Deduction</span>
-
-          <strong>
-            {{ money(investment.deduction_amount) }}
-          </strong>
-        </div>
-
-        <div v-if="investment.matured_at" class="detail-card">
-          <span>Matured At</span>
-
-          <strong>
-            {{ formatDateTime(investment.matured_at) }}
-          </strong>
-        </div>
-
-        <div v-if="investment.settled_at" class="detail-card">
-          <span>Settled At</span>
-          <strong>{{ formatDateTime(investment.settled_at) }}</strong>
-        </div>
-
-        <div v-if="investment.cancelled_at" class="detail-card">
-          <span>Cancelled At</span>
-          <strong>{{ formatDateTime(investment.cancelled_at) }}</strong>
-        </div>
-
-        <div v-if="investment.withdrawn_at" class="detail-card">
-          <span>Withdrawn At</span>
-
-          <strong>
-            {{ formatDateTime(investment.withdrawn_at) }}
-          </strong>
-        </div>
-      </div>
-
-      <section v-if="investment.investment_category === 'normal'" class="detail-section capital-section">
-        <div class="section-header">
+    <section v-if="investment && activeTab === 'overview'" class="entity-section">
+      <div class="card">
+        <div class="section-head">
           <div>
-            <h2>Capital</h2>
-            <p>Track how much of this investment is committed to jobs.</p>
+            <h3>Investment overview</h3>
+            <p class="hint">Terms and status for this capital placement.</p>
+          </div>
+          <RouterLink class="btn-light btn-sm" :to="`/investors/${investment.investor_id}`">
+            View investor
+          </RouterLink>
+        </div>
+        <div class="grid overview-grid">
+          <div class="field">
+            <label>Investor</label>
+            <p>{{ investment.investor?.name || '—' }}</p>
+          </div>
+          <div class="field">
+            <label>Category</label>
+            <p class="capitalize">{{ investment.investment_category }}</p>
+          </div>
+          <div class="field">
+            <label>Investment date</label>
+            <p>{{ investment.investment_date || '—' }}</p>
+          </div>
+          <div class="field">
+            <label>Investment period</label>
+            <p>{{ investment.period_months ? `${investment.period_months} months` : '—' }}</p>
+          </div>
+          <div class="field">
+            <label>Return policy</label>
+            <p>
+              {{ investment.return_policy_days ? `${investment.return_policy_days} days` : '—' }}
+            </p>
+          </div>
+          <div class="field">
+            <label>Maturity date</label>
+            <p>{{ investment.maturity_date || '—' }}</p>
+          </div>
+          <div class="field">
+            <label>Return terms</label>
+            <p>{{ returnTerms }}</p>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <p>
+              <span class="status" :class="statusClass">{{ investment.status }}</span>
+            </p>
           </div>
         </div>
+      </div>
+      <div v-if="investment.notes" class="card">
+        <h3>Notes</h3>
+        <p>{{ investment.notes }}</p>
+      </div>
+    </section>
 
-        <div class="details-grid capital-grid">
-          <div class="detail-card capital-card">
+    <section v-if="investment && activeTab === 'capital'" class="entity-section">
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <h3>Capital allocation</h3>
+            <p class="hint">Normal investment capital committed to transport jobs.</p>
+          </div>
+        </div>
+        <div class="mini-stat-grid">
+          <div>
             <span>Total capital</span><strong>{{ money(investment.amount) }}</strong>
           </div>
-          <div class="detail-card capital-card">
+          <div>
             <span>Allocated capital</span><strong>{{ money(investment.allocated_amount) }}</strong>
           </div>
-          <div class="detail-card capital-card">
+          <div>
             <span>Available capital</span><strong>{{ money(investment.remaining_capital) }}</strong>
           </div>
         </div>
-
-        <div v-if="investment.status === 'active'" class="capital-form">
-          <AllocationForm
-            :investment="investment"
-            @created="
-              async () => {
-                await investmentStore.fetchInvestment(route.params.id)
-                await loadFinance()
-              }
-            "
-          />
-        </div>
-      </section>
-
-      <section v-if="investment.investment_category === 'normal'" class="detail-section">
-        <h2>Allocations</h2>
-        <p v-if="!allocations.length">No allocations yet.</p>
-        <div v-else class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Job</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="allocation in allocations" :key="allocation.id">
-                <td>{{ allocation.job?.code }}</td>
-                <td>{{ money(allocation.amount) }}</td>
-                <td>
-                  <span class="status-label">{{ allocation.status }}</span>
-                </td>
-                <td>
-                  <button
-                    v-if="allocation.status === 'active'"
-                    class="btn-sm"
-                    @click="release(allocation)"
-                  >
-                    Release
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="detail-section">
-        <h2>Profit Distributions</h2>
-        <p v-if="!distributions.length">No distributions yet.</p>
-        <div v-else class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Job</th>
-                <th>Basis</th>
-                <th>Profit</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="distribution in distributions" :key="distribution.id">
-                <td>{{ distribution.transport_job_id }}</td>
-                <td>{{ money(distribution.profit_basis) }}</td>
-                <td>{{ money(distribution.profit_amount) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <div v-if="investment.notes" class="detail-section">
-        <h2>Notes</h2>
-
-        <p>
-          {{ investment.notes }}
-        </p>
-      </div>
-    </template>
-
-    <section v-if="investment" class="investment-financial-summary">
-      <div class="section-header">
-        <div>
-          <h2>Financial Summary</h2>
-
-          <p>Current investment and expected settlement values.</p>
+        <div v-if="investment.status === 'active'" class="allocation-form-wrap">
+          <h4>Allocate available capital</h4>
+          <AllocationForm :investment="investment" @created="allocationCreated" />
         </div>
       </div>
 
-      <div class="details-grid">
-        <div class="detail-card">
-          <span>Principal</span>
-
-          <strong>
-            {{ money(investment.amount) }}
-          </strong>
-        </div>
-
-        <div class="detail-card">
-          <span>Maturity Date</span>
-
-          <strong>
-            {{ investment.maturity_date || '-' }}
-          </strong>
-        </div>
-
-        <div class="detail-card">
-          <span>Calculated return</span>
-
-          <strong>
-            {{ money(investment.calculated_return_amount) }}
-          </strong>
-        </div>
-
-        <div class="detail-card">
-          <span>Deduction</span>
-
-          <strong>
-            {{ money(investment.deduction_amount) }}
-          </strong>
-        </div>
-
-        <div class="detail-card">
-          <span>Expected settlement</span>
-
-          <strong>
-            {{ money(investment.expected_settlement_amount) }}
-          </strong>
-        </div>
+      <div v-if="financeLoading" class="state-panel state-loading">
+        <div class="skeleton-block"></div>
+      </div>
+      <div v-else-if="financeError" class="state-panel state-error">
+        <p>{{ financeError }}</p>
+        <button class="btn" type="button" @click="loadFinance">Try again</button>
+      </div>
+      <div v-else-if="!allocations.length" class="state-panel state-empty">
+        <p>No job allocations have been recorded for this investment.</p>
+      </div>
+      <div v-else class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Job</th>
+              <th>Status</th>
+              <th class="right">Amount</th>
+              <th>Allocated</th>
+              <th class="right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="allocation in allocations" :key="allocation.id">
+              <td>
+                <RouterLink v-if="allocation.job" :to="`/jobs/${allocation.job.id}`">{{
+                  allocation.job.code
+                }}</RouterLink
+                ><span v-else>—</span>
+              </td>
+              <td>
+                <span
+                  class="status"
+                  :class="allocation.status === 'active' ? 'status-success' : 'status-info'"
+                  >{{ allocation.status }}</span
+                >
+              </td>
+              <td class="right money">{{ money(allocation.amount) }}</td>
+              <td>{{ formatDateTime(allocation.allocated_at) }}</td>
+              <td class="right">
+                <button
+                  v-if="allocation.status === 'active'"
+                  type="button"
+                  class="btn-light btn-sm"
+                  :disabled="releasing === allocation.id"
+                  @click="release(allocation)"
+                >
+                  {{ releasing === allocation.id ? 'Releasing…' : 'Release' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
-    <section v-if="investment" class="investment-actions">
-      <div class="section-header">
-        <div>
-          <h2>Investment Actions</h2>
-          <p>Manage the current investment lifecycle.</p>
+    <section v-if="investment && activeTab === 'returns'" class="entity-section">
+      <div class="card">
+        <h3>Settlement breakdown</h3>
+        <div class="mini-stat-grid settlement-grid">
+          <div>
+            <span>Principal</span><strong>{{ money(investment.amount) }}</strong>
+          </div>
+          <div>
+            <span>Calculated return</span
+            ><strong>{{ money(investment.calculated_return_amount) }}</strong>
+          </div>
+          <div>
+            <span>Deduction</span><strong>{{ money(investment.deduction_amount) }}</strong>
+          </div>
+          <div>
+            <span>Expected settlement</span
+            ><strong>{{ money(investment.expected_settlement_amount) }}</strong>
+          </div>
         </div>
       </div>
-
-      <div class="action-buttons">
-        <button
-          v-if="investment?.status === 'active' && canMature"
-          type="button"
-          @click="handleMature"
-          :disabled="investmentStore.loading"
-        >
-          Mature
-        </button>
-
-        <p v-if="investment?.status === 'active' && !canMature">
-          This investment can mature on {{ investment.maturity_date || 'its maturity date' }}.
-        </p>
-
-        <button
-          v-if="investment?.status === 'active'"
-          type="button"
-          @click="handleWithdraw"
-          :disabled="investmentStore.loading"
-        >
-          Withdraw
-        </button>
-
-        <button
-          v-if="investment?.status === 'active'"
-          type="button"
-          @click="handleCancel"
-          :disabled="investmentStore.loading"
-        >
-          Cancel
-        </button>
-
-        <button
-          v-if="investment?.status === 'matured' || investment?.status === 'withdrawn'"
-          type="button"
-          @click="handleSettle"
-          :disabled="investmentStore.loading"
-        >
-          Settle
-        </button>
+      <div v-if="financeLoading" class="state-panel state-loading">
+        <div class="skeleton-block"></div>
+      </div>
+      <div v-else-if="financeError" class="state-panel state-error">
+        <p>{{ financeError }}</p>
+        <button class="btn" type="button" @click="loadFinance">Try again</button>
+      </div>
+      <div v-else-if="!distributions.length" class="state-panel state-empty">
+        <p>No profit distributions have been calculated for this investment.</p>
+      </div>
+      <div v-else class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Job</th>
+              <th class="right">Profit basis</th>
+              <th class="right">Distribution</th>
+              <th>Status</th>
+              <th>Recorded</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="distribution in distributions" :key="distribution.id">
+              <td>{{ distribution.transport_job_id }}</td>
+              <td class="right money">{{ money(distribution.profit_basis) }}</td>
+              <td class="right money-profit">{{ money(distribution.profit_amount) }}</td>
+              <td>
+                <span class="status status-info">{{ distribution.status }}</span>
+              </td>
+              <td>{{ formatDateTime(distribution.distributed_at) }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
-  </div>
+
+    <section v-if="investment && activeTab === 'lifecycle'" class="entity-section">
+      <div class="card lifecycle-card">
+        <div>
+          <h3>Lifecycle</h3>
+          <p class="hint">
+            The backend controls lifecycle transitions; unavailable actions are intentionally
+            hidden.
+          </p>
+        </div>
+        <ol class="lifecycle-list">
+          <li :class="{ complete: true }">
+            <strong>Created</strong><span>{{ investment.investment_date || '—' }}</span>
+          </li>
+          <li :class="{ complete: investment.matured_at }">
+            <strong>Matured</strong><span>{{ formatDateTime(investment.matured_at) }}</span>
+          </li>
+          <li :class="{ complete: investment.settled_at }">
+            <strong>Settled</strong><span>{{ formatDateTime(investment.settled_at) }}</span>
+          </li>
+          <li v-if="investment.withdrawn_at" class="complete">
+            <strong>Withdrawn</strong><span>{{ formatDateTime(investment.withdrawn_at) }}</span>
+          </li>
+          <li v-if="investment.cancelled_at" class="complete">
+            <strong>Cancelled</strong><span>{{ formatDateTime(investment.cancelled_at) }}</span>
+          </li>
+        </ol>
+      </div>
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <h3>Actions</h3>
+            <p class="hint">Actions change the recorded lifecycle state.</p>
+          </div>
+        </div>
+        <p v-if="actionError" class="error" role="alert">{{ actionError }}</p>
+        <div class="actions">
+          <button
+            v-if="investment.status === 'active' && canMature"
+            type="button"
+            @click="requestAction('mature')"
+          >
+            Mark matured
+          </button>
+          <span v-else-if="investment.status === 'active'" class="hint"
+            >Eligible to mature on {{ investment.maturity_date || 'its maturity date' }}.</span
+          >
+          <button
+            v-if="investment.status === 'active'"
+            type="button"
+            class="btn-light"
+            @click="requestAction('withdraw')"
+          >
+            Withdraw
+          </button>
+          <button
+            v-if="investment.status === 'active'"
+            type="button"
+            class="btn-danger"
+            @click="requestAction('cancel')"
+          >
+            Cancel
+          </button>
+          <button
+            v-if="investment.status === 'matured' || investment.status === 'withdrawn'"
+            type="button"
+            @click="requestAction('settle')"
+          >
+            Settle investment
+          </button>
+        </div>
+      </div>
+    </section>
+  </EntityDetailLayout>
+
+  <ConfirmDialog
+    :open="Boolean(pendingAction)"
+    :title="`${pendingAction ? pendingAction.charAt(0).toUpperCase() + pendingAction.slice(1) : ''} investment?`"
+    :message="`This will update the lifecycle status of ${investment?.investment_code || 'this investment'}.`"
+    :confirm-label="
+      pendingAction ? pendingAction.charAt(0).toUpperCase() + pendingAction.slice(1) : 'Confirm'
+    "
+    :variant="pendingAction === 'cancel' ? 'danger' : 'primary'"
+    :loading="loading"
+    @confirm="performAction"
+    @cancel="pendingAction = null"
+  />
 </template>
+
+<style scoped>
+.overview-grid p {
+  margin: var(--space-0);
+}
+.capitalize {
+  text-transform: capitalize;
+}
+.mini-stat-grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(3, minmax(var(--space-0), 1fr));
+}
+.mini-stat-grid > div {
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+}
+.mini-stat-grid span {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+.mini-stat-grid strong {
+  font-variant-numeric: tabular-nums;
+}
+.allocation-form-wrap {
+  border-top: 1px solid var(--border);
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+}
+.allocation-form-wrap h4 {
+  margin-bottom: var(--space-3);
+}
+.settlement-grid {
+  grid-template-columns: repeat(4, minmax(var(--space-0), 1fr));
+}
+.lifecycle-card {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: minmax(190px, 1fr) 2fr;
+}
+.lifecycle-list {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+  margin: var(--space-0);
+  padding: var(--space-0);
+}
+.lifecycle-list li {
+  align-items: center;
+  border-left: 2px solid var(--border-strong);
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+}
+.lifecycle-list li.complete {
+  border-left-color: var(--success);
+}
+.lifecycle-list span {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+@media (max-width: 900px) {
+  .settlement-grid {
+    grid-template-columns: repeat(2, minmax(var(--space-0), 1fr));
+  }
+  .lifecycle-card {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .mini-stat-grid,
+  .settlement-grid {
+    grid-template-columns: 1fr;
+  }
+  .lifecycle-list li {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+}
+</style>

@@ -83,6 +83,11 @@ export const useInvestmentStore = defineStore('investment', {
         const response = await investmentService.getInvestorInvestments(investorId, params)
 
         this.investments = response.data || []
+        this.investorInvestmentTotals = response.meta?.investment_totals || {
+          pool: 0,
+          normal: 0,
+          total: 0,
+        }
 
         this.setPagination(response.meta)
 

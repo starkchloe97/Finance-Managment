@@ -34,3 +34,30 @@ defineProps({
     </div>
   </div>
 </template>
+
+<style scoped>
+.financial-header {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.financial-cell {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.financial-cell span {
+  color: var(--text-muted);
+  display: block;
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-1);
+}
+
+.financial-cell strong {
+  font-size: var(--text-lg);
+  font-variant-numeric: tabular-nums;
+}
+</style>

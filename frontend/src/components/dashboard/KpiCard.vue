@@ -40,3 +40,160 @@ defineProps({
     </p>
   </article>
 </template>
+
+<style scoped>
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 140px;
+  overflow: hidden;
+  padding: var(--space-4);
+  position: relative;
+}
+
+.kpi-card::before {
+  background: var(--accent);
+  content: '';
+  inset-block: var(--space-0);
+  inset-inline-start: var(--space-0);
+  position: absolute;
+  width: var(--space-1);
+}
+
+.kpi-card-top {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+  justify-content: space-between;
+  min-width: var(--space-0);
+}
+
+.kpi-icon {
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: var(--radius-md);
+  color: var(--accent);
+  display: inline-flex;
+  flex: 0 0 var(--space-8);
+  height: var(--space-8);
+  justify-content: center;
+  width: var(--space-8);
+}
+
+.kpi-icon svg {
+  height: var(--space-4);
+  width: var(--space-4);
+}
+
+.kpi-revenue::before {
+  background: var(--accent);
+}
+
+.kpi-revenue .kpi-icon {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.kpi-cost::before {
+  background: var(--warning);
+}
+
+.kpi-cost .kpi-icon {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.kpi-profit::before {
+  background: var(--success);
+}
+
+.kpi-profit .kpi-icon {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.kpi-jobs::before {
+  background: var(--info);
+}
+
+.kpi-jobs .kpi-icon {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.kpi-title {
+  color: var(--text-secondary);
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  min-width: var(--space-0);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.kpi-value {
+  display: block;
+  font-size: var(--text-2xl);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.02em;
+  line-height: var(--line-height-tight);
+  min-width: var(--space-0);
+  overflow-wrap: anywhere;
+}
+
+.kpi-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  margin: auto var(--space-0) var(--space-0);
+  min-width: var(--space-0);
+}
+
+.kpi-trend {
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  padding: var(--space-1) var(--space-2);
+}
+
+.kpi-subtitle {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: var(--line-height-tight);
+  min-width: var(--space-0);
+  overflow-wrap: anywhere;
+}
+
+.trend-up {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.trend-down {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.trend-neutral {
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 560px) {
+  .kpi-card {
+    min-height: 132px;
+  }
+}
+</style>

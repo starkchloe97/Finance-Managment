@@ -1,16 +1,17 @@
 <script setup>
-import { computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useInvestorStore } from '@/stores/investorStore'
 import { useInvestmentStore } from '@/stores/investmentStore'
 import { money } from '@/utils/money'
+import EntityDetailLayout from '@/components/ui/EntityDetailLayout.vue'
 
 const route = useRoute()
-const router = useRouter()
-
+const investorStore = useInvestorStore()
 const investmentStore = useInvestmentStore()
 
+const { investor, loading, error } = storeToRefs(investorStore)
 const {
   investments,
   investorInvestmentTotals,
@@ -18,180 +19,211 @@ const {
   error: investmentsError,
 } = storeToRefs(investmentStore)
 
-const investmentTotals = computed(() => [
-  { label: 'Pool investments', value: investorInvestmentTotals.value.pool },
-  { label: 'Normal investments', value: investorInvestmentTotals.value.normal },
-  { label: 'Subtotal', value: investorInvestmentTotals.value.total },
+const activeTab = ref('overview')
+const tabs = [
+  { key: 'overview', label: 'Overview' },
+  { key: 'investments', label: 'Investments' },
+]
+
+const stats = computed(() => [
+  { label: 'Total invested', value: money(investorInvestmentTotals.value.total), tone: 'revenue' },
+  { label: 'Pool capital', value: money(investorInvestmentTotals.value.pool), tone: 'neutral' },
+  { label: 'Normal capital', value: money(investorInvestmentTotals.value.normal), tone: 'neutral' },
+  { label: 'Investments', value: String(investments.value.length), tone: 'neutral' },
 ])
 
-const investorStore = useInvestorStore()
+const load = async () => {
+  await Promise.all([
+    investorStore.fetchInvestor(route.params.id),
+    investmentStore.fetchInvestorInvestments(route.params.id),
+  ])
+}
 
-const { investor, loading, error } = storeToRefs(investorStore)
+const statusClass = (status) => (status === 'active' ? 'status-success' : 'status-warning')
 
 onMounted(() => {
-  investorStore.fetchInvestor(route.params.id)
-  investmentStore.fetchInvestorInvestments(route.params.id)
+  load().catch(() => {})
 })
-
-function editInvestor() {
-  router.push(`/investors/${route.params.id}/edit`)
-}
-
-function goBack() {
-  router.push('/investors')
-}
-
-function viewInvestment(id) {
-  router.push({
-    name: 'investments.show',
-    params: { id },
-  })
-}
 </script>
 
+<template>
+  <EntityDetailLayout
+    v-model="activeTab"
+    :tabs="tabs"
+    :loading="loading && !investor"
+    :error="error"
+    :stats="stats"
+    @retry="load"
+  >
+    <template #title>
+      <h1>{{ investor?.name }}</h1>
+      <span class="hint">{{ investor?.investor_code }}</span>
+      <span v-if="investor?.status" class="status" :class="statusClass(investor.status)">
+        {{ investor.status }}
+      </span>
+    </template>
+
+    <template #actions>
+      <RouterLink class="btn-light" :to="`/investors/${investor?.id}/edit`">Edit</RouterLink>
+      <RouterLink class="btn" :to="`/investments/create?investor_id=${investor?.id}`">
+        Add Investment
+      </RouterLink>
+    </template>
+
+    <section v-if="activeTab === 'overview'" class="entity-section">
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <h3>Investor profile</h3>
+            <p class="hint">Contact and account information for this investor.</p>
+          </div>
+        </div>
+        <div class="grid investor-details">
+          <div class="field">
+            <label>Investor code</label>
+            <p>{{ investor?.investor_code || '—' }}</p>
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <p>{{ investor?.email || '—' }}</p>
+          </div>
+          <div class="field">
+            <label>Phone</label>
+            <p>{{ investor?.phone || '—' }}</p>
+          </div>
+          <div class="field">
+            <label>Address</label>
+            <p>{{ investor?.address || '—' }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="investor?.notes" class="card">
+        <h3>Notes</h3>
+        <p>{{ investor.notes }}</p>
+      </div>
+
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <h3>Investment mix</h3>
+            <p class="hint">Capital grouped by the investment categories already recorded.</p>
+          </div>
+          <button type="button" class="btn-light btn-sm" @click="activeTab = 'investments'">
+            View investments
+          </button>
+        </div>
+        <div class="mini-stat-grid">
+          <div>
+            <span>Pool investments</span>
+            <strong>{{ money(investorInvestmentTotals.pool) }}</strong>
+          </div>
+          <div>
+            <span>Normal investments</span>
+            <strong>{{ money(investorInvestmentTotals.normal) }}</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section v-if="activeTab === 'investments'" class="entity-section">
+      <div class="section-head">
+        <div>
+          <h3>Investments</h3>
+          <p class="hint">All capital placements associated with this investor.</p>
+        </div>
+        <RouterLink class="btn btn-sm" :to="`/investments/create?investor_id=${investor?.id}`">
+          Add Investment
+        </RouterLink>
+      </div>
+
+      <div v-if="investmentsLoading" class="state-panel state-loading">
+        <div class="skeleton-block"></div>
+      </div>
+      <div v-else-if="investmentsError" class="state-panel state-error">
+        <p>{{ investmentsError }}</p>
+        <button type="button" class="btn" @click="load">Try again</button>
+      </div>
+      <div v-else-if="!investments.length" class="state-panel state-empty">
+        <p>No investments yet. Add an investment to start tracking this investor’s capital.</p>
+        <RouterLink class="btn" :to="`/investments/create?investor_id=${investor?.id}`">
+          Add Investment
+        </RouterLink>
+      </div>
+      <div v-else class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Category</th>
+              <th class="right">Principal</th>
+              <th>Return</th>
+              <th>Maturity</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="investment in investments" :key="investment.id">
+              <td>
+                <RouterLink :to="`/investments/${investment.id}`">
+                  {{ investment.investment_code }}
+                </RouterLink>
+              </td>
+              <td class="capitalize">{{ investment.investment_category }}</td>
+              <td class="right money">{{ money(investment.amount) }}</td>
+              <td>
+                {{
+                  investment.return_type === 'percentage'
+                    ? `${investment.return_percentage}%`
+                    : money(investment.fixed_return_amount)
+                }}
+              </td>
+              <td>{{ investment.maturity_date || '—' }}</td>
+              <td>
+                <span class="status" :class="statusClass(investment.status)">{{
+                  investment.status
+                }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </EntityDetailLayout>
+</template>
+
 <style scoped>
-.investment-totals {
+.investor-details p {
+  margin: var(--space-0);
+}
+.mini-stat-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border);
+  gap: var(--space-3);
+  grid-template-columns: repeat(2, minmax(var(--space-0), 1fr));
 }
-
-.investment-totals strong {
-  display: block;
+.mini-stat-grid > div {
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
 }
-
-.investment-totals p {
-  margin: 6px 0 0;
-  color: var(--accent-hover);
-  font-size: 20px;
-  font-weight: 700;
+.mini-stat-grid span {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
 }
-
-@media (max-width: 600px) {
-  .investment-totals {
+.mini-stat-grid strong {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.capitalize {
+  text-transform: capitalize;
+}
+@media (max-width: 560px) {
+  .mini-stat-grid {
     grid-template-columns: 1fr;
   }
 }
 </style>
-
-<template>
-  <div class="page">
-    <div v-if="loading">Loading investor...</div>
-
-    <div v-else-if="error" class="card">
-      {{ error }}
-    </div>
-
-    <template v-else-if="investor">
-      <div class="page-head">
-        <div>
-          <h1>{{ investor.name }}</h1>
-
-          <p>
-            {{ investor.investor_code }}
-          </p>
-        </div>
-
-        <div class="actions">
-          <button type="button" @click="goBack">Back</button>
-
-          <button type="button" @click="editInvestor">Edit</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>Investor Information</h2>
-
-        <div class="grid">
-          <div>
-            <strong>Investor Code</strong>
-            <p>{{ investor.investor_code }}</p>
-          </div>
-
-          <div>
-            <strong>Name</strong>
-            <p>{{ investor.name }}</p>
-          </div>
-
-          <div>
-            <strong>Email</strong>
-            <p>{{ investor.email || '—' }}</p>
-          </div>
-
-          <div>
-            <strong>Phone</strong>
-            <p>{{ investor.phone || '—' }}</p>
-          </div>
-
-          <div>
-            <strong>Status</strong>
-            <p>{{ investor.status }}</p>
-          </div>
-
-          <div>
-            <strong>Address</strong>
-            <p>{{ investor.address || '—' }}</p>
-          </div>
-
-          <div>
-            <strong>Notes</strong>
-            <p>{{ investor.notes || '—' }}</p>
-          </div>
-        </div>
-
-        <div class="investment-totals">
-          <div v-for="total in investmentTotals" :key="total.label">
-            <strong>{{ total.label }}</strong>
-            <p>{{ money(total.value) }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>Investments</h2>
-
-        <div v-if="investmentsLoading" class="empty">Loading investments...</div>
-
-        <div v-else-if="investmentsError" class="error-state">
-          {{ investmentsError }}
-        </div>
-
-        <div v-else-if="investments.length === 0" class="empty">No investments found.</div>
-
-        <div v-else class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Amount</th>
-                <th>Date</th>
-                <th>Period</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              <tr v-for="investment in investments" :key="investment.id">
-                <td>
-                  <a href="#" @click.prevent="viewInvestment(investment.id)">
-                    {{ investment.investment_code }}
-                  </a>
-                </td>
-
-                <td>{{ money(investment.amount) }}</td>
-                <td>{{ investment.investment_date }}</td>
-                <td>
-                  {{ investment.period_months ? `${investment.period_months} months` : '-' }}
-                </td>
-                <td>{{ investment.status }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </template>
-  </div>
-</template>

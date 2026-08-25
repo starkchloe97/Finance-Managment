@@ -19,3 +19,10 @@ const emit = defineEmits(['update:modelValue'])
     </option>
   </select>
 </template>
+
+<style scoped>
+.filter-select {
+  min-width: 140px;
+  width: auto;
+}
+</style>

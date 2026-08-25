@@ -25,3 +25,37 @@ const mobileOpen = ref(false)
     </div>
   </div>
 </template>
+
+<style scoped>
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: var(--space-0);
+}
+
+.app-content {
+  flex: 1;
+  margin: var(--space-0) auto;
+  max-width: var(--content-max-width);
+  padding: var(--space-6);
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .app-content {
+    padding: var(--space-5);
+  }
+}
+
+@media (max-width: 820px) {
+  .app-content {
+    padding: var(--space-4);
+  }
+}
+</style>

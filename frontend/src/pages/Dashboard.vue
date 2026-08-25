@@ -86,3 +86,87 @@ onMounted(() => store.fetchDashboard())
     </template>
   </div>
 </template>
+
+<style scoped>
+.dashboard-visuals {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: minmax(var(--space-0), 2fr) minmax(var(--space-0), 1fr);
+}
+
+.dashboard-lists {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: repeat(2, minmax(var(--space-0), 1fr));
+}
+
+.dashboard-error {
+  align-items: center;
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-lg);
+  color: var(--danger);
+  display: flex;
+  gap: var(--space-4);
+  justify-content: space-between;
+  padding: var(--space-5);
+}
+
+.dashboard-page :deep(.section-head) {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: space-between;
+  margin: var(--space-8) var(--space-0) var(--space-3);
+}
+
+.dashboard-page :deep(.dashboard-chart) {
+  min-height: var(--login-max-width);
+}
+
+.dashboard-page :deep(.chart-canvas) {
+  height: var(--login-max-width);
+  position: relative;
+}
+
+.dashboard-page :deep(.dashboard-list) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  list-style: none;
+  padding: var(--space-0);
+}
+
+.dashboard-page :deep(.dashboard-list li) {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  padding-bottom: var(--space-3);
+}
+
+@media (max-width: 1024px) {
+  .dashboard-visuals {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .dashboard-error {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dashboard-lists {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-page :deep(.dashboard-list li) {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+}
+</style>

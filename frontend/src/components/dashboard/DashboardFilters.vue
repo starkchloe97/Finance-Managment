@@ -20,3 +20,15 @@ const periods = [
     <option v-for="item in periods" :key="item[0]" :value="item[0]">{{ item[1] }}</option>
   </select>
 </template>
+
+<style scoped>
+select {
+  max-width: var(--flow-min);
+}
+
+@media (max-width: 560px) {
+  select {
+    max-width: none;
+  }
+}
+</style>

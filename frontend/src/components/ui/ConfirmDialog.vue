@@ -39,3 +39,15 @@ const close = () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.btn-danger-solid {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.btn-danger-solid:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+</style>

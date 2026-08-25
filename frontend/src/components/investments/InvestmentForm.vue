@@ -315,3 +315,73 @@ const submit = () => {
     </div>
   </form>
 </template>
+
+<style scoped>
+.choice-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.choice-option {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: inline-flex;
+  gap: var(--space-2);
+  margin: var(--space-0);
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-3);
+}
+
+.choice-option:has(input:checked) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+
+.choice-option input {
+  min-height: auto;
+  width: auto;
+}
+
+fieldset {
+  border: var(--space-0);
+  margin: var(--space-0) var(--space-0) var(--space-4);
+  padding: var(--space-0);
+}
+
+legend {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-2);
+}
+
+.input-with-suffix {
+  align-items: stretch;
+  display: flex;
+}
+
+.input-with-suffix input {
+  border-radius: var(--radius-md) var(--space-0) var(--space-0) var(--radius-md);
+}
+
+.input-with-suffix span {
+  align-items: center;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-strong);
+  border-left: var(--space-0);
+  border-radius: var(--space-0) var(--radius-md) var(--radius-md) var(--space-0);
+  color: var(--text-secondary);
+  display: inline-flex;
+  padding: var(--space-0) var(--space-3);
+}
+
+.derived-field {
+  background: var(--surface-muted);
+  font-variant-numeric: tabular-nums;
+}
+</style>

@@ -82,3 +82,62 @@ const active = computed(() => props.modelValue || props.tabs[0]?.key || '')
     </div>
   </div>
 </template>
+
+<style scoped>
+.entity-detail {
+  margin-top: var(--space-5);
+}
+
+.entity-head {
+  margin-bottom: var(--space-4);
+}
+
+.entity-tabs {
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: var(--space-1);
+  margin-bottom: var(--space-5);
+  overflow-x: auto;
+}
+
+.entity-tabs button {
+  align-items: center;
+  background: transparent;
+  border: var(--space-0);
+  border-bottom: 2px solid transparent;
+  border-radius: var(--space-0);
+  color: var(--text-muted);
+  display: inline-flex;
+  font-weight: var(--font-weight-medium);
+  gap: var(--space-2);
+  margin-bottom: -1px;
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-3);
+  white-space: nowrap;
+}
+
+.entity-tabs button:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.entity-tabs button.active {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+}
+
+.entity-tabs button svg {
+  height: var(--space-4);
+  width: var(--space-4);
+}
+
+.entity-body {
+  min-height: 200px;
+}
+
+:slotted(.entity-section) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+</style>

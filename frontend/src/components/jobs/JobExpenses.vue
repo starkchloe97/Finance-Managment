@@ -257,3 +257,9 @@ const removeExpense = async () => {
     />
   </div>
 </template>
+
+<style scoped>
+tr.editing td {
+  background: var(--warning-soft);
+}
+</style>

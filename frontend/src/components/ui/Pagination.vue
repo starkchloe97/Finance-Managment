@@ -57,3 +57,54 @@ const pages = computed(() => {
 
   <p v-if="total > 0" class="pagination-summary">{{ from }}–{{ to }} of {{ total }}</p>
 </template>
+
+<style scoped>
+.pagination {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-4);
+}
+
+.page-btn {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  display: inline-flex;
+  height: var(--control-height-sm);
+  justify-content: center;
+  min-height: var(--control-height-sm);
+  min-width: var(--control-height-sm);
+  padding: var(--space-0) var(--space-2);
+}
+
+.page-btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.page-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+}
+
+.page-ellipsis {
+  color: var(--text-muted);
+  padding: var(--space-0) var(--space-1);
+}
+
+.pagination-summary {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  margin: var(--space-3) var(--space-0) var(--space-0);
+}
+</style>

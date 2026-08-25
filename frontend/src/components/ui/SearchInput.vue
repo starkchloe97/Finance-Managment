@@ -28,3 +28,44 @@ const emit = defineEmits(['update:modelValue'])
     />
   </div>
 </template>
+
+<style scoped>
+.search-input {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: var(--space-0) var(--space-3);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.search-input:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 var(--space-1) var(--focus-ring);
+}
+
+.search-input svg {
+  color: var(--text-muted);
+  flex: 0 0 var(--space-4);
+  height: var(--space-4);
+  width: var(--space-4);
+}
+
+.search-input input {
+  background: transparent;
+  border: var(--space-0);
+  box-shadow: none;
+  min-height: var(--control-height-sm);
+  padding: var(--space-0);
+  width: 220px;
+}
+
+.search-input input:focus {
+  box-shadow: none;
+}
+</style>

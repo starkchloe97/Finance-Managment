@@ -20,7 +20,8 @@
       "Shell(vendorbinpint:*)",
       "Shell(php -l app\\Http\\Requests\\InvestmentRequest.php)",
       "Shell(vendor/bin/pint:*)",
-      "Shell(php vendorbinpint testsFeatureSystemFlowScenarioTest.php 2 >& 1)"
+      "Shell(php vendorbinpint testsFeatureSystemFlowScenarioTest.php 2 >& 1)",
+      "Shell(npx prettier --write src/stores/investmentStore.js)"
     ],
     "deny": [],
     "defaultMode": "default"

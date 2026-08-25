@@ -103,3 +103,41 @@ const viewJob = () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.dialog-success {
+  text-align: center;
+}
+
+.success-check {
+  align-items: center;
+  background: var(--success);
+  border-radius: 50%;
+  color: var(--text-inverse);
+  display: inline-flex;
+  font-size: var(--text-lg);
+  height: var(--space-10);
+  justify-content: center;
+  margin-bottom: var(--space-3);
+  width: var(--space-10);
+}
+
+.dialog-detail {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin: var(--space-4) var(--space-0);
+  padding: var(--space-3) var(--space-4);
+}
+
+.dialog-detail > div {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-1) var(--space-0);
+}
+
+.dialog-detail span {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+</style>
