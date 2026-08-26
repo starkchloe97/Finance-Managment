@@ -6,6 +6,8 @@ import { useAuthStore } from '@/stores/authStore'
 const props = defineProps({
   collapsed: Boolean,
   mobileOpen: Boolean,
+  // e.g. { Estimates: 3, 'Transport Jobs': 12 } — key = link label
+  badges: { type: Object, default: () => ({}) },
 })
 const emit = defineEmits(['close', 'toggle-collapse'])
 const auth = useAuthStore()
@@ -66,7 +68,24 @@ const navigation = [
   },
 ]
 
+const isActive = (link) => {
+  if (typeof link.to === 'string') {
+    if (link.to === '/') return route.path === '/'
+    return route.path === link.to || route.path.startsWith(`${link.to}/`)
+  }
+  const prefix = link.to.name.split('.')[0]
+  return route.name === link.to.name || route.name?.startsWith(`${prefix}.`)
+}
+
+const badgeFor = (link) => {
+  const count = Number(props.badges?.[link.label] ?? 0)
+  if (!count) return null
+  return count > 99 ? '99+' : String(count)
+}
+
 const userInitial = computed(() => (auth.user?.name || 'U').charAt(0).toUpperCase())
+const userSubtitle = computed(() => auth.user?.email || auth.user?.role || 'Signed in')
+
 const close = () => emit('close')
 const logout = async () => {
   await auth.logout()
@@ -95,12 +114,22 @@ onUnmounted(() => {
 
 <template>
   <div v-if="mobileOpen" class="sidebar-backdrop" @click="close"></div>
+
   <aside class="sidebar" :class="{ 'sidebar-collapsed': collapsed, 'sidebar-open': mobileOpen }">
     <div class="sidebar-top">
-      <RouterLink class="brand" to="/" @click="close">
-        <span class="brand-mark">A</span>
-        <span class="brand-name">ABC Company</span>
+      <RouterLink
+        class="brand"
+        to="/"
+        :title="collapsed ? 'ABC Company' : undefined"
+        @click="close"
+      >
+        <span class="brand-mark" aria-hidden="true">A</span>
+        <span class="brand-copy">
+          <span class="brand-name">ABC Company</span>
+          <span class="brand-sub">Finance suite</span>
+        </span>
       </RouterLink>
+
       <button
         class="collapse-toggle"
         type="button"
@@ -129,17 +158,10 @@ onUnmounted(() => {
           :key="link.label"
           :to="link.to"
           class="nav-item"
-          :aria-current="
-            link.label === 'Dashboard'
-              ? route.path === '/'
-                ? 'page'
-                : undefined
-              : route.path.startsWith(
-                    typeof link.to === 'string' ? link.to : `/${link.to.name.split('.')[0]}`,
-                  )
-                ? 'page'
-                : undefined
-          "
+          :class="{ 'is-active': isActive(link) }"
+          :data-tooltip="link.label"
+          :title="collapsed ? link.label : undefined"
+          :aria-current="isActive(link) ? 'page' : undefined"
           @click="close"
         >
           <svg
@@ -154,14 +176,24 @@ onUnmounted(() => {
             v-html="link.icon"
           />
           <span class="nav-label">{{ link.label }}</span>
+          <span v-if="badgeFor(link)" class="nav-badge">{{ badgeFor(link) }}</span>
         </RouterLink>
       </section>
     </nav>
 
     <div class="sidebar-user">
-      <span class="user-avatar">{{ userInitial }}</span>
-      <span class="user-name">{{ auth.user?.name || 'User' }}</span>
-      <button class="logout-btn" type="button" title="Logout" aria-label="Logout" @click="logout">
+      <span class="user-avatar" aria-hidden="true">{{ userInitial }}</span>
+      <span class="user-copy">
+        <span class="user-name">{{ auth.user?.name || 'User' }}</span>
+        <span class="user-sub">{{ userSubtitle }}</span>
+      </span>
+      <button
+        class="logout-btn"
+        type="button"
+        title="Logout"
+        aria-label="Logout"
+        @click="logout"
+      >
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -181,58 +213,99 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* ------------------------------------------------------------------
+   Sidebar theme — override these globally (on :root or .sidebar)
+   to re-theme without touching this component.
+------------------------------------------------------------------ */
 .sidebar {
-  background: var(--sidebar);
+  --sb-surface: var(--sidebar-surface, #ffffff);
+  --sb-line: var(--sidebar-border, #e7ebf1);
+  --sb-ink: var(--sidebar-ink, #475467);
+  --sb-ink-strong: var(--sidebar-ink-strong, #101828);
+  --sb-ink-muted: var(--sidebar-ink-muted, #98a2b3);
+  --sb-hover-bg: var(--sidebar-hover-bg, #f5f7fa);
+  --sb-active-bg: var(--sidebar-active-bg, #eef4ff);
+  --sb-active-ink: var(--sidebar-active-ink, #2563eb);
+  --sb-width: var(--sidebar-width, 264px);
+  --sb-collapsed-width: var(--header-height, 76px);
+}
+
+/* ---------- Shell ---------- */
+.sidebar {
+  background: var(--sb-surface);
+  border-right: 1px solid var(--sb-line);
   display: flex;
-  flex: 0 0 var(--sidebar-width);
+  flex: 0 0 var(--sb-width);
   flex-direction: column;
-  min-height: 100vh;
-  padding: var(--space-5) var(--space-3);
+  height: 100vh;
+  padding: 16px 12px;
   position: sticky;
   top: 0;
-  width: var(--sidebar-width);
+  width: var(--sb-width);
   z-index: 5;
 }
 
+/* ---------- Brand ---------- */
 .sidebar-top {
   align-items: center;
   display: flex;
+  gap: 8px;
   justify-content: space-between;
-  margin-bottom: var(--space-6);
+  margin-bottom: 20px;
 }
 
 .brand {
   align-items: center;
-  color: var(--text-inverse);
+  border-radius: 10px;
+  color: var(--sb-ink-strong);
   display: flex;
-  gap: var(--space-3);
+  gap: 10px;
+  min-width: 0;
+  padding: 4px;
+  margin: -4px;
   text-decoration: none;
+  transition: background 0.15s ease;
 }
 
 .brand:hover {
-  color: var(--text-inverse);
+  background: var(--sb-hover-bg);
+  color: var(--sb-ink-strong);
   text-decoration: none;
 }
 
 .brand-mark {
   align-items: center;
-  background: linear-gradient(135deg, var(--accent), #60a5fa);
-  border-radius: var(--radius-md);
-  color: var(--text-inverse);
+  background: linear-gradient(135deg, #2563eb, #60a5fa);
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgb(37 99 235 / 28%);
+  color: #fff;
   display: inline-flex;
-  flex: 0 0 var(--space-8);
-  font-size: var(--text-base);
-  font-weight: var(--font-weight-semibold);
-  height: var(--space-8);
+  flex: 0 0 36px;
+  font-size: 15px;
+  font-weight: 700;
+  height: 36px;
   justify-content: center;
-  letter-spacing: 0.02em;
-  width: var(--space-8);
+  width: 36px;
+}
+
+.brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
 
 .brand-name {
-  font-size: var(--text-lg);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.01em;
+  color: var(--sb-ink-strong);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.brand-sub {
+  color: var(--sb-ink-muted);
+  font-size: 11px;
   white-space: nowrap;
 }
 
@@ -240,132 +313,181 @@ onUnmounted(() => {
   align-items: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  color: var(--sidebar-text);
+  border-radius: 8px;
+  color: var(--sb-ink);
+  cursor: pointer;
   display: inline-flex;
-  flex: 0 0 var(--space-8);
-  height: var(--space-8);
+  flex: 0 0 32px;
+  height: 32px;
   justify-content: center;
-  min-height: var(--space-8);
-  padding: var(--space-0);
-  transition:
-    transform var(--transition-base),
-    background var(--transition-fast),
-    color var(--transition-fast);
-  width: var(--space-8);
+  padding: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+  width: 32px;
 }
 
 .collapse-toggle svg {
-  height: var(--space-4);
-  width: var(--space-4);
+  height: 16px;
+  width: 16px;
+  transition: transform 0.2s ease;
 }
 
 .collapse-toggle:hover {
-  background: var(--sidebar-hover);
-  color: var(--text-inverse);
+  background: var(--sb-hover-bg);
+  color: var(--sb-ink-strong);
 }
 
+/* ---------- Nav ---------- */
 .sidebar-nav {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: var(--space-5);
-  margin-top: var(--space-2);
+  gap: 20px;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-line) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: var(--sb-line);
+  border-radius: 999px;
 }
 
 .nav-group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .nav-group-label {
-  color: var(--text-disabled);
-  font-size: var(--text-xs);
-  font-weight: var(--font-weight-semibold);
+  color: var(--sb-ink-muted);
+  font-size: 11px;
+  font-weight: 600;
   letter-spacing: 0.08em;
-  margin: var(--space-0) var(--space-3) var(--space-1);
+  margin: 0 10px 4px;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .nav-item {
   align-items: center;
-  border-radius: var(--radius-md);
-  color: var(--sidebar-text);
+  border-radius: 10px;
+  color: var(--sb-ink);
   display: flex;
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-medium);
-  gap: var(--space-3);
-  height: var(--control-height);
-  padding: var(--space-0) var(--space-3);
+  font-size: 14px;
+  font-weight: 500;
+  gap: 12px;
+  height: 40px;
+  padding: 0 10px;
   position: relative;
   text-decoration: none;
   transition:
-    background var(--transition-fast),
-    color var(--transition-fast);
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .nav-item:hover {
-  background: var(--sidebar-hover);
-  color: var(--text-inverse);
+  background: var(--sb-hover-bg);
+  color: var(--sb-ink-strong);
   text-decoration: none;
 }
 
+.nav-item.is-active {
+  background: var(--sb-active-bg);
+  color: var(--sb-active-ink);
+  font-weight: 600;
+}
+
 .nav-item-icon {
-  flex: 0 0 var(--space-5);
-  height: var(--space-5);
-  width: var(--space-5);
+  flex: 0 0 20px;
+  height: 20px;
+  width: 20px;
 }
 
 .nav-label {
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.nav-item .nav-label {
-  flex: 1;
+.nav-badge {
+  align-items: center;
+  background: var(--sb-active-bg);
+  border-radius: 999px;
+  color: var(--sb-active-ink);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  height: 20px;
+  justify-content: center;
+  min-width: 20px;
+  padding: 0 6px;
 }
 
-.nav-item.router-link-exact-active,
-.nav-item.router-link-active:not([href='/']) {
-  background: var(--sidebar-active);
-  color: var(--text-inverse);
+.nav-item.is-active .nav-badge {
+  background: var(--sb-active-ink);
+  color: #fff;
 }
 
-.nav-item.router-link-exact-active .nav-item-icon,
-.nav-item.router-link-active:not([href='/']) .nav-item-icon {
-  color: var(--text-inverse);
+.nav-item:focus-visible,
+.collapse-toggle:focus-visible,
+.logout-btn:focus-visible,
+.brand:focus-visible {
+  outline: 2px solid var(--sb-active-ink);
+  outline-offset: 2px;
 }
 
+/* ---------- User ---------- */
 .sidebar-user {
   align-items: center;
-  border-top: 1px solid var(--sidebar-hover);
+  border-top: 1px solid var(--sb-line);
   display: flex;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-  padding: var(--space-4) var(--space-3) var(--space-1);
+  gap: 10px;
+  margin-top: 12px;
+  padding: 14px 6px 2px;
 }
 
 .user-avatar {
   align-items: center;
-  background: var(--sidebar-hover);
-  border-radius: var(--radius-pill);
-  color: var(--text-inverse);
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  border-radius: 50%;
+  color: #fff;
   display: inline-flex;
-  flex: 0 0 var(--space-6);
-  font-size: var(--text-xs);
-  font-weight: var(--font-weight-semibold);
-  height: var(--space-6);
+  flex: 0 0 36px;
+  font-size: 13px;
+  font-weight: 600;
+  height: 36px;
   justify-content: center;
-  width: var(--space-6);
+  width: 36px;
+}
+
+.user-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
 
 .user-name {
-  color: var(--sidebar-text);
-  flex: 1;
-  font-size: var(--text-sm);
+  color: var(--sb-ink-strong);
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-sub {
+  color: var(--sb-ink-muted);
+  font-size: 11px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -375,97 +497,116 @@ onUnmounted(() => {
   align-items: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  color: var(--sidebar-text);
+  border-radius: 8px;
+  color: var(--sb-ink);
+  cursor: pointer;
   display: inline-flex;
-  flex: 0 0 var(--space-6);
-  height: var(--space-6);
+  flex: 0 0 32px;
+  height: 32px;
   justify-content: center;
-  min-height: var(--space-6);
-  padding: var(--space-0);
-  transition:
-    background var(--transition-fast),
-    color var(--transition-fast);
-  width: var(--space-6);
+  padding: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+  width: 32px;
 }
 
 .logout-btn svg {
-  height: var(--space-4);
-  width: var(--space-4);
+  height: 15px;
+  width: 15px;
 }
 
 .logout-btn:hover {
-  background: var(--danger-soft);
-  color: var(--danger);
+  background: var(--danger-soft, #fdeeee);
+  color: var(--danger, #dc2626);
 }
 
+/* ---------- Collapsed (desktop) ---------- */
 .sidebar-collapsed {
-  flex-basis: var(--header-height);
-  width: var(--header-height);
+  flex-basis: var(--sb-collapsed-width);
+  padding: 16px 10px;
+  width: var(--sb-collapsed-width);
 }
 
-.sidebar-collapsed .brand-name,
+.sidebar-collapsed .brand-copy,
 .sidebar-collapsed .nav-label,
 .sidebar-collapsed .nav-group-label,
-.sidebar-collapsed .user-name {
+.sidebar-collapsed .nav-badge,
+.sidebar-collapsed .user-copy {
   display: none;
-}
-
-.sidebar-collapsed .sidebar-top,
-.sidebar-collapsed .nav-item,
-.sidebar-collapsed .sidebar-user {
-  justify-content: center;
 }
 
 .sidebar-collapsed .sidebar-top {
   flex-direction: column;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.sidebar-collapsed .sidebar-nav {
-  align-items: center;
-}
-
-.sidebar-collapsed .nav-group {
-  align-items: center;
+.sidebar-collapsed .brand,
+.sidebar-collapsed .nav-item {
+  justify-content: center;
+  padding: 0;
+  margin: 0;
 }
 
 .sidebar-collapsed .nav-item {
-  height: var(--space-8);
-  padding: var(--space-0);
-  width: var(--space-8);
+  width: 100%;
 }
 
-.sidebar-collapsed .nav-group-label {
-  height: var(--space-3);
-}
-
-.sidebar-collapsed .collapse-toggle {
+.sidebar-collapsed .collapse-toggle svg {
   transform: rotate(180deg);
 }
 
 .sidebar-collapsed .sidebar-user {
   flex-direction: column;
-  padding: var(--space-3) var(--space-0) var(--space-1);
+  gap: 10px;
+  padding: 14px 0 2px;
 }
 
-.sidebar-collapsed .logout-btn {
-  flex-basis: var(--space-8);
-  height: var(--space-8);
-  width: var(--space-8);
-}
+/* Tooltips while collapsed */
+@media (min-width: 821px) {
+  .sidebar-collapsed .sidebar-nav {
+    overflow: visible;
+  }
 
-.sidebar-backdrop {
-  display: none;
+  .sidebar-collapsed .nav-item::after {
+    background: #101828;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgb(16 24 40 / 16%);
+    color: #fff;
+    content: attr(data-tooltip);
+    font-size: 12px;
+    font-weight: 500;
+    left: calc(100% + 12px);
+    opacity: 0;
+    padding: 5px 10px;
+    pointer-events: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%) translateX(-4px);
+    transition:
+      opacity 0.15s ease,
+      transform 0.15s ease;
+    white-space: nowrap;
+    z-index: 30;
+  }
+
+  .sidebar-collapsed .nav-item:hover::after {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
 }
 
 @media (min-width: 821px) {
   .sidebar {
     transition:
-      flex-basis var(--transition-base),
-      width var(--transition-base);
+      flex-basis 0.2s ease,
+      width 0.2s ease,
+      padding 0.2s ease;
   }
+}
+
+/* ---------- Mobile drawer ---------- */
+.sidebar-backdrop {
+  display: none;
 }
 
 @media (max-width: 820px) {
@@ -474,75 +615,79 @@ onUnmounted(() => {
   }
 
   .sidebar {
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 8px 30px rgb(16 24 40 / 18%);
     height: 100vh;
-    left: var(--space-0);
-    max-width: var(--sidebar-width);
+    left: 0;
+    max-width: var(--sb-width);
     position: fixed;
-    top: var(--space-0);
+    top: 0;
     transform: translateX(-100%);
-    transition: transform var(--transition-base);
+    transition: transform 0.25s ease;
     z-index: 3;
   }
 
   .sidebar.sidebar-open {
-    transform: translateX(var(--space-0));
+    transform: translateX(0);
   }
 
+  /* Drawer is always expanded on mobile */
   .sidebar-collapsed {
-    flex-basis: var(--sidebar-width);
-    width: var(--sidebar-width);
+    flex-basis: var(--sb-width);
+    padding: 16px 12px;
+    width: var(--sb-width);
   }
 
-  .sidebar-collapsed .brand-name,
+  .sidebar-collapsed .brand-copy,
   .sidebar-collapsed .nav-label,
   .sidebar-collapsed .nav-group-label,
-  .sidebar-collapsed .user-name {
-    display: inline;
-  }
-
-  .sidebar-collapsed .sidebar-top,
-  .sidebar-collapsed .sidebar-user {
-    flex-direction: row;
+  .sidebar-collapsed .nav-badge,
+  .sidebar-collapsed .user-copy {
+    display: flex;
   }
 
   .sidebar-collapsed .sidebar-top {
-    gap: var(--space-3);
-    margin-bottom: var(--space-6);
+    flex-direction: row;
+    gap: 8px;
+    margin-bottom: 20px;
   }
 
-  .sidebar-collapsed .sidebar-nav,
-  .sidebar-collapsed .nav-group {
-    align-items: stretch;
+  .sidebar-collapsed .brand {
+    justify-content: flex-start;
+    padding: 4px;
+    margin: -4px;
   }
 
   .sidebar-collapsed .nav-item {
-    height: var(--control-height);
-    padding: var(--space-0) var(--space-3);
+    height: 40px;
+    justify-content: flex-start;
+    padding: 0 10px;
     width: auto;
   }
 
-  .sidebar-collapsed .nav-group-label {
-    height: auto;
-  }
-
-  .sidebar-collapsed .logout-btn {
-    flex-basis: var(--space-6);
-    height: var(--space-6);
-    width: var(--space-6);
+  .sidebar-collapsed .sidebar-user {
+    flex-direction: row;
+    gap: 10px;
+    padding: 14px 6px 2px;
   }
 
   .sidebar-backdrop {
-    background: var(--text-primary);
+    animation: backdrop-in 0.2s ease;
+    background: rgb(16 24 40 / 45%);
+    backdrop-filter: blur(2px);
     display: block;
-    inset: var(--space-0);
-    opacity: var(--overlay-opacity);
+    inset: 0;
     position: fixed;
     z-index: 2;
   }
 
   .collapse-toggle {
     display: none;
+  }
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
   }
 }
 </style>

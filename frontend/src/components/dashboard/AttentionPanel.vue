@@ -14,16 +14,21 @@ defineProps({ alerts: { type: Array, default: () => [] } })
 
     <ul v-if="alerts.length" class="attention-list">
       <li v-for="alert in alerts" :key="`${alert.type}-${alert.id}`">
-        <span
-          class="attention-marker"
-          :class="`attention-${alert.severity}`"
-          aria-hidden="true"
-        ></span>
-        <div>
+        <span class="alert-icon" :class="`alert-${alert.severity}`" aria-hidden="true">
+          <svg v-if="alert.severity === 'danger'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" /><path d="M12 8v4" /><path d="M12 16h.01" />
+          </svg>
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" /><path d="M12 9v4" /><path d="M12 17h.01" />
+          </svg>
+        </span>
+        <div class="alert-body">
           <strong>{{ alert.title }}</strong>
           <p>{{ alert.description }}</p>
         </div>
-        <RouterLink class="btn-light btn-sm" :to="alert.href">Open</RouterLink>
+        <RouterLink class="alert-link" :to="alert.href">
+          Open <span aria-hidden="true">→</span>
+        </RouterLink>
       </li>
     </ul>
     <p v-else class="empty">No loss, cost-overrun, or expiring-estimate alerts.</p>
@@ -31,67 +36,50 @@ defineProps({ alerts: { type: Array, default: () => [] } })
 </template>
 
 <style scoped>
-.queue-card {
-  min-width: 0;
-}
+.queue-card { min-width: 0; }
 
 .attention-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
   list-style: none;
-  margin: var(--space-4) var(--space-0) var(--space-0);
-  padding: var(--space-0);
+  margin-top: 16px;
+  padding: 0;
 }
-
 .attention-list li {
   align-items: center;
   border-bottom: 1px solid var(--border);
   display: grid;
-  gap: var(--space-3);
-  grid-template-columns: 10px 1fr auto;
-  padding: var(--space-3) var(--space-0);
+  gap: 12px;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  padding: 12px 0;
 }
+.attention-list li:last-child { border-bottom: 0; }
 
-.attention-list li:last-child {
-  border-bottom: 0;
+.alert-icon {
+  align-items: center;
+  border-radius: 10px;
+  display: flex;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
 }
+.alert-icon svg { height: 16px; width: 16px; }
+.alert-warning { background: var(--warning-soft); color: var(--warning); }
+.alert-danger { background: var(--danger-soft); color: var(--danger); }
 
-.attention-marker {
-  border-radius: 50%;
-  height: 10px;
-  width: 10px;
-}
+.alert-body strong { display: block; font-size: 14px; color: var(--text-primary); }
+.alert-body p { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
 
-.attention-warning {
-  background: var(--warning);
+.alert-link {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
 }
-
-.attention-danger {
-  background: var(--danger);
-}
-
-.attention-list strong {
-  color: var(--text-primary);
-  display: block;
-  font-size: var(--text-sm);
-}
-
-.attention-list p {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-  margin-top: var(--space-1);
-}
+.alert-link:hover { text-decoration: underline; }
 
 @media (max-width: 560px) {
-  .attention-list li {
-    align-items: flex-start;
-    grid-template-columns: 10px 1fr;
-  }
-
-  .attention-list .btn-light {
-    grid-column: 2;
-    justify-self: start;
-  }
+  .attention-list li { align-items: flex-start; grid-template-columns: 36px minmax(0, 1fr); }
+  .attention-list .alert-link { grid-column: 2; justify-self: start; }
 }
 </style>

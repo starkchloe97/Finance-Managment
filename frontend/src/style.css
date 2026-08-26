@@ -71,6 +71,187 @@ table {
   border-spacing: var(--space-0);
 }
 
+/* design tokens */
+
+/* ---------- Design tokens changed ---------- */
+:root {
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+
+  --border: #e7ebf1;
+  --border-strong: #d7dde7;
+
+  --text-primary: #101828;
+  --text-secondary: #475467;
+  --text-muted: #98a2b3;
+
+  --accent: #2563eb;
+  --accent-soft: #eef4ff;
+  --success: #16a34a;
+  --success-soft: #e9f9ef;
+  --warning: #d97706;
+  --warning-soft: #fdf4e3;
+  --danger: #dc2626;
+  --danger-soft: #fdeeee;
+  --info: #0891b2;
+  --info-soft: #e6f6fa;
+  --violet: #7c3aed;
+  --violet-soft: #f3efff;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  --shadow-xs: 0 1px 2px rgb(16 24 40 / 5%);
+  --shadow-sm: 0 1px 3px rgb(16 24 40 / 6%), 0 1px 2px rgb(16 24 40 / 4%);
+  --shadow-md: 0 6px 16px -4px rgb(16 24 40 / 10%), 0 2px 6px -2px rgb(16 24 40 / 6%);
+}
+
+/* ---------- Cards ---------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  padding: 20px;
+}
+
+/* ---------- Section heads ---------- */
+.section-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+.section-head h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.section-kicker {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.hint {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+/* ---------- Buttons ---------- */
+.btn-light {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 500;
+  gap: 8px;
+  padding: 8px 14px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.btn-light:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+.btn-light:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-sm { font-size: 13px; padding: 5px 11px; border-radius: 8px; }
+
+/* ---------- Status pills ---------- */
+.status {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  line-height: 1.4;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.status::before {
+  border-radius: 50%;
+  content: '';
+  height: 6px;
+  width: 6px;
+  background: currentColor;
+}
+.status-draft     { background: #f2f4f7; color: #667085; }
+.status-confirmed { background: var(--accent-soft); color: var(--accent); }
+.status-assigned  { background: var(--violet-soft); color: var(--violet); }
+.status-in_transit{ background: var(--warning-soft); color: var(--warning); }
+.status-delivered { background: var(--info-soft); color: var(--info); }
+.status-completed { background: var(--success-soft); color: var(--success); }
+/* add/extend these to match your estimateStatusClass() values */
+
+/* ---------- Money colors (neutral values, semantic profit/loss) ---------- */
+.money-revenue { color: var(--text-primary); }
+.money-cost { color: var(--text-primary); }
+.money-profit { color: var(--success); }
+.money-loss { color: var(--danger); }
+
+/* ---------- Tables ---------- */
+.table-wrap { overflow-x: auto; }
+.table-wrap table { width: 100%; border-collapse: collapse; }
+.table-wrap th {
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 10px 12px;
+  text-align: left;
+  text-transform: uppercase;
+}
+.table-wrap td {
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 14px;
+  padding: 13px 12px;
+}
+.table-wrap tbody tr:last-child td { border-bottom: 0; }
+.table-wrap tbody tr { transition: background 0.12s; }
+.table-wrap tbody tr:hover { background: var(--surface-2); }
+.table-wrap .right { text-align: right; }
+
+/* ---------- Empty states ---------- */
+.empty {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-top: 16px;
+  padding: 24px 16px;
+  text-align: center;
+}
+.empty a { color: var(--accent); font-weight: 600; }
+
+.page-sub {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: 4px 0 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* Design tokens */
 :root {
   --accent: #2563eb;

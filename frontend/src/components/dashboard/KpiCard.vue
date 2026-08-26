@@ -1,55 +1,93 @@
 <script setup>
-const iconPaths = {
-  revenue: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H7" />',
-  cost: '<path d="M6 2h9l3 3v17H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" /><path d="M14 2v4h4M8 11h8M8 15h5" />',
-  profit: '<path d="m3 17 6-6 4 4 8-8" /><path d="M15 7h6v6" />',
-  margin: '<path d="M4 19V5M4 19h16" /><path d="m7 15 3-4 3 2 5-7" />',
-  jobs: '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" /><path d="M15 18H9M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14" /><circle cx="17" cy="18" r="2" /><circle cx="7" cy="18" r="2" />',
-}
+import { computed } from 'vue'
 
-defineProps({
-  title: String,
-  value: [String, Number],
-  subtitle: String,
-  icon: String,
-  trend: [String, Number],
+const props = defineProps({
+  title: { type: String, required: true },
+  value: { type: [String, Number], default: '—' },
+  subtitle: { type: String, default: '' },
+  icon: { type: String, default: 'revenue' },
+  trend: { type: String, default: '' },
   trendDirection: { type: String, default: 'neutral' },
-  variant: { type: String, default: 'neutral' },
-  trendLabel: String,
+  trendLabel: { type: String, default: '' },
+  variant: { type: String, default: 'revenue' },
+  spark: { type: Array, default: () => [] },
 })
+
+const icons = {
+  revenue: '<path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  cost: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+  profit: '<path d="M22 7l-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/>',
+  margin: '<path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+  jobs: '<rect x="2" y="7" width="20" height="13" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>',
+}
+const icon = computed(() => icons[props.icon] || icons.revenue)
+
+const uid = `spark-${Math.random().toString(36).slice(2)}`
+
+const points = computed(() => {
+  const data = props.spark.map(Number).filter((n) => Number.isFinite(n))
+  if (data.length < 2) return []
+  const max = Math.max(...data)
+  const min = Math.min(...data)
+  const range = max - min || 1
+  const step = 100 / (data.length - 1)
+  return data.map((value, i) => [i * step, 29 - ((value - min) / range) * 26])
+})
+const linePath = computed(() =>
+  points.value.length
+    ? `M${points.value.map(([x, y]) => `${x.toFixed(2)} ${y.toFixed(2)}`).join(' L')}`
+    : '',
+)
+const areaPath = computed(() => (linePath.value ? `${linePath.value} L100 32 L0 32 Z` : ''))
 </script>
 
 <template>
   <article class="kpi-card" :class="`kpi-${variant}`">
-    <div class="kpi-card-top">
-      <span class="kpi-title">{{ title }}</span>
+    <header class="kpi-head">
       <span class="kpi-icon" aria-hidden="true">
         <svg
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="1.8"
+          stroke-width="2"
           stroke-linecap="round"
           stroke-linejoin="round"
-          v-html="iconPaths[icon]"
+          v-html="icon"
         />
       </span>
-    </div>
-    <strong class="kpi-value">{{ value }}</strong>
-    <div class="kpi-meta">
-      <span
-        v-if="trend !== null && trend !== undefined"
-        class="kpi-trend"
-        :class="`trend-${trendDirection}`"
+      <h3>{{ title }}</h3>
+    </header>
+
+    <div class="kpi-body">
+      <strong class="kpi-value">{{ value }}</strong>
+      <svg
+        v-if="areaPath"
+        class="kpi-spark"
+        :class="`kpi-spark-${variant}`"
+        viewBox="0 0 100 32"
+        preserveAspectRatio="none"
+        aria-hidden="true"
       >
-        <span aria-hidden="true">{{
-          trendDirection === 'up' ? '↑' : trendDirection === 'down' ? '↓' : '•'
-        }}</span>
-        {{ trend }}
-        <span class="sr-only">{{ trendLabel || trendDirection }}</span>
-      </span>
-      <span class="kpi-subtitle">{{ subtitle }}</span>
+        <defs>
+          <linearGradient :id="uid" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" class="spark-stop-a" />
+            <stop offset="100%" class="spark-stop-b" />
+          </linearGradient>
+        </defs>
+        <path :d="areaPath" :fill="`url(#${uid})`" />
+        <path :d="linePath" class="spark-line" fill="none" stroke-width="2" />
+      </svg>
     </div>
+
+    <footer class="kpi-foot">
+      <p v-if="trend" class="kpi-trend" :class="`trend-${trendDirection}`" :title="trendLabel">
+        <svg v-if="trendDirection === 'up'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
+        <svg v-else-if="trendDirection === 'down'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg>
+        <span>{{ trend }}</span>
+        <span class="sr-only">{{ trendLabel }}</span>
+      </p>
+      <span v-if="subtitle" class="kpi-subtitle">{{ subtitle }}</span>
+    </footer>
   </article>
 </template>
 
@@ -57,148 +95,62 @@ defineProps({
 .kpi-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  min-height: 132px;
-  overflow: hidden;
-  padding: var(--space-4);
-  position: relative;
+  gap: 14px;
+  padding: 18px 20px;
+  transition: box-shadow 0.15s, border-color 0.15s;
 }
+.kpi-card:hover { box-shadow: var(--shadow-md); border-color: var(--border-strong); }
 
-.kpi-card::before {
-  background: var(--accent);
-  content: '';
-  inset-block: var(--space-0);
-  inset-inline-start: var(--space-0);
-  position: absolute;
-  width: var(--space-1);
-}
-
-.kpi-card-top,
-.kpi-meta {
-  align-items: center;
-  display: flex;
-  gap: var(--space-2);
-}
-
-.kpi-card-top {
-  justify-content: space-between;
-  min-width: var(--space-0);
-}
-
+.kpi-head { align-items: center; display: flex; gap: 10px; }
 .kpi-icon {
   align-items: center;
-  background: var(--accent-soft);
-  border-radius: var(--radius-md);
-  color: var(--accent);
-  display: inline-flex;
-  flex: 0 0 var(--space-8);
-  height: var(--space-8);
+  border-radius: 10px;
+  display: flex;
+  height: 36px;
   justify-content: center;
-  width: var(--space-8);
+  width: 36px;
 }
+.kpi-icon svg { height: 18px; width: 18px; }
+.kpi-head h3 { color: var(--text-secondary); font-size: 13px; font-weight: 600; }
 
-.kpi-icon svg {
-  height: var(--space-4);
-  width: var(--space-4);
-}
+.kpi-revenue .kpi-icon { background: var(--accent-soft); color: var(--accent); }
+.kpi-cost .kpi-icon { background: var(--warning-soft); color: var(--warning); }
+.kpi-profit .kpi-icon { background: var(--success-soft); color: var(--success); }
+.kpi-margin .kpi-icon { background: var(--violet-soft); color: var(--violet); }
+.kpi-jobs .kpi-icon { background: var(--info-soft); color: var(--info); }
 
-.kpi-revenue::before {
-  background: var(--accent);
-}
-
-.kpi-cost::before {
-  background: var(--warning);
-}
-
-.kpi-cost .kpi-icon {
-  background: var(--warning-soft);
-  color: var(--warning);
-}
-
-.kpi-profit::before {
-  background: var(--success);
-}
-
-.kpi-profit .kpi-icon {
-  background: var(--success-soft);
-  color: var(--success);
-}
-
-.kpi-margin::before,
-.kpi-jobs::before {
-  background: var(--info);
-}
-
-.kpi-margin .kpi-icon,
-.kpi-jobs .kpi-icon {
-  background: var(--info-soft);
-  color: var(--info);
-}
-
-.kpi-title {
-  color: var(--text-secondary);
-  display: block;
-  font-size: var(--text-xs);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.04em;
-  min-width: var(--space-0);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
+.kpi-body { align-items: flex-end; display: flex; gap: 12px; justify-content: space-between; }
 .kpi-value {
-  display: block;
-  font-size: var(--text-2xl);
+  color: var(--text-primary);
+  font-size: 26px;
   font-variant-numeric: tabular-nums;
-  font-weight: var(--font-weight-semibold);
+  font-weight: 700;
   letter-spacing: -0.02em;
-  line-height: var(--line-height-tight);
-  min-width: var(--space-0);
-  overflow-wrap: anywhere;
 }
+.kpi-spark { height: 34px; width: 92px; color: var(--accent); flex-shrink: 0; }
+.kpi-spark-cost { color: var(--warning); }
+.kpi-spark-profit { color: var(--success); }
+.spark-line { stroke: currentColor; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.spark-stop-a { stop-color: currentColor; stop-opacity: 0.22; }
+.spark-stop-b { stop-color: currentColor; stop-opacity: 0; }
 
-.kpi-meta {
-  flex-wrap: wrap;
-  margin: auto var(--space-0) var(--space-0);
-  min-width: var(--space-0);
-}
-
+.kpi-foot { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; }
 .kpi-trend {
-  border-radius: var(--radius-pill);
+  align-items: center;
+  border-radius: 999px;
   display: inline-flex;
-  font-size: var(--text-xs);
-  font-weight: var(--font-weight-semibold);
-  gap: var(--space-1);
-  line-height: var(--line-height-tight);
-  padding: var(--space-1) var(--space-2);
+  font-size: 12px;
+  font-weight: 600;
+  gap: 4px;
+  padding: 3px 9px;
 }
-
-.kpi-subtitle {
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-  line-height: var(--line-height-tight);
-  min-width: var(--space-0);
-  overflow-wrap: anywhere;
-}
-
-.trend-up {
-  background: var(--success-soft);
-  color: var(--success);
-}
-
-.trend-down {
-  background: var(--warning-soft);
-  color: var(--warning);
-}
-
-.trend-neutral {
-  background: var(--surface-muted);
-  color: var(--text-secondary);
-}
+.kpi-trend svg { height: 12px; width: 12px; }
+.trend-up { background: var(--success-soft); color: var(--success); }
+.trend-down { background: var(--danger-soft); color: var(--danger); }
+.trend-neutral { background: var(--surface-2); color: var(--text-muted); }
+.kpi-subtitle { color: var(--text-muted); font-size: 12px; }
 </style>

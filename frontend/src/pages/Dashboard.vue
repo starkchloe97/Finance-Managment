@@ -37,6 +37,29 @@ const trendDirection = (metric, favorableWhenUp = true) => {
   return delta > 0 === favorableWhenUp ? 'up' : 'down'
 }
 
+const financialSeries = computed(() => dashboard.value?.financial_overview || [])
+
+const toNumber = (value) => {
+  if (value === null || value === undefined || value === '') return null
+  const num = Number(value)
+  return Number.isFinite(num) ? num : null
+}
+
+const spark = (key, fallbackKey) =>
+  financialSeries.value
+    .map((point) => toNumber(point[key] ?? point[fallbackKey]))
+    .filter((value) => value !== null)
+
+const marginSpark = () =>
+  financialSeries.value
+    .map((point) => {
+      const revenue = toNumber(point.revenue)
+      const profit = toNumber(point.profit)
+      if (revenue === null || profit === null || revenue === 0) return null
+      return (profit / revenue) * 100
+    })
+    .filter((value) => value !== null)
+
 const kpis = computed(() => {
   const data = dashboard.value?.kpis || {}
   const plannedCost = data.planned_cost || data.cost
@@ -54,6 +77,7 @@ const kpis = computed(() => {
       trendDirection: trendDirection(data.revenue),
       trendLabel: 'change versus previous period',
       variant: 'revenue',
+      spark: spark('revenue'),
     },
     {
       title: 'Actual cost',
@@ -64,6 +88,7 @@ const kpis = computed(() => {
       trendDirection: trendDirection(actualCost, false),
       trendLabel: 'cost change versus previous period',
       variant: 'cost',
+      spark: spark('actual_cost', 'cost'),
     },
     {
       title: 'Final profit',
@@ -74,6 +99,7 @@ const kpis = computed(() => {
       trendDirection: Number(profit?.value || 0) < 0 ? 'down' : trendDirection(profit),
       trendLabel: 'profit change versus previous period',
       variant: 'profit',
+      spark: spark('profit'),
     },
     margin
       ? {
@@ -85,6 +111,7 @@ const kpis = computed(() => {
           trendDirection: trendDirection(margin),
           trendLabel: 'margin change versus previous period',
           variant: 'margin',
+          spark: marginSpark(),
         }
       : {
           title: 'Active jobs',

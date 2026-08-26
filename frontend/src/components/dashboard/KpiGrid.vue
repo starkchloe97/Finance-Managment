@@ -13,20 +13,11 @@ defineProps({ items: { type: Array, default: () => [] } })
 <style scoped>
 .kpi-grid {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-4);
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: var(--space-5);
 }
 
-@media (max-width: 1024px) {
-  .kpi-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 560px) {
-  .kpi-grid {
-    grid-template-columns: 1fr;
-  }
-}
+@media (max-width: 1024px) { .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .kpi-grid { grid-template-columns: 1fr; } }
 </style>

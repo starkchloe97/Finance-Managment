@@ -58,9 +58,15 @@ const doDelete = async () => {
 <template>
   <div>
     <div class="page-head">
-      <h1>Customers</h1>
-      <RouterLink class="btn" to="/customers/create">+ New Customer</RouterLink>
-    </div>
+  <div>
+    <h1>Customers</h1>
+    <p class="page-sub">
+      {{ pagination.total }} {{ pagination.total === 1 ? 'customer' : 'customers' }} · contacts,
+      jobs, and revenue in one place
+    </p>
+  </div>
+  <RouterLink class="btn" to="/customers/create">+ New Customer</RouterLink>
+</div>
 
     <div class="card">
       <div class="toolbar">
