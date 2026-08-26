@@ -6,3 +6,4 @@
 - Backend is the source of truth for business/financial calculations (e.g., job profit, cost, margin); the frontend renders backend-provided values only and never recomputes them client-side, and should not invent frontend-only statuses/enums that duplicate backend ones. Confidence: 0.85
 - Keeps backend/API changes minimal in presentation/UX phases: preserve existing services, stores, and endpoints, and only add an endpoint/field where there is a genuine UX gap (don't build speculative endpoints). Confidence: 0.8
 - Prefers one consolidated API endpoint over multiple round trips (e.g., a single `/dashboard` aggregate returning kpis, financial overview, job status, recent jobs, alerts) rather than many per-widget endpoints. Confidence: 0.8
+- When providing an external instruction/specification file, expects its requirements to be implemented directly in the current project rather than merely reviewed or summarized. Confidence: 0.8

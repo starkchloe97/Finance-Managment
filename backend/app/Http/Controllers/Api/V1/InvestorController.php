@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\InvestorIndexRequest;
 use App\Http\Requests\InvestorRequest;
 use App\Http\Resources\InvestorResource;
 use App\Models\Investor;
@@ -14,12 +15,11 @@ class InvestorController extends Controller
 {
     public function __construct(
         private InvestorService $investorService
-    ) {
-    }
+    ) {}
 
-    public function index(): AnonymousResourceCollection
+    public function index(InvestorIndexRequest $request): AnonymousResourceCollection
     {
-        $investors = $this->investorService->paginate();
+        $investors = $this->investorService->paginate($request->validated());
 
         return InvestorResource::collection($investors);
     }

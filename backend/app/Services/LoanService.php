@@ -179,24 +179,46 @@ class LoanService
         });
     }
 
-    public function investorLoans(Investor $investor): LengthAwarePaginator
+    public function investorLoans(Investor $investor, int $perPage = 15): array
     {
         $this->refreshOverdueStatuses();
 
-        return Loan::query()
-            ->where('investor_id', $investor->id)
-            ->with(['investor', 'borrower'])
-            ->withSum('repayments', 'amount')
-            ->latest('loan_date')
-            ->paginate(15);
+        $query = Loan::query()->where('investor_id', $investor->id);
+        $loans = (clone $query)->withSum('repayments', 'amount')->get();
+
+        return [
+            'loans' => $query
+                ->with(['investor', 'borrower'])
+                ->withSum('repayments', 'amount')
+                ->latest('loan_date')
+                ->latest('id')
+                ->paginate($perPage),
+            'totals' => [
+                'issued' => round((float) $loans->where('status', '!=', LoanStatus::Cancelled)->sum('amount'), 2),
+                'repaid' => round($loans->sum(fn (Loan $loan) => $loan->total_repaid), 2),
+                'outstanding' => round($loans->sum(fn (Loan $loan) => $loan->outstanding_amount), 2),
+                'active' => $loans->where('status', LoanStatus::Active)->count(),
+                'overdue' => $loans->where('status', LoanStatus::Overdue)->count(),
+                'paid' => $loans->where('status', LoanStatus::Paid)->count(),
+                'cancelled' => $loans->where('status', LoanStatus::Cancelled)->count(),
+            ],
+        ];
     }
 
     private function resolveBorrower(array $data): array
     {
         if ($data['borrower_type'] === LoanBorrowerType::Investor->value) {
+            if (! empty($data['loan_borrower_id']) || ! empty($data['outsider_name'])) {
+                $this->reject('borrower_type', 'Investor loans cannot include outsider borrower details.');
+            }
+
             Investor::query()->findOrFail($data['investor_id']);
 
             return [$data['investor_id'], null];
+        }
+
+        if (! empty($data['loan_borrower_id']) && ! empty($data['outsider_name'])) {
+            $this->reject('loan_borrower_id', 'Choose an existing outsider or create a new outsider, not both.');
         }
 
         if (! empty($data['loan_borrower_id'])) {
@@ -218,7 +240,14 @@ class LoanService
     private function refreshOverdueStatuses(): void
     {
         Loan::query()
-            ->whereIn('status', [LoanStatus::Active->value, LoanStatus::Overdue->value])
+            ->where('status', LoanStatus::Overdue->value)
+            ->whereDate('due_date', '>=', today())
+            ->update(['status' => LoanStatus::Active->value]);
+
+        Loan::query()
+            ->where('status', LoanStatus::Active)
+            ->whereDate('due_date', '<', today())
+            ->withSum('repayments', 'amount')
             ->orderBy('id')
             ->each(fn (Loan $loan) => $this->refreshOverdueStatus($loan));
     }

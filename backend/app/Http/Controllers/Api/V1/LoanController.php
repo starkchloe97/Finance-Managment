@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\InvestorLoanIndexRequest;
 use App\Http\Requests\LoanIndexRequest;
 use App\Http\Requests\LoanRepaymentRequest;
 use App\Http\Requests\LoanRequest;
@@ -53,8 +54,12 @@ class LoanController extends Controller
         return new LoanResource($this->loans->cancel($loan, request()->user()));
     }
 
-    public function investorLoans(Investor $investor): AnonymousResourceCollection
+    public function investorLoans(InvestorLoanIndexRequest $request, Investor $investor): AnonymousResourceCollection
     {
-        return LoanResource::collection($this->loans->investorLoans($investor));
+        $result = $this->loans->investorLoans($investor, $request->integer('per_page', 15));
+
+        return LoanResource::collection($result['loans'])->additional([
+            'meta' => ['loan_totals' => $result['totals']],
+        ]);
     }
 }

@@ -57,6 +57,11 @@ const navigation = [
         to: { name: 'investments.index' },
         icon: '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
       },
+      {
+        label: 'Loans',
+        to: { name: 'loans.index' },
+        icon: '<path d="M7 7h10v10H7z"/><path d="M4 10V5a1 1 0 0 1 1-1h5"/><path d="M20 14v5a1 1 0 0 1-1 1h-5"/>',
+      },
     ],
   },
 ]
@@ -129,7 +134,9 @@ onUnmounted(() => {
               ? route.path === '/'
                 ? 'page'
                 : undefined
-              : route.path.startsWith(typeof link.to === 'string' ? link.to : '/investments')
+              : route.path.startsWith(
+                    typeof link.to === 'string' ? link.to : `/${link.to.name.split('.')[0]}`,
+                  )
                 ? 'page'
                 : undefined
           "

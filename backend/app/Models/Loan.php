@@ -53,6 +53,10 @@ class Loan extends Model
 
     public function getOutstandingAmountAttribute(): float
     {
+        if ($this->status === LoanStatus::Cancelled) {
+            return 0.0;
+        }
+
         return max(0, round((float) $this->amount - $this->total_repaid, 2));
     }
 

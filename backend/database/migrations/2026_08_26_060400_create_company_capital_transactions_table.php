@@ -8,6 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('company_capital_transactions')) {
+            Schema::table('company_capital_transactions', function (Blueprint $table) {
+                $table->index(['company_capital_account_id', 'transaction_date'], 'capital_account_date_idx');
+            });
+
+            return;
+        }
+
         Schema::create('company_capital_transactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_capital_account_id')->constrained()->restrictOnDelete();
@@ -19,7 +27,7 @@ return new class extends Migration
             $table->string('description')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('created_at');
-            $table->index(['company_capital_account_id', 'transaction_date']);
+            $table->index(['company_capital_account_id', 'transaction_date'], 'capital_account_date_idx');
         });
     }
 

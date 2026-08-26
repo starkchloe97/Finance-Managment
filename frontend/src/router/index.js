@@ -89,6 +89,24 @@ const routes = [
         meta: secure('Finance / Investors / Edit investor'),
       },
       {
+        path: 'loans',
+        name: 'loans.index',
+        component: () => import('@/pages/loans/LoansList.vue'),
+        meta: secure('Finance / Loans'),
+      },
+      {
+        path: 'loans/create',
+        name: 'loans.create',
+        component: () => import('@/pages/loans/LoanCreate.vue'),
+        meta: secure('Finance / Loans / Issue loan'),
+      },
+      {
+        path: 'loans/:id',
+        name: 'loans.show',
+        component: () => import('@/pages/loans/LoanShow.vue'),
+        meta: secure('Finance / Loans / Loan details'),
+      },
+      {
         path: 'investments',
         name: 'investments.index',
         component: () => import('@/pages/investments/Investments.vue'),

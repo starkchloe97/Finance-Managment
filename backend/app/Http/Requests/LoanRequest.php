@@ -26,18 +26,27 @@ class LoanRequest extends FormRequest
                 'nullable', 'integer', Rule::exists('investors', 'id')->whereNull('deleted_at'),
             ],
             'loan_borrower_id' => [
-                Rule::prohibitedIf($isInvestor),
+                Rule::prohibitedIf(fn () => $isInvestor() || $this->filled('outsider_name')),
                 Rule::requiredIf(fn () => $isOutsider() && ! $this->filled('outsider_name')),
                 'nullable', 'integer', Rule::exists('loan_borrowers', 'id'),
             ],
             'outsider_name' => [
-                Rule::prohibitedIf($isInvestor),
+                Rule::prohibitedIf(fn () => $isInvestor() || $this->filled('loan_borrower_id')),
                 Rule::requiredIf(fn () => $isOutsider() && ! $this->filled('loan_borrower_id')),
                 'nullable', 'string', 'max:255',
             ],
-            'outsider_email' => ['nullable', 'email', 'max:255'],
-            'outsider_phone' => ['nullable', 'string', 'max:50'],
-            'outsider_address' => ['nullable', 'string', 'max:500'],
+            'outsider_email' => [
+                Rule::prohibitedIf(fn () => $isInvestor() || $this->filled('loan_borrower_id')),
+                'nullable', 'email', 'max:255',
+            ],
+            'outsider_phone' => [
+                Rule::prohibitedIf(fn () => $isInvestor() || $this->filled('loan_borrower_id')),
+                'nullable', 'string', 'max:50',
+            ],
+            'outsider_address' => [
+                Rule::prohibitedIf(fn () => $isInvestor() || $this->filled('loan_borrower_id')),
+                'nullable', 'string', 'max:500',
+            ],
             'amount' => ['required', 'numeric', 'gt:0'],
             'loan_date' => ['required', 'date'],
             'due_date' => ['required', 'date', 'after_or_equal:loan_date'],
