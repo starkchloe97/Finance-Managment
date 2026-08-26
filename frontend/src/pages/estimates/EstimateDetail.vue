@@ -47,25 +47,31 @@ const when = (value) => (value ? String(value).slice(0, 10) : '—')
     </div>
 
     <div v-else-if="estimate">
-      <div class="page-head">
-        <div class="head-title">
-          <h1>{{ estimate.code }}</h1>
-          <EstimateStatus :status="estimate.status" />
+      <div class="page-head estimate-detail-head">
+        <div class="entity-title-block">
+          <span class="section-kicker">Operations / Estimates</span>
+          <div class="head-title">
+            <h1>{{ estimate.code }}</h1>
+            <EstimateStatus :status="estimate.status" />
+          </div>
+          <p class="page-subtitle">
+            {{ estimate.customer?.name || 'No customer' }} · {{ when(estimate.estimate_date) }}
+          </p>
         </div>
         <div class="actions">
-          <RouterLink v-if="!converted" class="btn-light" :to="`/estimates/${estimate.id}/edit`"
-            >Edit</RouterLink
-          >
+          <RouterLink v-if="!converted" class="btn-light" :to="`/estimates/${estimate.id}/edit`">
+            Edit estimate
+          </RouterLink>
           <button
             v-else
             class="btn-light"
             type="button"
             @click="$router.push(`/jobs/${estimate.transport_job.id}`)"
           >
-            View Job
+            View job
           </button>
           <button v-if="!converted" class="btn" type="button" @click="converting = true">
-            Convert to Job
+            Convert to job
           </button>
         </div>
       </div>

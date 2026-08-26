@@ -3,7 +3,11 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 
+const props = defineProps({
+  mobileOpen: Boolean,
+})
 const emit = defineEmits(['open-menu'])
+const menuButton = ref(null)
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -17,15 +21,21 @@ const logout = async () => {
   profileOpen.value = false
   router.push('/login')
 }
+
+const focusMenuButton = () => menuButton.value?.focus()
+
+defineExpose({ focusMenuButton })
 </script>
 
 <template>
   <header class="navbar">
     <div class="navbar-left">
       <button
+        ref="menuButton"
         class="nav-icon mobile-menu"
         type="button"
         aria-label="Open navigation"
+        :aria-expanded="mobileOpen"
         @click="emit('open-menu')"
       >
         ☰
@@ -34,29 +44,11 @@ const logout = async () => {
     </div>
 
     <div class="navbar-actions">
-      <button class="nav-icon" type="button" aria-label="Notifications">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-bell-icon lucide-bell"
-        >
-          <path d="M10.268 21a2 2 0 0 0 3.464 0" />
-          <path
-            d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"
-          />
-        </svg>
-      </button>
       <div class="profile-menu">
         <button
           class="profile-trigger"
           type="button"
+          aria-haspopup="true"
           :aria-expanded="profileOpen"
           @click="profileOpen = !profileOpen"
         >
@@ -103,6 +95,25 @@ const logout = async () => {
   font-size: var(--text-sm);
 }
 
+.nav-icon {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  display: inline-flex;
+  justify-content: center;
+  min-height: var(--control-height-sm);
+  min-width: var(--control-height-sm);
+  padding: var(--space-1);
+}
+
+.nav-icon:hover {
+  background: var(--surface-hover);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
 .mobile-menu {
   display: none;
 }
@@ -116,7 +127,20 @@ const logout = async () => {
   border-color: transparent;
   color: var(--text-primary);
   min-height: var(--control-height-sm);
-  padding: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+}
+
+.profile-avatar {
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: 50%;
+  color: var(--accent-hover);
+  display: inline-flex;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  height: var(--space-6);
+  justify-content: center;
+  width: var(--space-6);
 }
 
 .profile-trigger:hover {

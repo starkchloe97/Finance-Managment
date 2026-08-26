@@ -8,3 +8,4 @@ require __DIR__.'/api/v1/expenses.php';
 require __DIR__.'/api/v1/reports.php';
 require __DIR__.'/api/v1/investors.php';
 require __DIR__.'/api/v1/investment_finance.php';
+require __DIR__.'/api/v1/loans.php';

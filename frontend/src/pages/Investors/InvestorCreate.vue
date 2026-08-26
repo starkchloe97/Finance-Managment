@@ -5,7 +5,6 @@ import { useInvestorStore } from '@/stores/investorStore'
 
 const router = useRouter()
 const investorStore = useInvestorStore()
-
 const submitting = ref(false)
 const validationErrors = ref({})
 
@@ -18,21 +17,17 @@ const form = reactive({
   notes: '',
 })
 
+const fieldError = (field) => validationErrors.value[field]?.[0] || ''
+
 async function submit() {
   submitting.value = true
   validationErrors.value = {}
 
   try {
     const investor = await investorStore.createInvestor(form)
-
     router.push(`/investors/${investor.id}`)
   } catch (error) {
-    console.log('Investor create error:', error)
-    console.log('Validation errors:', error.response?.data)
-
-    if (error.response?.status === 422) {
-      validationErrors.value = error.response.data.errors || {}
-    }
+    if (error.response?.status === 422) validationErrors.value = error.response.data.errors || {}
   } finally {
     submitting.value = false
   }
@@ -44,76 +39,165 @@ function cancel() {
 </script>
 
 <template>
-  <div class="page">
+  <div class="form-page">
     <div class="page-head">
       <div>
-        <h1>Add Investor</h1>
-        <p>Create a new investor profile.</p>
+        <span class="section-kicker">Capital</span>
+        <h1>Add investor</h1>
+        <p class="page-subtitle">Create a profile before recording their investments.</p>
       </div>
     </div>
 
-    <form class="card" @submit.prevent="submit">
-      <div class="grid">
-        <div class="field">
-          <label for="name">Name</label>
-
-          <input id="name" v-model="form.name" type="text" required />
-
-          <small v-if="validationErrors.name">
-            {{ validationErrors.name[0] }}
-          </small>
+    <form class="card form-card" @submit.prevent="submit">
+      <section class="form-section">
+        <div class="form-section-heading">
+          <h2>Profile details</h2>
+          <p>Use the contact information your team will recognize.</p>
         </div>
-
-        <div class="field">
-          <label for="email">Email</label>
-
-          <input id="email" v-model="form.email" type="email" />
-
-          <small v-if="validationErrors.email">
-            {{ validationErrors.email[0] }}
-          </small>
+        <div class="grid">
+          <div class="field">
+            <label for="name">Name</label>
+            <input
+              id="name"
+              v-model="form.name"
+              type="text"
+              autocomplete="name"
+              required
+              :aria-invalid="fieldError('name') ? 'true' : undefined"
+              aria-describedby="name-error"
+            />
+            <small v-if="fieldError('name')" id="name-error" class="error">{{
+              fieldError('name')
+            }}</small>
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input
+              id="email"
+              v-model="form.email"
+              type="email"
+              autocomplete="email"
+              :aria-invalid="fieldError('email') ? 'true' : undefined"
+              aria-describedby="email-error"
+            />
+            <small v-if="fieldError('email')" id="email-error" class="error">{{
+              fieldError('email')
+            }}</small>
+          </div>
+          <div class="field">
+            <label for="phone">Phone</label>
+            <input
+              id="phone"
+              v-model="form.phone"
+              type="tel"
+              autocomplete="tel"
+              :aria-invalid="fieldError('phone') ? 'true' : undefined"
+              aria-describedby="phone-error"
+            />
+            <small v-if="fieldError('phone')" id="phone-error" class="error">{{
+              fieldError('phone')
+            }}</small>
+          </div>
+          <div class="field">
+            <label for="status">Status</label>
+            <select id="status" v-model="form.status">
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
         </div>
+      </section>
 
-        <div class="field">
-          <label for="phone">Phone</label>
-
-          <input id="phone" v-model="form.phone" type="text" />
-
-          <small v-if="validationErrors.phone">
-            {{ validationErrors.phone[0] }}
-          </small>
+      <section class="form-section">
+        <div class="form-section-heading">
+          <h2>Additional information</h2>
+          <p>Keep context available for future investment conversations.</p>
         </div>
-
-        <div class="field">
-          <label for="status">Status</label>
-
-          <select id="status" v-model="form.status">
-            <option value="active">Active</option>
-
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-
         <div class="field">
           <label for="address">Address</label>
-
-          <textarea id="address" v-model="form.address" rows="3" />
+          <textarea
+            id="address"
+            v-model="form.address"
+            rows="3"
+            autocomplete="street-address"
+          ></textarea>
         </div>
-
         <div class="field">
           <label for="notes">Notes</label>
-
-          <textarea id="notes" v-model="form.notes" rows="3" />
+          <textarea id="notes" v-model="form.notes" rows="3"></textarea>
         </div>
-      </div>
+      </section>
 
-      <div class="actions">
-        <button type="button" @click="cancel">Cancel</button>
+      <p v-if="investorStore.error" class="form-error" role="alert">{{ investorStore.error }}</p>
 
-        <button type="submit" :disabled="submitting">
-          {{ submitting ? 'Saving...' : 'Create Investor' }}
+      <div class="form-actions">
+        <button class="btn-light" type="button" @click="cancel">Cancel</button>
+        <button type="submit" :disabled="submitting" :aria-busy="submitting">
+          {{ submitting ? 'Creating investor' : 'Create investor' }}
         </button>
       </div>
     </form>
   </div>
 </template>
+
+<style scoped>
+.form-page,
+.form-card {
+  min-width: 0;
+}
+
+.page-subtitle {
+  color: var(--text-secondary);
+  margin-top: var(--space-2);
+}
+
+.form-card {
+  max-width: 980px;
+}
+
+.form-section + .form-section {
+  border-top: 1px solid var(--border);
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+}
+
+.form-section-heading {
+  margin-bottom: var(--space-4);
+}
+
+.form-section-heading h2 {
+  font-size: var(--text-lg);
+}
+
+.form-section-heading p {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
+}
+
+.form-error {
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  color: var(--danger);
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  margin-top: var(--space-5);
+}
+
+@media (max-width: 560px) {
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
+}
+</style>

@@ -91,15 +91,27 @@ const customerOptions = () =>
 </script>
 
 <template>
-  <div>
+  <div class="entity-list-page">
     <div class="page-head">
-      <h1>Transport Jobs</h1>
+      <div>
+        <span class="section-kicker">Operations</span>
+        <h1>Transport jobs</h1>
+        <p class="page-subtitle">
+          Track work in motion and the final profit after unexpected costs.
+        </p>
+      </div>
     </div>
 
-    <div class="card">
-      <p class="hint">
-        Jobs start from accepted estimates. Base profit is agreed at quotation; unexpected expenses
-        come off it to give the final profit.
+    <div class="card list-card">
+      <div class="list-card-header">
+        <div>
+          <h2>Job workspace</h2>
+          <p class="hint">Search by job or customer, then open a job to update its workflow.</p>
+        </div>
+        <span class="scope-note">All jobs</span>
+      </div>
+      <p class="scope-note">
+        Profit is backend-calculated from quoted price, planned cost, and expenses.
       </p>
 
       <div class="toolbar">
@@ -180,3 +192,46 @@ const customerOptions = () =>
     </div>
   </div>
 </template>
+
+<style scoped>
+.entity-list-page,
+.list-card {
+  min-width: 0;
+}
+
+.page-subtitle {
+  color: var(--text-secondary);
+  margin-top: var(--space-2);
+}
+
+.list-card-header {
+  align-items: flex-start;
+  display: flex;
+  gap: var(--space-4);
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.list-card-header h2 {
+  font-size: var(--text-lg);
+}
+
+.scope-note {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 700px) {
+  .list-card-header {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+}
+
+@media (max-width: 560px) {
+  .entity-card-actions,
+  .entity-card-actions .btn-light {
+    width: 100%;
+  }
+}
+</style>

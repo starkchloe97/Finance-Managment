@@ -46,7 +46,7 @@ const isLoss = computed(() => Number(props.finalProfit) < 0)
     <div class="step final">
       <span>Final profit</span>
       <b :class="isLoss ? 'money-loss' : 'money-profit'">{{ money(finalProfit) }}</b>
-      <span v-if="isLoss" class="badge badge-loss">LOSS</span>
+      <span v-if="isLoss" class="badge badge-loss">Loss</span>
     </div>
   </div>
 </template>

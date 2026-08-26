@@ -179,11 +179,18 @@ const stats = computed(() => [
     </div>
 
     <template v-else-if="job">
-      <div class="page-head">
-        <div class="head-title">
-          <h1>{{ job.code }}</h1>
-          <span class="status" :class="`status-${job.status}`">{{ statusLabel(job.status) }}</span>
-          <span class="hint">{{ job.customer?.name || '—' }}</span>
+      <div class="page-head job-detail-head">
+        <div class="entity-title-block">
+          <span class="section-kicker">Operations / Transport jobs</span>
+          <div class="head-title">
+            <h1>{{ job.code }}</h1>
+            <span class="status" :class="`status-${job.status}`">{{
+              statusLabel(job.status)
+            }}</span>
+          </div>
+          <p class="page-subtitle">
+            {{ job.customer?.name || 'No customer' }} · {{ when(job.job_date) }}
+          </p>
         </div>
         <div class="actions">
           <button
@@ -417,3 +424,38 @@ const stats = computed(() => [
     </template>
   </div>
 </template>
+
+<style scoped>
+.job-detail-head {
+  align-items: flex-start;
+}
+
+.entity-title-block {
+  min-width: 0;
+}
+
+.entity-title-block .section-kicker {
+  margin-bottom: var(--space-2);
+}
+
+.entity-title-block .page-subtitle {
+  color: var(--text-secondary);
+  margin-top: var(--space-2);
+}
+
+.job-detail-head .actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 700px) {
+  .job-detail-head .actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .job-detail-head .actions button,
+  .job-detail-head .actions .hint {
+    width: 100%;
+  }
+}
+</style>

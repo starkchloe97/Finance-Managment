@@ -1,9 +1,11 @@
 <script setup>
 import KpiCard from './KpiCard.vue'
-defineProps({ items: Array })
+
+defineProps({ items: { type: Array, default: () => [] } })
 </script>
+
 <template>
-  <section class="kpi-grid">
+  <section class="kpi-grid" aria-label="Financial overview">
     <KpiCard v-for="item in items" :key="item.title" v-bind="item" />
   </section>
 </template>
@@ -12,13 +14,13 @@ defineProps({ items: Array })
 .kpi-grid {
   display: grid;
   gap: var(--space-3);
-  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: var(--space-5);
 }
 
 @media (max-width: 1024px) {
   .kpi-grid {
-    grid-template-columns: repeat(2, minmax(150px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

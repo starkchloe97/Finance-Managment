@@ -291,7 +291,7 @@ onMounted(() => {
                   >{{ allocation.status }}</span
                 >
               </td>
-              <td class="right money">{{ money(allocation.amount) }}</td>
+              <td class="right money-revenue">{{ money(allocation.amount) }}</td>
               <td>{{ formatDateTime(allocation.allocated_at) }}</td>
               <td class="right">
                 <button
@@ -354,7 +354,7 @@ onMounted(() => {
           <tbody>
             <tr v-for="distribution in distributions" :key="distribution.id">
               <td>{{ distribution.transport_job_id }}</td>
-              <td class="right money">{{ money(distribution.profit_basis) }}</td>
+              <td class="right money-revenue">{{ money(distribution.profit_basis) }}</td>
               <td class="right money-profit">{{ money(distribution.profit_amount) }}</td>
               <td>
                 <span class="status status-info">{{ distribution.status }}</span>

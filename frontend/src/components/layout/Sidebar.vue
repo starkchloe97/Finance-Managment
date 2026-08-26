@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onUnmounted, watch } from 'vue'
+import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -45,7 +45,7 @@ const navigation = [
     ],
   },
   {
-    label: 'Finance',
+    label: 'Capital',
     links: [
       {
         label: 'Investors',
@@ -69,6 +69,10 @@ const logout = async () => {
   router.push('/login')
 }
 
+const onKeydown = (event) => {
+  if (event.key === 'Escape' && props.mobileOpen) close()
+}
+
 watch(() => route.fullPath, close)
 watch(
   () => props.mobileOpen,
@@ -77,7 +81,11 @@ watch(
   },
   { immediate: true },
 )
-onUnmounted(() => document.body.classList.remove('nav-drawer-open'))
+onMounted(() => document.addEventListener('keydown', onKeydown))
+onUnmounted(() => {
+  document.body.classList.remove('nav-drawer-open')
+  document.removeEventListener('keydown', onKeydown)
+})
 </script>
 
 <template>
@@ -116,6 +124,15 @@ onUnmounted(() => document.body.classList.remove('nav-drawer-open'))
           :key="link.label"
           :to="link.to"
           class="nav-item"
+          :aria-current="
+            link.label === 'Dashboard'
+              ? route.path === '/'
+                ? 'page'
+                : undefined
+              : route.path.startsWith(typeof link.to === 'string' ? link.to : '/investments')
+                ? 'page'
+                : undefined
+          "
           @click="close"
         >
           <svg

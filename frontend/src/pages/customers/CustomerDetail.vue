@@ -38,7 +38,7 @@ onMounted(load)
 const stats = computed(() => [
   { label: 'Jobs', value: String(customer.value?.job_count ?? 0), tone: 'neutral' },
   { label: 'Revenue', value: money(customer.value?.revenue), tone: 'revenue' },
-  { label: 'Cost', value: money(customer.value?.cost), tone: 'cost' },
+  { label: 'Actual cost', value: money(customer.value?.cost), tone: 'cost' },
   {
     label: 'Profit',
     value: money(customer.value?.profit),
@@ -60,15 +60,20 @@ const when = (value) => (value ? new Date(value).toLocaleDateString() : '—')
     @retry="load"
   >
     <template #title>
-      <h1>{{ customer?.name }}</h1>
-      <span v-if="customer?.company" class="hint">{{ customer.company }}</span>
+      <div class="entity-title-block">
+        <span class="section-kicker">Customer relationship</span>
+        <h1>{{ customer?.name }}</h1>
+        <span v-if="customer?.company" class="hint">{{ customer.company }}</span>
+      </div>
     </template>
 
     <template #actions>
-      <RouterLink class="btn-light" :to="`/customers/${customer?.id}/edit`">Edit</RouterLink>
-      <RouterLink class="btn" :to="`/estimates/create?customer_id=${customer?.id}`"
-        >New Estimate</RouterLink
+      <RouterLink class="btn-light" :to="`/customers/${customer?.id}/edit`"
+        >Edit customer</RouterLink
       >
+      <RouterLink class="btn" :to="`/estimates/create?customer_id=${customer?.id}`">
+        New estimate
+      </RouterLink>
     </template>
 
     <!-- Overview -->

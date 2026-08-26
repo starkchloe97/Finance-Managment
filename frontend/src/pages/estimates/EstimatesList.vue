@@ -70,17 +70,25 @@ const openConvert = (estimate) => {
 </script>
 
 <template>
-  <div>
+  <div class="entity-list-page">
     <div class="page-head">
-      <h1>Estimates</h1>
-      <RouterLink class="btn" to="/estimates/create">+ New Estimate</RouterLink>
+      <div>
+        <span class="section-kicker">Operations</span>
+        <h1>Estimates</h1>
+        <p class="page-subtitle">Build, review, and convert customer quotes into transport jobs.</p>
+      </div>
+      <RouterLink class="btn" to="/estimates/create">New estimate</RouterLink>
     </div>
 
-    <div class="card">
-      <p class="hint">
-        Each quote holds the deal before the job starts. Converting it accepts the quote and opens a
-        job.
-      </p>
+    <div class="card list-card">
+      <div class="list-card-header">
+        <div>
+          <h2>Quote pipeline</h2>
+          <p class="hint">Search and filter the estimates that are already on the books.</p>
+        </div>
+        <span v-if="pagination.total" class="result-count">{{ pagination.total }} total</span>
+      </div>
+      <p class="scope-note">Customer-facing quote values stay separate from internal job costs.</p>
 
       <div class="toolbar">
         <SearchInput
@@ -91,7 +99,7 @@ const openConvert = (estimate) => {
         <FilterSelect
           :model-value="status"
           :options="ESTIMATE_STATUSES"
-          placeholder="Status"
+          placeholder="All statuses"
           @update:model-value="onStatus"
         />
       </div>
@@ -127,8 +135,53 @@ const openConvert = (estimate) => {
 </template>
 
 <style scoped>
+.entity-list-page,
+.list-card {
+  min-width: 0;
+}
+
+.page-subtitle {
+  color: var(--text-secondary);
+  margin-top: var(--space-2);
+}
+
+.list-card-header {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.list-card-header h2 {
+  font-size: var(--text-lg);
+}
+
+.result-count {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.scope-note {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-4);
+}
+
 .table-actions {
   display: flex;
   justify-content: center;
+}
+
+@media (max-width: 700px) {
+  .list-card-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .result-count {
+    align-self: flex-start;
+  }
 }
 </style>

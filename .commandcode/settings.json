@@ -21,7 +21,14 @@
       "Shell(php -l app\\Http\\Requests\\InvestmentRequest.php)",
       "Shell(vendor/bin/pint:*)",
       "Shell(php vendorbinpint testsFeatureSystemFlowScenarioTest.php 2 >& 1)",
-      "Shell(npx prettier --write src/stores/investmentStore.js)"
+      "Shell(npx prettier --write src/stores/investmentStore.js)",
+      "Shell(php -l app/Http/Controllers/Api/V1/ReportController.php)",
+      "Shell(php -l app/Http/Requests/DashboardRequest.php)",
+      "Shell(php -l tests/Feature/DashboardReportTest.php)",
+      "Shell(php -m)",
+      "Shell(Select-String:*)",
+      "Shell(php --ini)",
+      "Shell(php -l app/Http/Resources/CustomerResource.php)"
     ],
     "deny": [],
     "defaultMode": "default"

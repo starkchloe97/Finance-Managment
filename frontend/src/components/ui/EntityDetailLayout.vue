@@ -89,7 +89,22 @@ const active = computed(() => props.modelValue || props.tabs[0]?.key || '')
 }
 
 .entity-head {
+  align-items: flex-start;
   margin-bottom: var(--space-4);
+}
+
+.entity-head :deep(.entity-title-block) {
+  min-width: 0;
+}
+
+.entity-head :deep(.entity-title-block .hint) {
+  display: block;
+  margin-left: var(--space-0);
+  margin-top: var(--space-1);
+}
+
+.entity-head :deep(.section-kicker) {
+  margin-bottom: var(--space-2);
 }
 
 .entity-tabs {

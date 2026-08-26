@@ -118,6 +118,10 @@ export const useInvestorStore = defineStore('investor', {
       }
     },
 
+    setPage(page) {
+      return this.fetchInvestors({ page })
+    },
+
     clearInvestor() {
       this.investor = null
       this.error = null

@@ -118,26 +118,35 @@ const save = async () => {
 </script>
 
 <template>
-  <div class="page-head">
-    <h1>{{ isEdit ? 'Edit Estimate' : 'New Estimate' }}</h1>
+  <div class="page-head estimate-form-head">
+    <div>
+      <span class="section-kicker">Operations / Estimates</span>
+      <h1>{{ isEdit ? 'Edit estimate' : 'New estimate' }}</h1>
+      <p class="page-subtitle">Build a customer quote that can become a transport job.</p>
+    </div>
   </div>
 
-  <form @submit.prevent="save">
+  <form class="estimate-form" @submit.prevent="save">
+    <div v-if="notice && !loading" class="form-error" role="alert">{{ notice }}</div>
     <div v-if="loading" class="state-panel state-loading"><div class="skeleton-block"></div></div>
 
     <template v-else>
-      <div class="card">
+      <section class="card form-section">
         <EstimateInformation :form="form" />
-      </div>
+      </section>
 
-      <div class="card">
+      <section class="card form-section">
         <EstimateItemsTable :form="form" />
-      </div>
+      </section>
 
-      <div class="card">
-        <h3>Status</h3>
+      <section class="card form-section review-section">
+        <div class="form-section-heading">
+          <h2>Review and send</h2>
+          <p>Set the quote status and add any customer-facing context.</p>
+        </div>
         <div class="field">
-          <select v-model="form.status">
+          <label for="estimate-status">Status</label>
+          <select id="estimate-status" v-model="form.status">
             <option value="draft">Draft</option>
             <option value="sent">Sent</option>
             <option value="accepted">Accepted</option>
@@ -145,15 +154,14 @@ const save = async () => {
             <option value="expired">Expired</option>
           </select>
         </div>
-
-        <h3>Remarks</h3>
         <div class="field">
+          <label for="estimate-remarks">Customer-facing remarks</label>
           <textarea
+            id="estimate-remarks"
             v-model="form.remarks"
             placeholder="Anything the customer should see on the quote"
           ></textarea>
         </div>
-
         <div class="totals">
           <dl>
             <div>
@@ -170,20 +178,94 @@ const save = async () => {
             </div>
           </dl>
         </div>
-      </div>
+      </section>
 
-      <p v-if="notice" class="error">{{ notice }}</p>
-
-      <div class="actions">
-        <button type="submit" :disabled="saving">
-          {{ saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Save Estimate' }}
-        </button>
+      <div class="estimate-actions">
         <RouterLink
-          class="btn btn-light"
+          class="btn-light"
           :to="isEdit ? `/estimates/${props.estimate.id}` : '/estimates'"
           >Cancel</RouterLink
         >
+        <button type="submit" :disabled="saving" :aria-busy="saving">
+          {{ saving ? 'Saving estimate' : isEdit ? 'Save changes' : 'Save estimate' }}
+        </button>
       </div>
     </template>
   </form>
 </template>
+
+<style scoped>
+.estimate-form-head {
+  align-items: flex-start;
+}
+
+.page-subtitle {
+  color: var(--text-secondary);
+  margin-top: var(--space-2);
+}
+
+.estimate-form {
+  min-width: 0;
+}
+
+.form-section {
+  max-width: 1180px;
+}
+
+.form-section-heading {
+  margin-bottom: var(--space-4);
+}
+
+.form-section-heading h2 {
+  font-size: var(--text-lg);
+}
+
+.form-section-heading p {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
+}
+
+.review-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.55fr);
+}
+
+.review-section .form-section-heading,
+.review-section .field:nth-of-type(2) {
+  grid-column: 1 / -1;
+}
+
+.form-error {
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  color: var(--danger);
+  margin-bottom: var(--space-4);
+  max-width: 1180px;
+  padding: var(--space-3);
+}
+
+.estimate-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  margin: var(--space-4) var(--space-0) var(--space-6);
+  max-width: 1180px;
+}
+
+@media (max-width: 700px) {
+  .review-section {
+    display: block;
+  }
+
+  .estimate-actions {
+    flex-direction: column-reverse;
+  }
+
+  .estimate-actions button,
+  .estimate-actions .btn-light {
+    width: 100%;
+  }
+}
+</style>
