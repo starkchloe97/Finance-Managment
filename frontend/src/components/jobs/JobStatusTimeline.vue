@@ -1,97 +1,178 @@
 <script setup>
 import { computed } from 'vue'
 import { statusLabel } from '@/utils/jobStatus'
+import InfoTip from '@/components/ui/InfoTip.vue'
 
 const props = defineProps({
   status: { type: String, required: true },
 })
 
-// The real lifecycle, mirroring TransportJobService::TRANSITIONS. The server
-// enforces the order; this only draws it.
-const STAGES = ['draft', 'confirmed', 'assigned', 'in_transit', 'delivered', 'completed']
+// Mirrors TransportJobService::TRANSITIONS — the server enforces the order.
+const STAGES = [
+  { key: 'draft', tip: 'Being prepared — the job is not confirmed yet.' },
+  { key: 'confirmed', tip: 'The customer accepted the quote.' },
+  { key: 'assigned', tip: 'A driver and vehicle have been allocated.' },
+  { key: 'in_transit', tip: 'The vehicle is on the road.' },
+  { key: 'delivered', tip: 'The goods arrived at the destination.' },
+  { key: 'completed', tip: 'Job finished — finances are closed and distributed.' },
+]
 
-const currentIndex = computed(() => STAGES.indexOf(props.status))
+const currentIndex = computed(() => STAGES.findIndex((stage) => stage.key === props.status))
 
-// A stage is filled if it is at or before the current one. 'completed' is the
-// terminal stage; the timeline is complete when the job is there.
 const states = computed(() =>
   STAGES.map((stage, index) => ({
-    key: stage,
-    label: statusLabel(stage),
-    filled: index <= currentIndex.value,
+    ...stage,
+    label: statusLabel(stage.key),
+    done: index < currentIndex.value,
+    current: index === currentIndex.value,
   })),
+)
+
+const progress = computed(() =>
+  currentIndex.value <= 0 ? 0 : Math.round((currentIndex.value / (STAGES.length - 1)) * 100),
 )
 </script>
 
 <template>
-  <ol class="job-timeline" :class="{ complete: status === 'completed' }">
-    <li v-for="stage in states" :key="stage.key" :class="{ filled: stage.filled }">
-      <span class="timeline-dot"></span>
-      <span class="timeline-label">{{ stage.label }}</span>
-    </li>
-  </ol>
+  <div class="stage-track">
+    <ol class="stage-list" :aria-label="`Job stage: ${statusLabel(status)}`">
+      <li
+        v-for="stage in states"
+        :key="stage.key"
+        class="stage"
+        :class="{ done: stage.done, current: stage.current }"
+      >
+        <span class="stage-dot" aria-hidden="true">
+          <svg
+            v-if="stage.done"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+          <span v-else-if="stage.current" class="stage-pulse"></span>
+        </span>
+        <span class="stage-label">
+          {{ stage.label }}
+          <InfoTip :label="stage.tip" />
+        </span>
+      </li>
+    </ol>
+    <p class="stage-progress" aria-hidden="true">{{ progress }}% through the workflow</p>
+  </div>
 </template>
 
 <style scoped>
-.job-timeline {
+.stage-track {
+  min-width: 0;
+}
+
+.stage-list {
   align-items: flex-start;
   display: flex;
   justify-content: space-between;
   list-style: none;
-  margin: var(--space-4) var(--space-0) var(--space-0);
-  padding: var(--space-0);
+  margin: 0;
+  padding: 0;
 }
 
-.job-timeline li {
+.stage {
   align-items: center;
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 8px;
+  min-width: 0;
+  padding: 0 4px;
   position: relative;
   text-align: center;
 }
 
-.job-timeline li::before {
-  background: var(--border-strong);
+/* Connector */
+.stage::before {
+  background: var(--border);
   content: '';
   height: 2px;
   left: -50%;
   position: absolute;
-  top: var(--space-3);
+  top: 13px;
   width: 100%;
+  transition: background 0.3s ease;
 }
 
-.job-timeline li:first-child::before {
-  display: none;
-}
+.stage:first-child::before { display: none; }
+.stage.done::before,
+.stage.current::before { background: var(--accent); }
 
-.timeline-dot {
-  background: var(--border-strong);
+.stage-dot {
+  align-items: center;
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
   border-radius: 50%;
-  height: var(--space-3);
+  color: #fff;
+  display: flex;
+  height: 26px;
+  justify-content: center;
   position: relative;
-  width: var(--space-3);
+  transition: background 0.2s ease, border-color 0.2s ease;
+  width: 26px;
   z-index: 1;
 }
 
-.job-timeline li.filled::before,
-.job-timeline li.filled .timeline-dot {
+.stage.done .stage-dot {
   background: var(--accent);
+  border-color: var(--accent);
 }
 
-.job-timeline li.filled .timeline-dot {
-  box-shadow: 0 0 0 var(--space-1) var(--accent-soft);
+.stage.current .stage-dot {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
-.job-timeline li.filled .timeline-label {
-  color: var(--text-primary);
-  font-weight: var(--font-weight-medium);
+.stage-dot svg { height: 12px; width: 12px; }
+
+.stage-pulse {
+  animation: pulse 1.8s ease-out infinite;
+  background: var(--accent);
+  border-radius: 50%;
+  height: 8px;
+  width: 8px;
 }
 
-.timeline-label {
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgb(37 99 235 / 40%); }
+  70% { box-shadow: 0 0 0 8px rgb(37 99 235 / 0%); }
+  100% { box-shadow: 0 0 0 0 rgb(37 99 235 / 0%); }
+}
+
+.stage-label {
+  align-items: center;
   color: var(--text-muted);
-  font-size: var(--text-xs);
-  text-transform: capitalize;
+  display: inline-flex;
+  font-size: 12px;
+  gap: 4px;
+}
+
+.stage.done .stage-label,
+.stage.current .stage-label {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.stage-progress {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin: 10px 0 0;
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .stage { padding: 0 2px; }
+  .stage-label { font-size: 10px; }
+  .stage-label :deep(.info-tip) { display: none; } /* tooltips are desktop affordances */
 }
 </style>

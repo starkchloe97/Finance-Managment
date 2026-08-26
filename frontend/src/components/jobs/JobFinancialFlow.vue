@@ -1,9 +1,9 @@
 <script setup>
 import { computed } from 'vue'
 import { money } from '@/utils/money'
+import InfoTip from '@/components/ui/InfoTip.vue'
 
 const props = defineProps({
-  // A job (or anything with these figures). Backend-sourced only.
   sellPrice: { type: [String, Number], default: 0 },
   costPrice: { type: [String, Number], default: 0 },
   extraCosts: { type: [String, Number], default: 0 },
@@ -11,112 +11,148 @@ const props = defineProps({
 })
 
 const isLoss = computed(() => Number(props.finalProfit) < 0)
+const baseProfit = computed(() => Number(props.sellPrice) - Number(props.costPrice))
 </script>
 
 <template>
-  <div class="chain financial-flow">
-    <div class="step">
-      <span>Quoted</span>
-      <b>{{ money(sellPrice) }}</b>
+  <section class="card flow-card">
+    <header class="flow-head">
+      <div>
+        <h2>How the money works</h2>
+        <p class="hint">Follow the math from the quoted price to what the job really earned.</p>
+      </div>
+    </header>
+
+    <div class="flow-chain">
+      <div class="flow-step">
+        <span class="flow-label">
+          Quoted price
+          <InfoTip label="The price the customer agreed to pay for this job." />
+        </span>
+        <strong>{{ money(sellPrice) }}</strong>
+      </div>
+
+      <span class="flow-op" aria-hidden="true">−</span>
+
+      <div class="flow-step">
+        <span class="flow-label">
+          Planned cost
+          <InfoTip
+            label="What you expected to spend when the job was quoted — vehicle, fuel, driver."
+          />
+        </span>
+        <strong>{{ money(costPrice) }}</strong>
+      </div>
+
+      <span class="flow-op" aria-hidden="true">=</span>
+
+      <div class="flow-step">
+        <span class="flow-label">
+          Base profit
+          <InfoTip label="Profit if the job had gone exactly to plan." />
+        </span>
+        <strong>{{ money(baseProfit) }}</strong>
+      </div>
+
+      <span class="flow-op" aria-hidden="true">−</span>
+
+      <div class="flow-step">
+        <span class="flow-label">
+          Unexpected
+          <InfoTip
+            label="Extra costs that came up during the job — repairs, fines, delays. Each one is listed under Expenses below."
+          />
+        </span>
+        <strong>{{ money(extraCosts) }}</strong>
+      </div>
+
+      <span class="flow-op" aria-hidden="true">=</span>
+
+      <div class="flow-step flow-final" :class="{ 'flow-loss': isLoss }">
+        <span class="flow-label">
+          Final profit
+          <InfoTip label="What the job actually earned after every cost." />
+        </span>
+        <strong>{{ money(finalProfit) }}</strong>
+        <span v-if="isLoss" class="flow-badge">Loss</span>
+      </div>
     </div>
-
-    <div class="op">−</div>
-
-    <div class="step">
-      <span>Planned cost</span>
-      <b class="money-cost">{{ money(costPrice) }}</b>
-    </div>
-
-    <div class="op">=</div>
-
-    <div class="step">
-      <span>Base profit</span>
-      <b>{{ money(Number(sellPrice) - Number(costPrice)) }}</b>
-    </div>
-
-    <div class="op">−</div>
-
-    <div class="step">
-      <span>Unexpected</span>
-      <b class="money-cost">{{ money(extraCosts) }}</b>
-    </div>
-
-    <div class="op">=</div>
-
-    <div class="step final">
-      <span>Final profit</span>
-      <b :class="isLoss ? 'money-loss' : 'money-profit'">{{ money(finalProfit) }}</b>
-      <span v-if="isLoss" class="badge badge-loss">Loss</span>
-    </div>
-  </div>
+  </section>
 </template>
 
 <style scoped>
-.chain {
+.flow-card { min-width: 0; }
+
+.flow-head { margin-bottom: 18px; }
+.flow-head h2 { font-size: 15px; font-weight: 600; }
+
+.flow-chain {
   align-items: stretch;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
-  padding: var(--space-5);
+  gap: 10px;
 }
 
-.chain .step {
-  flex: 1 1 var(--chain-min);
-  min-width: var(--chain-min);
+.flow-step {
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  flex: 1 1 130px;
+  min-width: 130px;
+  padding: 14px 16px;
 }
 
-.chain .step span {
-  color: var(--text-muted);
-  display: block;
-  font-size: var(--text-xs);
-  margin-bottom: var(--space-1);
-}
-
-.chain .step b {
-  font-size: var(--text-xl);
-  font-variant-numeric: tabular-nums;
-}
-
-.chain .op {
+.flow-label {
   align-items: center;
   color: var(--text-muted);
   display: flex;
-  font-size: var(--text-lg);
-  padding-top: var(--space-4);
+  font-size: 12px;
+  font-weight: 500;
+  gap: 6px;
+  margin-bottom: 5px;
 }
 
-.chain .final b {
-  color: var(--success);
+.flow-step strong {
+  color: var(--text-primary);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
-.chain .final b.money-loss {
-  color: var(--danger);
+.flow-op {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  font-size: 18px;
+  font-weight: 600;
+  padding: 0 2px;
 }
 
-.financial-flow {
-  margin: var(--space-4) var(--space-0) var(--space-5);
+.flow-final {
+  background: var(--success-soft);
+  flex: 1.4 1 150px;
 }
 
-.badge-loss {
+.flow-final strong { color: var(--success); }
+
+.flow-final.flow-loss { background: var(--danger-soft); }
+.flow-final.flow-loss strong { color: var(--danger); }
+
+.flow-badge {
   background: var(--danger);
-  color: var(--text-inverse);
+  border-radius: 999px;
+  color: #fff;
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+  padding: 2px 8px;
+  vertical-align: middle;
 }
 
 @media (max-width: 560px) {
-  .chain {
-    padding: var(--space-4);
-  }
-
-  .chain .op {
-    display: none;
-  }
-
-  .chain .step {
-    flex-basis: calc(50% - var(--space-2));
-  }
+  .flow-op { display: none; }
+  .flow-step { flex-basis: calc(50% - 5px); }
+  .flow-final { flex-basis: 100%; }
 }
 </style>

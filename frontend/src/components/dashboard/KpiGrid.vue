@@ -13,9 +13,9 @@ defineProps({ items: { type: Array, default: () => [] } })
 <style scoped>
 .kpi-grid {
   display: grid;
-  gap: var(--space-4);
+  gap: 14px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 @media (max-width: 1024px) { .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

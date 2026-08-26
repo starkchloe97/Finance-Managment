@@ -28,7 +28,9 @@
       "Shell(php -m)",
       "Shell(Select-String:*)",
       "Shell(php --ini)",
-      "Shell(php -l app/Http/Resources/CustomerResource.php)"
+      "Shell(php -l app/Http/Resources/CustomerResource.php)",
+      "Shell(npx prettier --check src/style.css src/components/dashboard/DashboardHeader.vue)",
+      "Shell(npx prettier --write src/style.css src/components/dashboard/DashboardHeader.vue)"
     ],
     "deny": [],
     "defaultMode": "default"

@@ -4,14 +4,14 @@ import { addExpense, updateExpense, deleteExpense } from '@/services/transportJo
 import { money } from '@/utils/money'
 import { EXPENSE_CATEGORIES, categoryLabel } from '@/utils/expenseCategories'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import InfoTip from '@/components/ui/InfoTip.vue'
+import { toneFor } from '@/utils/tone'
 
 const props = defineProps({
   job: { type: Object, required: true },
 })
 const emit = defineEmits(['updated'])
 
-// The server returns the recalculated job after every mutation. This component
-// only surfaces it.
 const apply = (job) => emit('updated', job)
 
 const today = () => new Date().toISOString().slice(0, 10)
@@ -78,7 +78,7 @@ const saveExpense = async () => {
 
     apply(data.data)
     cancelEdit()
-    notice.value = wasEditing ? 'Expense updated.' : 'Expense added.'
+    notice.value = wasEditing ? 'Expense updated.' : 'Expense added — profit recalculated.'
   } catch (error) {
     errors.value = error.response?.data?.errors || {}
     if (!Object.keys(errors.value).length) {
@@ -110,16 +110,41 @@ const removeExpense = async () => {
 </script>
 
 <template>
-  <div class="card">
-    <h3>Unexpected Expenses</h3>
-    <p class="hint">
-      Only costs that were not in the quote. Each one lowers the final profit — the job's totals are
-      recalculated by the server.
-    </p>
+  <section class="card block-card">
+    <header class="block-head">
+      <div class="block-title">
+        <span class="block-icon icon-warning" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M16 13H8" /><path d="M16 17H8" />
+          </svg>
+        </span>
+        <div>
+          <h2>Unexpected expenses</h2>
+          <p class="block-hint">
+            Only costs that were
+            <em>not</em> in the quote
+            <InfoTip
+              label="Every expense here lowers the final profit automatically — the totals update the moment you save."
+            />
+          </p>
+        </div>
+      </div>
+      <span v-if="job.expenses?.length" class="expense-total">
+        {{ money(job.extra_costs) }}
+      </span>
+    </header>
 
     <div v-if="notice" class="notice">{{ notice }}</div>
 
-    <div class="table-wrap" v-if="job.expenses?.length">
+    <!-- Category breakdown -->
+    <div v-if="byCategory.length" class="cat-summary">
+      <span v-for="group in byCategory" :key="group.category" class="cat-chip">
+        <b>{{ categoryLabel(group.category) }}</b>
+        {{ money(group.subtotal) }}
+      </span>
+    </div>
+
+    <div v-if="job.expenses?.length" class="table-wrap">
       <table>
         <thead>
           <tr>
@@ -127,7 +152,7 @@ const removeExpense = async () => {
             <th>Category</th>
             <th>Date</th>
             <th class="right">Amount</th>
-            <th width="140"></th>
+            <th class="right">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -137,21 +162,43 @@ const removeExpense = async () => {
             :class="{ editing: editingId === item.id }"
           >
             <td>
-              {{ item.title }}
+              <span class="expense-title">{{ item.title }}</span>
               <span v-if="item.notes" class="hint">{{ item.notes }}</span>
             </td>
             <td>
-              <span class="badge">{{ categoryLabel(item.category) }}</span>
+              <span class="badge" :class="`tone-${toneFor(item.category)}`">
+                {{ categoryLabel(item.category) }}
+              </span>
             </td>
             <td>{{ String(item.expense_date).slice(0, 10) }}</td>
-            <td class="right">{{ money(item.amount) }}</td>
+            <td class="right expense-amount">{{ money(item.amount) }}</td>
             <td class="right">
-              <button class="btn-light btn-sm" :disabled="saving" @click="startEdit(item)">
-                Edit
-              </button>
-              <button class="btn-danger btn-sm" :disabled="saving" @click="deleting = item">
-                Delete
-              </button>
+              <div class="row-actions">
+                <button
+                  class="icon-action"
+                  type="button"
+                  :disabled="saving"
+                  title="Edit expense"
+                  aria-label="Edit expense"
+                  @click="startEdit(item)"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                  </svg>
+                </button>
+                <button
+                  class="icon-action danger"
+                  type="button"
+                  :disabled="saving"
+                  title="Delete expense"
+                  aria-label="Delete expense"
+                  @click="deleting = item"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -165,9 +212,11 @@ const removeExpense = async () => {
       </table>
     </div>
 
-    <p v-else class="empty">Nothing unexpected so far — the job is running to plan.</p>
+    <div v-else class="block-empty">
+      <p>Nothing unexpected so far — the job is running to plan. 👍</p>
+    </div>
 
-    <form class="grid" style="margin-top: 14px" @submit.prevent="saveExpense">
+    <form class="grid expense-form" @submit.prevent="saveExpense">
       <div class="field">
         <label>Title</label>
         <input
@@ -200,6 +249,7 @@ const removeExpense = async () => {
           v-model="expense.amount"
           :class="{ invalid: errors.amount }"
           :disabled="saving"
+          placeholder="0.00"
         />
         <small v-if="errors.amount" class="error">{{ errors.amount[0] }}</small>
       </div>
@@ -228,7 +278,7 @@ const removeExpense = async () => {
 
       <div class="field actions" style="align-self: end">
         <button type="submit" :disabled="saving">
-          {{ saving ? 'Saving…' : editingId ? 'Save Changes' : '+ Add Expense' }}
+          {{ saving ? 'Saving…' : editingId ? 'Save changes' : '+ Add expense' }}
         </button>
         <button
           v-if="editingId"
@@ -255,11 +305,109 @@ const removeExpense = async () => {
       @confirm="removeExpense"
       @cancel="deleting = null"
     />
-  </div>
+  </section>
 </template>
 
 <style scoped>
-tr.editing td {
-  background: var(--warning-soft);
+.block-card { padding: 20px; }
+
+.block-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 14px;
 }
+
+.block-title { align-items: flex-start; display: flex; gap: 12px; }
+.block-title h2 { font-size: 15px; font-weight: 600; margin: 0; }
+.block-hint {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: 4px;
+  margin: 2px 0 0;
+}
+.block-hint em { font-style: normal; font-weight: 600; }
+
+.block-icon {
+  align-items: center;
+  background: var(--warning-soft);
+  border-radius: 9px;
+  color: var(--warning);
+  display: flex;
+  flex: 0 0 32px;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+.block-icon svg { height: 15px; width: 15px; }
+
+.expense-total {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cat-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.cat-chip {
+  background: var(--surface-2);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  display: inline-flex;
+  font-size: 12px;
+  gap: 6px;
+  padding: 5px 12px;
+}
+.cat-chip b { color: var(--text-primary); }
+
+.expense-title { color: var(--text-primary); font-weight: 500; }
+.expense-amount { color: var(--text-primary); font-weight: 600; }
+
+.row-actions {
+  display: inline-flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.icon-action {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+  width: 32px;
+}
+.icon-action svg { height: 15px; width: 15px; }
+.icon-action:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
+.icon-action.danger:hover:not(:disabled) { background: var(--danger-soft); color: var(--danger); }
+
+tr.editing td { background: var(--warning-soft); }
+
+.block-empty {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 18px 16px;
+  text-align: center;
+}
+.block-empty p { margin: 0; }
+
+.expense-form { margin-top: 16px; }
 </style>

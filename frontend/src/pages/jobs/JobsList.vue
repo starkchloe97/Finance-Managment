@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, onUnmounted } from 'vue'
+import { computed, onMounted, ref, onUnmounted } from 'vue'
 import { getJobs } from '@/services/transportJobService'
 import { money } from '@/utils/money'
 import { statusLabel } from '@/utils/jobStatus'
@@ -9,6 +9,7 @@ import Pagination from '@/components/ui/Pagination.vue'
 import StatePanel from '@/components/ui/StatePanel.vue'
 import JobTable from '@/components/jobs/JobTable.vue'
 import { useCustomerStore } from '@/stores/customerStore'
+import { avatarStyle, initialOf } from '@/utils/avatar'
 
 const customers = useCustomerStore()
 
@@ -64,7 +65,26 @@ const onSearch = (value) => {
   }, 300)
 }
 
-const applyFilter = () => {
+// FIX: the filter value must land in the ref before reloading —
+// the old handler dropped it, so filters never applied.
+const setStatus = (value) => {
+  status.value = value
+  page.value = 1
+  load()
+}
+
+const setCustomer = (value) => {
+  customerId.value = value
+  page.value = 1
+  load()
+}
+
+const hasFilters = computed(() => Boolean(search.value || status.value || customerId.value))
+
+const clearFilters = () => {
+  search.value = ''
+  status.value = ''
+  customerId.value = ''
   page.value = 1
   load()
 }
@@ -86,8 +106,9 @@ onUnmounted(() => {
   window.removeEventListener('resize', checkMobile)
 })
 
-const customerOptions = () =>
-  customers.customers.map((customer) => ({ value: customer.id, label: customer.name }))
+const customerOptions = computed(() =>
+  customers.customers.map((customer) => ({ value: customer.id, label: customer.name })),
+)
 </script>
 
 <template>
@@ -96,26 +117,18 @@ const customerOptions = () =>
       <div>
         <span class="section-kicker">Operations</span>
         <h1>Transport jobs</h1>
-        <p class="page-subtitle">
-          Track work in motion and the final profit after unexpected costs.
+        <p class="page-sub">
+          {{ pagination.total }} {{ pagination.total === 1 ? 'job' : 'jobs' }} — track work in
+          motion and the profit left after unexpected costs.
         </p>
       </div>
+      <RouterLink class="btn-light" to="/estimates/create">+ New Estimate</RouterLink>
     </div>
 
     <div class="card list-card">
-      <div class="list-card-header">
-        <div>
-          <h2>Job workspace</h2>
-          <p class="hint">Search by job or customer, then open a job to update its workflow.</p>
-        </div>
-        <span class="scope-note">All jobs</span>
-      </div>
-      <p class="scope-note">
-        Profit is backend-calculated from quoted price, planned cost, and expenses.
-      </p>
-
       <div class="toolbar">
         <SearchInput
+          class="toolbar-search"
           :model-value="search"
           placeholder="Search by job code or customer…"
           @update:model-value="onSearch"
@@ -123,15 +136,18 @@ const customerOptions = () =>
         <FilterSelect
           :model-value="status"
           :options="STATUSES"
-          placeholder="Status"
-          @update:model-value="applyFilter"
+          placeholder="All statuses"
+          @update:model-value="setStatus"
         />
         <FilterSelect
           :model-value="customerId"
-          :options="customerOptions()"
-          placeholder="Customer"
-          @update:model-value="applyFilter"
+          :options="customerOptions"
+          placeholder="All customers"
+          @update:model-value="setCustomer"
         />
+        <button v-if="hasFilters" class="btn-light btn-sm" type="button" @click="clearFilters">
+          Clear filters
+        </button>
       </div>
 
       <StatePanel
@@ -142,22 +158,31 @@ const customerOptions = () =>
         empty-action="New Estimate"
         empty-to="/estimates/create"
       >
-        <!-- Desktop table -->
         <JobTable v-if="!isMobile" :jobs="jobs" />
 
-        <!-- Mobile cards: identifier, customer, status, revenue/cost/profit -->
+        <!-- Mobile cards -->
         <div v-else class="entity-card-grid">
           <article v-for="job in jobs" :key="job.id" class="entity-card">
             <div class="entity-card-top">
-              <div>
+              <div class="mobile-id">
                 <h3>
                   <RouterLink :to="`/jobs/${job.id}`">{{ job.code }}</RouterLink>
                 </h3>
-                <p class="hint">{{ job.customer?.name || '—' }}</p>
+                <div v-if="job.customer?.name" class="mobile-customer">
+                  <span
+                    class="customer-avatar"
+                    :style="avatarStyle(job.customer.name)"
+                    aria-hidden="true"
+                  >
+                    {{ initialOf(job.customer.name) }}
+                  </span>
+                  <p class="hint">{{ job.customer.name }}</p>
+                </div>
+                <p v-else class="hint">No customer</p>
               </div>
-              <span class="status" :class="`status-${job.status}`">{{
-                statusLabel(job.status)
-              }}</span>
+              <span class="status" :class="`status-${job.status}`">
+                {{ statusLabel(job.status) }}
+              </span>
             </div>
             <div class="entity-card-stats">
               <div>
@@ -170,13 +195,13 @@ const customerOptions = () =>
               </div>
               <div>
                 <span class="hint">Profit</span>
-                <strong :class="Number(job.final_profit) < 0 ? 'money-loss' : 'money-profit'">{{
-                  money(job.final_profit)
-                }}</strong>
+                <strong :class="Number(job.final_profit) < 0 ? 'money-loss' : 'money-profit'">
+                  {{ money(job.final_profit) }}
+                </strong>
               </div>
             </div>
             <div class="entity-card-actions">
-              <RouterLink class="btn-light btn-sm" :to="`/jobs/${job.id}`">View →</RouterLink>
+              <RouterLink class="btn-light btn-sm" :to="`/jobs/${job.id}`">Open job →</RouterLink>
             </div>
           </article>
         </div>
@@ -199,33 +224,43 @@ const customerOptions = () =>
   min-width: 0;
 }
 
-.page-subtitle {
+.page-sub {
   color: var(--text-secondary);
+  font-size: 14px;
   margin-top: var(--space-2);
 }
 
-.list-card-header {
-  align-items: flex-start;
+.toolbar {
+  margin-bottom: var(--space-4);
+}
+
+/* Search grows, selects keep natural width */
+.toolbar :deep(.toolbar-search) {
+  flex: 1;
+  min-width: 220px;
+}
+.toolbar :deep(.toolbar-search input) {
+  width: 100%;
+}
+
+.mobile-id { min-width: 0; }
+.mobile-customer {
+  align-items: center;
   display: flex;
-  gap: var(--space-4);
-  justify-content: space-between;
-  margin-bottom: var(--space-2);
+  gap: 8px;
+  margin-top: 4px;
 }
-
-.list-card-header h2 {
-  font-size: var(--text-lg);
-}
-
-.scope-note {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-}
-
-@media (max-width: 700px) {
-  .list-card-header {
-    flex-direction: column;
-    gap: var(--space-2);
-  }
+.customer-avatar {
+  align-items: center;
+  border-radius: 9px;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 24px;
+  font-size: 10px;
+  font-weight: 600;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
 }
 
 @media (max-width: 560px) {

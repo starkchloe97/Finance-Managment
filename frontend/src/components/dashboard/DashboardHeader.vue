@@ -60,7 +60,15 @@ defineEmits(['update:period', 'update:from-date', 'update:to-date', 'refresh', '
         :title="refreshing ? 'Refreshing…' : 'Refresh data'"
         @click="$emit('refresh')"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
           <path d="M21 12a9 9 0 1 1-2.64-6.36" />
           <path d="M21 3v6h-6" />
         </svg>
@@ -100,7 +108,11 @@ defineEmits(['update:period', 'update:from-date', 'update:to-date', 'refresh', '
   gap: var(--space-3);
 }
 
-.custom-range { align-items: center; display: flex; gap: 8px; }
+.custom-range {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
 .custom-range input {
   background: var(--surface);
   border: 1px solid var(--border-strong);
@@ -110,8 +122,17 @@ defineEmits(['update:period', 'update:from-date', 'update:to-date', 'refresh', '
   font-size: 13px;
   padding: 7px 10px;
 }
-.custom-range input:focus-visible { border-color: var(--accent); outline: 2px solid var(--accent-soft); }
-.range-sep { color: var(--text-muted); }
+.custom-range input:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent-soft);
+}
+.custom-range input {
+  width: auto;
+  min-width: 140px;
+}
+.range-sep {
+  color: var(--text-muted);
+}
 
 .icon-button {
   align-items: center;
@@ -124,23 +145,48 @@ defineEmits(['update:period', 'update:from-date', 'update:to-date', 'refresh', '
   height: 38px;
   justify-content: center;
   width: 45px;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
-.icon-button:hover:not(:disabled) { background: var(--surface-2); color: var(--text-primary); }
-.icon-button svg { height: 16px; width: 16px; }
-.icon-button.spinning svg { animation: spin 0.9s linear infinite; }
+.icon-button:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+.icon-button svg {
+  height: 16px;
+  width: 16px;
+}
+.icon-button.spinning svg {
+  animation: spin 0.9s linear infinite;
+}
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
-.last-updated { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+.last-updated {
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
 
 @media (max-width: 820px) {
-  .dashboard-controls { width: 100%; }
+  .dashboard-controls {
+    width: 100%;
+  }
 }
 
 @media (max-width: 560px) {
   .dashboard-controls,
-  .custom-range { align-items: stretch; flex-direction: column; }
-  .custom-range input { width: 100%; }
+  .custom-range {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .custom-range input {
+    width: 100%;
+  }
 }
 </style>

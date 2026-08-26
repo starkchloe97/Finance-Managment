@@ -30,6 +30,13 @@ const percentChange = (metric) => {
   return `${change > 0 ? '+' : ''}${change}%`
 }
 
+// Appends the previous period's figure to a tooltip. The formatter differs
+// per metric — margin is a %, job counts aren't currency.
+const prevNote = (metric, format = money) => {
+  if (!metric || metric.previous === null || metric.previous === undefined) return ''
+  return ` Previous period: ${format(metric.previous)}.`
+}
+
 const trendDirection = (metric, favorableWhenUp = true) => {
   if (!metric || metric.previous === null || metric.previous === undefined) return 'neutral'
   const delta = Number(metric.value || 0) - Number(metric.previous || 0)
@@ -78,6 +85,8 @@ const kpis = computed(() => {
       trendLabel: 'change versus previous period',
       variant: 'revenue',
       spark: spark('revenue'),
+      tip: `Total money quoted across all jobs in this period.${prevNote(data.revenue)}`,
+
     },
     {
       title: 'Actual cost',
@@ -89,6 +98,8 @@ const kpis = computed(() => {
       trendLabel: 'cost change versus previous period',
       variant: 'cost',
       spark: spark('actual_cost', 'cost'),
+      tip: `What the jobs really cost — planned cost plus any unexpected expenses.${prevNote(actualCost)}`,
+
     },
     {
       title: 'Final profit',
@@ -100,6 +111,8 @@ const kpis = computed(() => {
       trendLabel: 'profit change versus previous period',
       variant: 'profit',
       spark: spark('profit'),
+      tip: `What's left after every cost. A negative number means the jobs lost money.${prevNote(profit)}`,
+
     },
     margin
       ? {
@@ -112,6 +125,7 @@ const kpis = computed(() => {
           trendLabel: 'margin change versus previous period',
           variant: 'margin',
           spark: marginSpark(),
+          tip: `Jobs open during this period — from draft all the way to delivered.${prevNote(data.active_jobs, (v) => v)}`,
         }
       : {
           title: 'Active jobs',
@@ -244,6 +258,7 @@ onMounted(() => store.fetchDashboard().catch(() => {}))
 
 .dashboard-work-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: var(--space-4) 0;
 }
 
 .dashboard-error {
