@@ -1,6 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
 import { getEstimates } from '@/services/estimateService'
 import { ESTIMATE_STATUSES } from '@/utils/estimateStatus'
 import SearchInput from '@/components/ui/SearchInput.vue'
@@ -9,8 +8,6 @@ import Pagination from '@/components/ui/Pagination.vue'
 import StatePanel from '@/components/ui/StatePanel.vue'
 import EstimateTable from '@/components/estimates/EstimateTable.vue'
 import EstimateConversionDialog from '@/components/estimates/EstimateConversionDialog.vue'
-
-const router = useRouter()
 
 const estimates = ref([])
 const loading = ref(true)
@@ -57,6 +54,15 @@ const onStatus = (value) => {
   load()
 }
 
+const hasFilters = computed(() => Boolean(search.value || status.value))
+
+const clearFilters = () => {
+  search.value = ''
+  status.value = ''
+  page.value = 1
+  load()
+}
+
 const goToPage = (next) => {
   page.value = next
   load()
@@ -75,23 +81,19 @@ const openConvert = (estimate) => {
       <div>
         <span class="section-kicker">Operations</span>
         <h1>Estimates</h1>
-        <p class="page-subtitle">Build, review, and convert customer quotes into transport jobs.</p>
+        <p class="page-sub">
+          {{ pagination.total }}
+          {{ pagination.total === 1 ? 'quote' : 'quotes' }} — build, review, and turn them into
+          transport jobs.
+        </p>
       </div>
-      <RouterLink class="btn" to="/estimates/create">New estimate</RouterLink>
+      <RouterLink class="btn" to="/estimates/create">+ New estimate</RouterLink>
     </div>
 
     <div class="card list-card">
-      <div class="list-card-header">
-        <div>
-          <h2>Quote pipeline</h2>
-          <p class="hint">Search and filter the estimates that are already on the books.</p>
-        </div>
-        <span v-if="pagination.total" class="result-count">{{ pagination.total }} total</span>
-      </div>
-      <p class="scope-note">Customer-facing quote values stay separate from internal job costs.</p>
-
       <div class="toolbar">
         <SearchInput
+          class="toolbar-search"
           :model-value="search"
           placeholder="Search by code or customer…"
           @update:model-value="onSearch"
@@ -102,6 +104,9 @@ const openConvert = (estimate) => {
           placeholder="All statuses"
           @update:model-value="onStatus"
         />
+        <button v-if="hasFilters" class="btn-light btn-sm" type="button" @click="clearFilters">
+          Clear filters
+        </button>
       </div>
 
       <StatePanel
@@ -140,48 +145,26 @@ const openConvert = (estimate) => {
   min-width: 0;
 }
 
-.page-subtitle {
+.page-sub {
   color: var(--text-secondary);
+  font-size: 14px;
   margin-top: var(--space-2);
 }
 
-.list-card-header {
-  align-items: flex-start;
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: var(--space-2);
-}
-
-.list-card-header h2 {
-  font-size: var(--text-lg);
-}
-
-.result-count {
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-  white-space: nowrap;
-}
-
-.scope-note {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
+.toolbar {
   margin-bottom: var(--space-4);
+}
+
+.toolbar :deep(.toolbar-search) {
+  flex: 1;
+  min-width: 220px;
+}
+.toolbar :deep(.toolbar-search input) {
+  width: 100%;
 }
 
 .table-actions {
   display: flex;
   justify-content: center;
-}
-
-@media (max-width: 700px) {
-  .list-card-header {
-    align-items: stretch;
-    flex-direction: column;
-    gap: var(--space-3);
-  }
-
-  .result-count {
-    align-self: flex-start;
-  }
 }
 </style>

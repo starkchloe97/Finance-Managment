@@ -4,13 +4,14 @@ import { useRouter, useRoute } from 'vue-router'
 import { createEstimate, updateEstimate, getEstimate } from '@/services/estimateService'
 import EstimateInformation from './EstimateInformation.vue'
 import EstimateItemsTable from './EstimateItemsTable.vue'
+import InfoTip from '@/components/ui/InfoTip.vue'
 import { money } from '@/utils/money'
 
 const router = useRouter()
 const route = useRoute()
 
 // When editing an existing quote, its id is present; otherwise this is the
-// create form. The quote is loaded by the page and passed down.
+// create form.
 const props = defineProps({
   estimate: { type: Object, default: null },
 })
@@ -46,8 +47,7 @@ const form = reactive({
 
 onMounted(async () => {
   if (!props.estimate) {
-    // Pre-fill the customer from the ?customer_id= query param (detail pages
-    // link "New Estimate" for a specific customer).
+    // Pre-fill the customer from the ?customer_id= query param.
     const customerId = route.query.customer_id
     if (customerId) form.customer_id = Number(customerId)
     return
@@ -91,6 +91,9 @@ const sum = (field) => form.items.reduce((total, item) => total + Number(item[fi
 const totalCost = computed(() => sum('cost_total'))
 const totalSell = computed(() => sum('sell_total'))
 const totalProfit = computed(() => totalSell.value - totalCost.value)
+const margin = computed(() =>
+  totalSell.value > 0 ? ((totalProfit.value / totalSell.value) * 100).toFixed(1) : null,
+)
 
 const isEdit = computed(() => Boolean(props.estimate))
 
@@ -118,123 +121,134 @@ const save = async () => {
 </script>
 
 <template>
-  <div class="page-head estimate-form-head">
-    <div>
-      <span class="section-kicker">Operations / Estimates</span>
-      <h1>{{ isEdit ? 'Edit estimate' : 'New estimate' }}</h1>
-      <p class="page-subtitle">Build a customer quote that can become a transport job.</p>
-    </div>
-  </div>
-
-  <form class="estimate-form" @submit.prevent="save">
-    <div v-if="notice && !loading" class="form-error" role="alert">{{ notice }}</div>
-    <div v-if="loading" class="state-panel state-loading"><div class="skeleton-block"></div></div>
-
-    <template v-else>
-      <section class="card form-section">
-        <EstimateInformation :form="form" />
-      </section>
-
-      <section class="card form-section">
-        <EstimateItemsTable :form="form" />
-      </section>
-
-      <section class="card form-section review-section">
-        <div class="form-section-heading">
-          <h2>Review and send</h2>
-          <p>Set the quote status and add any customer-facing context.</p>
-        </div>
-        <div class="field">
-          <label for="estimate-status">Status</label>
-          <select id="estimate-status" v-model="form.status">
-            <option value="draft">Draft</option>
-            <option value="sent">Sent</option>
-            <option value="accepted">Accepted</option>
-            <option value="rejected">Rejected</option>
-            <option value="expired">Expired</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="estimate-remarks">Customer-facing remarks</label>
-          <textarea
-            id="estimate-remarks"
-            v-model="form.remarks"
-            placeholder="Anything the customer should see on the quote"
-          ></textarea>
-        </div>
-        <div class="totals">
-          <dl>
-            <div>
-              <dt>Our cost</dt>
-              <dd>{{ money(totalCost) }}</dd>
-            </div>
-            <div>
-              <dt>Customer pays</dt>
-              <dd>{{ money(totalSell) }}</dd>
-            </div>
-            <div class="grand">
-              <dt>Profit</dt>
-              <dd>{{ money(totalProfit) }}</dd>
-            </div>
-          </dl>
-        </div>
-      </section>
-
-      <div class="estimate-actions">
-        <RouterLink
-          class="btn-light"
-          :to="isEdit ? `/estimates/${props.estimate.id}` : '/estimates'"
-          >Cancel</RouterLink
-        >
-        <button type="submit" :disabled="saving" :aria-busy="saving">
-          {{ saving ? 'Saving estimate' : isEdit ? 'Save changes' : 'Save estimate' }}
-        </button>
+  <div class="estimate-form-page">
+    <div class="page-head">
+      <div>
+        <span class="section-kicker">Operations / Estimates</span>
+        <h1>{{ isEdit ? 'Edit estimate' : 'New estimate' }}</h1>
+        <p class="page-sub">Build a customer quote that can become a transport job.</p>
       </div>
-    </template>
-  </form>
+    </div>
+
+    <form class="estimate-form" @submit.prevent="save">
+      <div v-if="notice && !loading" class="form-error" role="alert">{{ notice }}</div>
+
+      <div v-if="loading" class="state-panel state-loading">
+        <div class="skeleton-block"></div>
+      </div>
+
+      <template v-else>
+        <div class="form-layout">
+          <!-- ===== Main column ===== -->
+          <div class="form-main">
+            <section class="card form-section">
+              <EstimateInformation :form="form" />
+            </section>
+
+            <section class="card form-section">
+              <EstimateItemsTable :form="form" />
+            </section>
+
+            <section class="card form-section">
+              <div class="section-heading">
+                <h3>Review and send</h3>
+                <p>Set the quote status and add anything the customer should see.</p>
+              </div>
+
+              <div class="review-grid">
+                <div class="field">
+                  <label for="estimate-status">
+                    Status
+                    <InfoTip label="Draft is private. Sent means the customer has it. Accepted quotes can become jobs." />
+                  </label>
+                  <select id="estimate-status" v-model="form.status">
+                    <option value="draft">Draft — still writing</option>
+                    <option value="sent">Sent — with the customer</option>
+                    <option value="accepted">Accepted — customer said yes</option>
+                    <option value="rejected">Rejected — customer declined</option>
+                    <option value="expired">Expired — valid-until passed</option>
+                  </select>
+                </div>
+
+                <div class="field field-wide">
+                  <label for="estimate-remarks">
+                    Customer-facing remarks
+                    <InfoTip label="These notes appear on the quote the customer sees. Keep internal notes out of here." />
+                  </label>
+                  <textarea
+                    id="estimate-remarks"
+                    v-model="form.remarks"
+                    placeholder="Anything the customer should see on the quote"
+                  ></textarea>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- ===== Sticky totals panel ===== -->
+          <aside class="form-aside">
+            <div class="card panel-card">
+              <h2 class="panel-title">Live totals</h2>
+              <p class="panel-hint">Updates as you type in the items table.</p>
+
+              <div class="panel-row">
+                <span>
+                  Our cost
+                  <InfoTip label="Internal only — the total of every line's cost. Never shown to the customer." />
+                </span>
+                <strong>{{ money(totalCost) }}</strong>
+              </div>
+              <div class="panel-row">
+                <span>
+                  Customer pays
+                  <InfoTip label="The total of every line's sell price — the quote amount." />
+                </span>
+                <strong>{{ money(totalSell) }}</strong>
+              </div>
+              <div class="panel-row panel-grand">
+                <span>Profit</span>
+                <strong :class="totalProfit < 0 ? 'money-loss' : 'money-profit'">
+                  {{ money(totalProfit) }}
+                </strong>
+              </div>
+              <div class="panel-row panel-margin">
+                <span>Margin</span>
+                <strong>{{ margin !== null ? `${margin}%` : '—' }}</strong>
+              </div>
+
+              <div class="panel-meta">
+                {{ form.items.length }} {{ form.items.length === 1 ? 'line item' : 'line items' }}
+              </div>
+
+              <div class="panel-actions">
+                <button type="submit" :disabled="saving" :aria-busy="saving">
+                  {{ saving ? 'Saving…' : isEdit ? 'Save changes' : 'Save estimate' }}
+                </button>
+                <RouterLink
+                  class="btn-light"
+                  :to="isEdit ? `/estimates/${props.estimate.id}` : '/estimates'"
+                >
+                  Cancel
+                </RouterLink>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </template>
+    </form>
+  </div>
 </template>
 
 <style scoped>
-.estimate-form-head {
-  align-items: flex-start;
-}
+.estimate-form-page { min-width: 0; }
 
-.page-subtitle {
+.page-sub {
   color: var(--text-secondary);
+  font-size: 14px;
   margin-top: var(--space-2);
 }
 
-.estimate-form {
-  min-width: 0;
-}
-
-.form-section {
-  max-width: 1180px;
-}
-
-.form-section-heading {
-  margin-bottom: var(--space-4);
-}
-
-.form-section-heading h2 {
-  font-size: var(--text-lg);
-}
-
-.form-section-heading p {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-  margin-top: var(--space-1);
-}
-
-.review-section {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.55fr);
-}
-
-.review-section .form-section-heading,
-.review-section .field:nth-of-type(2) {
-  grid-column: 1 / -1;
-}
+.estimate-form { min-width: 0; }
 
 .form-error {
   background: var(--danger-soft);
@@ -242,30 +256,156 @@ const save = async () => {
   border-radius: var(--radius-md);
   color: var(--danger);
   margin-bottom: var(--space-4);
-  max-width: 1180px;
-  padding: var(--space-3);
+  padding: var(--space-3) var(--space-4);
 }
 
-.estimate-actions {
+.form-layout {
+  align-items: start;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 300px;
+}
+
+.form-main {
   display: flex;
-  gap: var(--space-3);
-  justify-content: flex-end;
-  margin: var(--space-4) var(--space-0) var(--space-6);
-  max-width: 1180px;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
 }
 
-@media (max-width: 700px) {
-  .review-section {
-    display: block;
+/* The panel column stays with you while the form scrolls */
+.form-aside {
+  position: sticky;
+  top: 20px;
+}
+
+.panel-card { padding: 18px; }
+
+.panel-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+.panel-hint {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: 2px 0 14px;
+}
+
+.panel-row {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  font-size: 14px;
+  justify-content: space-between;
+  padding: 9px 0;
+}
+.panel-row:last-of-type { border-bottom: 0; }
+
+.panel-row span {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 5px;
+}
+.panel-row strong {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.panel-row.panel-grand strong {
+  color: var(--success);
+  font-size: 20px;
+  font-weight: 700;
+}
+.panel-row.panel-grand strong.money-loss { color: var(--danger); }
+
+.panel-row.panel-margin { padding-top: 4px; }
+
+.panel-meta {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.panel-actions {
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.section-heading { margin-bottom: var(--space-4); }
+.section-heading h3 { font-size: 15px; font-weight: 600; margin: 0; }
+.section-heading p { color: var(--text-muted); font-size: 13px; margin: 2px 0 0; }
+
+.review-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: minmax(0, 1fr);
+}
+.field label {
+  align-items: center;
+  display: flex;
+  gap: 5px;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1024px) {
+  .form-layout { grid-template-columns: 1fr; }
+
+  /* Panel becomes a sticky bottom bar — Save is always reachable */
+  .form-aside {
+    bottom: 0;
+    position: sticky;
+    top: auto;
+    z-index: 10;
   }
 
-  .estimate-actions {
-    flex-direction: column-reverse;
+  .panel-card {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    box-shadow: var(--shadow-md);
+    padding: 14px 16px;
   }
 
-  .estimate-actions button,
-  .estimate-actions .btn-light {
-    width: 100%;
+  .panel-hint { display: none; }
+
+  .panel-row {
+    border-bottom: 0;
+    display: inline-flex;
+    font-size: 13px;
+    padding: 0;
   }
+
+  .panel-rows {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 18px;
+  }
+
+  .panel-row span { font-size: 11px; }
+  .panel-row strong { font-size: 14px; }
+  .panel-row.panel-grand strong { font-size: 15px; }
+  .panel-row.panel-margin { display: none; }
+  .panel-meta { display: none; }
+
+  .panel-actions {
+    border-top: 0;
+    flex-direction: row;
+    margin-top: 10px;
+    padding-top: 0;
+  }
+  .panel-actions .btn,
+  .panel-actions .btn-light { flex: 1; }
+}
+
+@media (min-width: 1025px) {
+  /* keep the rows stacked on desktop; wrap for the mobile bar */
+  .panel-rows { display: contents; }
 }
 </style>

@@ -1,5 +1,6 @@
 <script setup>
 import { money } from '@/utils/money'
+import { toneFor } from '@/utils/tone'
 
 defineProps({
   items: { type: Array, default: () => [] },
@@ -20,14 +21,28 @@ defineProps({
       <tbody>
         <tr v-for="item in items" :key="item.id">
           <td>
-            {{ item.title }}
+            <span class="item-title">{{ item.title }}</span>
             <span v-if="item.remarks" class="hint">{{ item.remarks }}</span>
           </td>
-          <td>{{ item.category || '—' }}</td>
+          <td>
+            <span v-if="item.category" class="badge" :class="`tone-${toneFor(item.category)}`">
+              {{ item.category }}
+            </span>
+            <span v-else>—</span>
+          </td>
           <td class="right">{{ Number(item.quantity) }}</td>
-          <td class="right">{{ money(item.sell_total ?? item.sell_price) }}</td>
+          <td class="right item-amount">{{ money(item.sell_total ?? item.sell_price) }}</td>
         </tr>
       </tbody>
     </table>
   </div>
 </template>
+
+<style scoped>
+.item-title {
+  color: var(--text-primary);
+  display: block;
+  font-weight: 500;
+}
+.item-amount { color: var(--text-primary); font-weight: 600; }
+</style>
