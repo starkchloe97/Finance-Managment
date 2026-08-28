@@ -6,6 +6,7 @@ import { useLoanStore } from '@/stores/loanStore'
 import { useInvestorStore } from '@/stores/investorStore'
 import { useCompanyCapitalStore } from '@/stores/companyCapitalStore'
 import { money } from '@/utils/money'
+import InfoTip from '@/components/ui/InfoTip.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -15,6 +16,7 @@ const capitalStore = useCompanyCapitalStore()
 const { investors } = storeToRefs(investorStore)
 const { borrowers, borrowerLoading } = storeToRefs(loanStore)
 const today = new Date().toISOString().slice(0, 10)
+
 const form = reactive({
   borrower_type: route.query.investor_id ? 'investor' : 'outsider',
   investor_id: route.query.investor_id || '',
@@ -28,6 +30,7 @@ const form = reactive({
   due_date: '',
   notes: '',
 })
+
 const outsiderMode = ref('existing')
 const investorSearch = ref('')
 const borrowerSearch = ref('')
@@ -37,7 +40,15 @@ const searchingInvestors = ref(false)
 let investorTimer
 let borrowerTimer
 
-const availableCapital = computed(() => money(capitalStore.current_balance))
+const availableCapitalAmount = computed(() => Number(capitalStore.available_to_lend) || 0)
+const loanAmount = computed(() => Number(form.amount) || 0)
+const remainingAfter = computed(() => availableCapitalAmount.value - loanAmount.value)
+const loanExceedsCapital = computed(() => loanAmount.value > availableCapitalAmount.value)
+
+const fillMax = () => {
+  if (availableCapitalAmount.value > 0) form.amount = String(availableCapitalAmount.value)
+}
+
 const searchInvestors = () => {
   clearTimeout(investorTimer)
   investorTimer = setTimeout(async () => {
@@ -52,6 +63,7 @@ const searchInvestors = () => {
     }
   }, 250)
 }
+
 const searchBorrowers = () => {
   clearTimeout(borrowerTimer)
   borrowerTimer = setTimeout(
@@ -59,6 +71,7 @@ const searchBorrowers = () => {
     250,
   )
 }
+
 const payload = () => {
   const data = {
     borrower_type: form.borrower_type,
@@ -78,9 +91,20 @@ const payload = () => {
     })
   return data
 }
+
 const submit = async () => {
-  submitting.value = true
   errors.value = {}
+  if (loanExceedsCapital.value) {
+    errors.value = {
+      ...errors.value,
+      __capital__: [
+        `Insufficient company capital. You can currently lend up to ${money(availableCapitalAmount.value)}.`,
+      ],
+    }
+    return
+  }
+
+  submitting.value = true
   try {
     const loan = await loanStore.createLoan(payload())
     await router.push(`/loans/${loan.id}`)
@@ -90,6 +114,7 @@ const submit = async () => {
     submitting.value = false
   }
 }
+
 const fieldError = (field) => errors.value[field]?.[0]
 
 watch(
@@ -101,6 +126,7 @@ watch(
 watch(outsiderMode, () => {
   errors.value = {}
 })
+
 onMounted(() =>
   Promise.all([
     investorStore.fetchInvestors({ per_page: 100 }),
@@ -111,14 +137,13 @@ onMounted(() =>
 </script>
 
 <template>
-  <div class="page-container loan-create-page">
+  <div class="loan-create-page">
     <div class="page-head">
       <div>
-        <span class="section-kicker">Loans</span>
+        <span class="section-kicker">Capital / Loans</span>
         <h1>Issue loan</h1>
-        <p class="page-subtitle">Record company money issued to an investor or outsider.</p>
+        <p class="page-sub">Record company money issued to an investor or outsider.</p>
       </div>
-      <RouterLink class="btn-light" to="/loans">Back to loans</RouterLink>
     </div>
 
     <div v-if="!capitalStore.loading && !capitalStore.initialized" class="page-error" role="alert">
@@ -126,269 +151,324 @@ onMounted(() =>
       <RouterLink class="btn-light" to="/loans">Configure capital</RouterLink>
     </div>
 
-    <form class="loan-create-layout" @submit.prevent="submit">
-      <main class="card form-card">
-        <div class="section-head">
-          <div>
-            <h2>Borrower and terms</h2>
-            <p class="hint">Loans are interest-free and remain separate from investments.</p>
-          </div>
-        </div>
-
-        <fieldset class="mode-fieldset">
-          <legend>Borrower type</legend>
-          <div class="choice-row">
-            <label class="choice-option"
-              ><input v-model="form.borrower_type" type="radio" value="investor" /><span
-                ><strong>Investor</strong><small>Link to an existing investor profile</small></span
-              ></label
-            >
-            <label class="choice-option"
-              ><input v-model="form.borrower_type" type="radio" value="outsider" /><span
-                ><strong>Outsider</strong><small>Use or create a standalone borrower</small></span
-              ></label
-            >
-          </div>
-          <span v-if="fieldError('borrower_type')" class="error">{{
-            fieldError('borrower_type')
-          }}</span>
-        </fieldset>
-
-        <section v-if="form.borrower_type === 'investor'" class="borrower-panel">
-          <div class="field">
-            <label for="investor-search">Search investors</label>
-            <input
-              id="investor-search"
-              v-model="investorSearch"
-              type="search"
-              placeholder="Name, code, email, or phone"
-              @input="searchInvestors"
-            />
-          </div>
-          <div class="field">
-            <label for="investor-id">Investor</label>
-            <select
-              id="investor-id"
-              v-model="form.investor_id"
-              :aria-invalid="Boolean(fieldError('investor_id'))"
-            >
-              <option value="">
-                {{ searchingInvestors ? 'Searching…' : 'Select an investor' }}
-              </option>
-              <option v-for="investor in investors" :key="investor.id" :value="investor.id">
-                {{ investor.name }} · {{ investor.investor_code }}
-              </option>
-            </select>
-            <span v-if="fieldError('investor_id')" class="error">{{
-              fieldError('investor_id')
-            }}</span>
-          </div>
-        </section>
-
-        <section v-else class="borrower-panel">
-          <fieldset class="mode-fieldset compact">
-            <legend>Outsider record</legend>
-            <div class="choice-row">
-              <label class="choice-option"
-                ><input v-model="outsiderMode" type="radio" value="existing" /><span
-                  ><strong>Existing</strong><small>Select a saved borrower</small></span
-                ></label
-              >
-              <label class="choice-option"
-                ><input v-model="outsiderMode" type="radio" value="new" /><span
-                  ><strong>New</strong><small>Create a borrower with this loan</small></span
-                ></label
-              >
+    <form class="loan-layout" @submit.prevent="submit">
+      <!-- ===== Main column ===== -->
+      <div class="form-main">
+        <!-- Borrower -->
+        <section class="card form-card">
+          <header class="section-head-row">
+            <span class="section-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </span>
+            <div>
+              <h2>Borrower</h2>
+              <p class="section-hint">
+                Who is receiving the money.
+                <InfoTip label="Investor borrowers already have a profile here. Outsiders are standalone contacts you can create on the spot." />
+              </p>
             </div>
-          </fieldset>
+          </header>
 
-          <template v-if="outsiderMode === 'existing'">
+          <div class="choice-row">
+            <label class="choice-option">
+              <input v-model="form.borrower_type" type="radio" value="investor" />
+              <span><strong>Investor</strong><small>Existing investor profile</small></span>
+            </label>
+            <label class="choice-option">
+              <input v-model="form.borrower_type" type="radio" value="outsider" />
+              <span><strong>Outsider</strong><small>Standalone borrower</small></span>
+            </label>
+          </div>
+          <span v-if="fieldError('borrower_type')" class="error">{{ fieldError('borrower_type') }}</span>
+
+          <div v-if="form.borrower_type === 'investor'" class="grid two">
             <div class="field">
-              <label for="borrower-search">Search outsiders</label
-              ><input
-                id="borrower-search"
-                v-model="borrowerSearch"
+              <label for="investor-search">Search</label>
+              <input
+                id="investor-search"
+                v-model="investorSearch"
                 type="search"
-                placeholder="Name, code, email, or phone"
-                @input="searchBorrowers"
+                placeholder="Name, code, email…"
+                @input="searchInvestors"
               />
             </div>
             <div class="field">
-              <label for="borrower-id">Outsider</label
-              ><select
-                id="borrower-id"
-                v-model="form.loan_borrower_id"
-                :aria-invalid="Boolean(fieldError('loan_borrower_id'))"
+              <label for="investor-id">Investor</label>
+              <select
+                id="investor-id"
+                v-model="form.investor_id"
+                :aria-invalid="Boolean(fieldError('investor_id'))"
               >
-                <option value="">
-                  {{ borrowerLoading ? 'Searching…' : 'Select an outsider' }}
+                <option value="">{{ searchingInvestors ? 'Searching…' : 'Select an investor' }}</option>
+                <option v-for="investor in investors" :key="investor.id" :value="investor.id">
+                  {{ investor.name }} · {{ investor.investor_code }}
                 </option>
-                <option v-for="borrower in borrowers" :key="borrower.id" :value="borrower.id">
-                  {{ borrower.name }} · {{ borrower.borrower_code }}
-                </option></select
-              ><span v-if="fieldError('loan_borrower_id')" class="error">{{
-                fieldError('loan_borrower_id')
-              }}</span>
+              </select>
+              <span v-if="fieldError('investor_id')" class="error">{{ fieldError('investor_id') }}</span>
+            </div>
+          </div>
+
+          <template v-else>
+            <div class="choice-row sub">
+              <label class="choice-option">
+                <input v-model="outsiderMode" type="radio" value="existing" />
+                <span><strong>Existing</strong><small>Select a saved borrower</small></span>
+              </label>
+              <label class="choice-option">
+                <input v-model="outsiderMode" type="radio" value="new" />
+                <span><strong>New</strong><small>Create with this loan</small></span>
+              </label>
+            </div>
+
+            <div v-if="outsiderMode === 'existing'" class="grid two">
+              <div class="field">
+                <label for="borrower-search">Search</label>
+                <input
+                  id="borrower-search"
+                  v-model="borrowerSearch"
+                  type="search"
+                  placeholder="Name, code, email…"
+                  @input="searchBorrowers"
+                />
+              </div>
+              <div class="field">
+                <label for="borrower-id">Outsider</label>
+                <select
+                  id="borrower-id"
+                  v-model="form.loan_borrower_id"
+                  :aria-invalid="Boolean(fieldError('loan_borrower_id'))"
+                >
+                  <option value="">{{ borrowerLoading ? 'Searching…' : 'Select an outsider' }}</option>
+                  <option v-for="borrower in borrowers" :key="borrower.id" :value="borrower.id">
+                    {{ borrower.name }} · {{ borrower.borrower_code }}
+                  </option>
+                </select>
+                <span v-if="fieldError('loan_borrower_id')" class="error">
+                  {{ fieldError('loan_borrower_id') }}
+                </span>
+              </div>
+            </div>
+
+            <div v-else class="grid two">
+              <div class="field">
+                <label for="outsider-name">Name</label>
+                <input id="outsider-name" v-model="form.outsider_name" autocomplete="name" :aria-invalid="Boolean(fieldError('outsider_name'))" />
+                <span v-if="fieldError('outsider_name')" class="error">{{ fieldError('outsider_name') }}</span>
+              </div>
+              <div class="field">
+                <label for="outsider-email">Email</label>
+                <input id="outsider-email" v-model="form.outsider_email" type="email" autocomplete="email" :aria-invalid="Boolean(fieldError('outsider_email'))" />
+                <span v-if="fieldError('outsider_email')" class="error">{{ fieldError('outsider_email') }}</span>
+              </div>
+              <div class="field">
+                <label for="outsider-phone">Phone</label>
+                <input id="outsider-phone" v-model="form.outsider_phone" type="tel" autocomplete="tel" :aria-invalid="Boolean(fieldError('outsider_phone'))" />
+                <span v-if="fieldError('outsider_phone')" class="error">{{ fieldError('outsider_phone') }}</span>
+              </div>
+              <div class="field">
+                <label for="outsider-address">Address</label>
+                <input id="outsider-address" v-model="form.outsider_address" autocomplete="street-address" :aria-invalid="Boolean(fieldError('outsider_address'))" />
+                <span v-if="fieldError('outsider_address')" class="error">{{ fieldError('outsider_address') }}</span>
+              </div>
             </div>
           </template>
-          <div v-else class="grid">
-            <div class="field">
-              <label for="outsider-name">Name</label
-              ><input
-                id="outsider-name"
-                v-model="form.outsider_name"
-                autocomplete="name"
-                :aria-invalid="Boolean(fieldError('outsider_name'))"
-              /><span v-if="fieldError('outsider_name')" class="error">{{
-                fieldError('outsider_name')
-              }}</span>
-            </div>
-            <div class="field">
-              <label for="outsider-email">Email</label
-              ><input
-                id="outsider-email"
-                v-model="form.outsider_email"
-                type="email"
-                autocomplete="email"
-                :aria-invalid="Boolean(fieldError('outsider_email'))"
-              /><span v-if="fieldError('outsider_email')" class="error">{{
-                fieldError('outsider_email')
-              }}</span>
-            </div>
-            <div class="field">
-              <label for="outsider-phone">Phone</label
-              ><input
-                id="outsider-phone"
-                v-model="form.outsider_phone"
-                type="tel"
-                autocomplete="tel"
-                :aria-invalid="Boolean(fieldError('outsider_phone'))"
-              /><span v-if="fieldError('outsider_phone')" class="error">{{
-                fieldError('outsider_phone')
-              }}</span>
-            </div>
-            <div class="field">
-              <label for="outsider-address">Address</label
-              ><input
-                id="outsider-address"
-                v-model="form.outsider_address"
-                autocomplete="street-address"
-                :aria-invalid="Boolean(fieldError('outsider_address'))"
-              /><span v-if="fieldError('outsider_address')" class="error">{{
-                fieldError('outsider_address')
-              }}</span>
-            </div>
-          </div>
         </section>
 
-        <div class="grid terms-grid">
-          <div class="field">
-            <label for="loan-amount">Loan amount</label
-            ><input
-              id="loan-amount"
-              v-model="form.amount"
-              inputmode="decimal"
-              :aria-invalid="Boolean(fieldError('amount'))"
-            /><span v-if="fieldError('amount')" class="error">{{ fieldError('amount') }}</span>
-          </div>
-          <div class="field">
-            <label for="loan-date">Loan date</label
-            ><input
-              id="loan-date"
-              v-model="form.loan_date"
-              type="date"
-              :aria-invalid="Boolean(fieldError('loan_date'))"
-            /><span v-if="fieldError('loan_date')" class="error">{{
-              fieldError('loan_date')
-            }}</span>
-          </div>
-          <div class="field">
-            <label for="due-date">Due date</label
-            ><input
-              id="due-date"
-              v-model="form.due_date"
-              type="date"
-              :aria-invalid="Boolean(fieldError('due_date'))"
-            /><span v-if="fieldError('due_date')" class="error">{{ fieldError('due_date') }}</span>
-          </div>
-        </div>
-        <div class="field">
-          <label for="loan-notes">Notes</label
-          ><textarea id="loan-notes" v-model="form.notes" rows="4"></textarea
-          ><span v-if="fieldError('notes')" class="error">{{ fieldError('notes') }}</span>
-        </div>
-        <div v-if="loanStore.error" class="page-error" role="alert">
-          <p>{{ loanStore.error }}</p>
-        </div>
-        <div class="actions">
-          <button type="submit" :disabled="submitting || !capitalStore.initialized">
-            {{ submitting ? 'Issuing loan…' : 'Issue loan' }}</button
-          ><RouterLink class="btn-light" to="/loans">Cancel</RouterLink>
-        </div>
-      </main>
+        <!-- Terms -->
+        <section class="card form-card">
+          <header class="section-head-row">
+            <span class="section-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="12" x="2" y="6" rx="2" /><circle cx="12" cy="12" r="2" /><path d="M6 12h.01M18 12h.01" />
+              </svg>
+            </span>
+            <div>
+              <h2>Terms</h2>
+              <p class="section-hint">
+                Interest-free — only the principal is owed back.
+                <InfoTip label="Loan repayments return money to company capital. Returns on investments are tracked separately under Investments." />
+              </p>
+            </div>
+          </header>
 
-      <aside class="card capital-context">
-        <span class="section-kicker">Available now</span>
-        <strong>{{ availableCapital }}</strong>
-        <p>
-          Loan issuance reduces this balance. Repayments restore only the amount actually received.
-        </p>
-        <dl>
-          <div>
-            <dt>Interest</dt>
-            <dd>None</dd>
+          <div class="field">
+            <label for="loan-amount">
+              Loan amount
+              <InfoTip label="Cannot exceed the available company capital — watch the panel on the right." />
+            </label>
+            <div class="amount-row">
+              <input
+                id="loan-amount"
+                v-model="form.amount"
+                inputmode="decimal"
+                placeholder="0.00"
+                :aria-invalid="Boolean(fieldError('amount'))"
+              />
+              <button
+                v-if="availableCapitalAmount > 0"
+                type="button"
+                class="btn-light btn-sm"
+                title="Fill with all available capital"
+                @click="fillMax"
+              >
+                Max
+              </button>
+            </div>
+            <p v-if="loanExceedsCapital" class="capital-warn" role="alert">
+              Exceeds available capital ({{ money(availableCapitalAmount) }}) — reduce the amount or
+              add capital first.
+            </p>
+            <span v-if="fieldError('amount')" class="error">{{ fieldError('amount') }}</span>
           </div>
-          <div>
-            <dt>Return</dt>
-            <dd>Principal only</dd>
+
+          <div class="grid two">
+            <div class="field">
+              <label for="loan-date">Loan date</label>
+              <input id="loan-date" v-model="form.loan_date" type="date" :aria-invalid="Boolean(fieldError('loan_date'))" />
+              <span v-if="fieldError('loan_date')" class="error">{{ fieldError('loan_date') }}</span>
+            </div>
+            <div class="field">
+              <label for="due-date">
+                Due date
+                <InfoTip label="When the loan should be fully repaid. The loan turns overdue after this date." />
+              </label>
+              <input id="due-date" v-model="form.due_date" type="date" :aria-invalid="Boolean(fieldError('due_date'))" />
+              <span v-if="fieldError('due_date')" class="error">{{ fieldError('due_date') }}</span>
+            </div>
           </div>
-          <div>
-            <dt>Capital source</dt>
-            <dd>Company ledger</dd>
+
+          <div class="field">
+            <label for="loan-notes">
+              Notes
+              <InfoTip label="Internal context for the team — never shown to the borrower." />
+            </label>
+            <textarea id="loan-notes" v-model="form.notes" rows="3"></textarea>
+            <span v-if="fieldError('notes')" class="error">{{ fieldError('notes') }}</span>
           </div>
-        </dl>
+
+          <p v-if="loanStore.error" class="page-error" role="alert">{{ loanStore.error }}</p>
+          <p v-if="errors.__capital__" class="page-error" role="alert">{{ errors.__capital__[0] }}</p>
+        </section>
+      </div>
+
+      <!-- ===== Sticky capital panel ===== -->
+      <aside class="form-aside">
+        <div class="card panel-card">
+          <h2 class="panel-title">
+            Capital check
+            <InfoTip label="Live check against company capital while you type." />
+          </h2>
+
+          <div class="panel-available">
+            <span>Available to lend</span>
+            <strong :class="loanExceedsCapital ? 'is-red' : 'is-green'">
+              {{ money(availableCapitalAmount) }}
+            </strong>
+          </div>
+
+          <div v-if="loanAmount > 0" class="panel-rows">
+            <div class="panel-row">
+              <span>This loan</span>
+              <strong>{{ money(loanAmount) }}</strong>
+            </div>
+            <div class="panel-row panel-total">
+              <span>Remaining after</span>
+              <strong :class="remainingAfter < 0 ? 'money-loss' : 'money-profit'">
+                {{ money(remainingAfter) }}
+              </strong>
+            </div>
+          </div>
+
+          <p class="panel-meta">Interest-free · principal only · company funds</p>
+
+          <div class="panel-actions">
+            <button type="submit" :disabled="submitting || !capitalStore.initialized" :aria-busy="submitting">
+              {{ submitting ? 'Issuing…' : 'Issue loan' }}
+            </button>
+            <RouterLink class="btn-light" to="/loans">Cancel</RouterLink>
+          </div>
+        </div>
       </aside>
     </form>
   </div>
 </template>
 
 <style scoped>
-.page-subtitle {
+.loan-create-page { min-width: 0; }
+
+.page-sub {
   color: var(--text-secondary);
+  font-size: 14px;
   margin-top: var(--space-2);
 }
-.loan-create-layout {
+
+.page-error {
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  color: var(--danger);
+  margin-top: var(--space-3);
+  padding: 10px 14px;
+}
+.page-error p { margin: 0; }
+
+.loan-layout {
   align-items: start;
   display: grid;
-  gap: var(--space-5);
+  gap: 20px;
   grid-template-columns: minmax(0, 1fr) 280px;
 }
-.form-card {
-  margin: 0;
+
+.form-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
 }
-.form-card .hint {
-  display: block;
-  margin: var(--space-1) 0 0;
+
+.form-card { padding: 20px; }
+
+.section-head-row {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
 }
-.mode-fieldset {
-  border: 0;
-  margin: 0 0 var(--space-5);
-  padding: 0;
+.section-head-row h2 { font-size: 15px; font-weight: 600; margin: 0; }
+.section-hint {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: 4px;
+  margin: 2px 0 0;
 }
-.mode-fieldset legend {
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-medium);
-  margin-bottom: var(--space-2);
+
+.section-icon {
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: 9px;
+  color: var(--accent);
+  display: flex;
+  flex: 0 0 32px;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
 }
-.mode-fieldset.compact {
-  margin-bottom: var(--space-4);
-}
+.section-icon svg { height: 15px; width: 15px; }
+
+/* Choice cards */
 .choice-row {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-2);
   grid-template-columns: 1fr 1fr;
+  margin-bottom: var(--space-4);
 }
+.choice-row.sub { margin-bottom: var(--space-4); margin-top: 0; }
+
 .choice-option {
   align-items: flex-start;
   background: var(--surface);
@@ -396,104 +476,146 @@ onMounted(() =>
   border-radius: var(--radius-md);
   cursor: pointer;
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-2);
   margin: 0;
-  padding: var(--space-3);
+  padding: 10px 14px;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
+.choice-option:hover { border-color: var(--text-muted); }
 .choice-option:has(input:checked) {
   background: var(--accent-soft);
   border-color: var(--accent);
 }
-.choice-option input {
-  flex: 0 0 auto;
-  min-height: auto;
-  width: auto;
+.choice-option input { flex: 0 0 auto; min-height: auto; width: auto; }
+.choice-option span { display: flex; flex-direction: column; }
+.choice-option strong { color: var(--text-primary); font-size: 13px; }
+.choice-option small { color: var(--text-secondary); font-size: 11px; margin-top: 2px; }
+
+.grid.two {
+  display: grid;
+  gap: var(--space-3) var(--space-4);
+  grid-template-columns: 1fr 1fr;
 }
-.choice-option span {
+
+.amount-row { display: flex; gap: 8px; }
+.amount-row input { flex: 1; }
+.amount-row .btn-light { flex: 0 0 auto; }
+
+.capital-warn {
+  background: var(--warning-soft);
+  border-radius: var(--radius-md);
+  color: var(--warning);
+  font-size: 13px;
+  margin: 8px 0 0;
+  padding: 8px 12px;
+}
+
+/* ---------- Panel ---------- */
+.form-aside {
+  position: sticky;
+  top: 20px;
+}
+
+.panel-card { padding: 18px; }
+
+.panel-title {
+  align-items: center;
+  display: flex;
+  font-size: 15px;
+  font-weight: 600;
+  gap: 5px;
+  margin: 0 0 14px;
+}
+
+.panel-available > span {
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+}
+.panel-available strong {
+  display: block;
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-top: 3px;
+}
+.panel-available strong.is-green { color: var(--success); }
+.panel-available strong.is-red { color: var(--danger); }
+
+.panel-row {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  font-size: 13px;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+.panel-row span { color: var(--text-muted); font-size: 12px; }
+.panel-row strong {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.panel-row.panel-total { border-bottom: 0; padding-bottom: 4px; }
+.panel-row.panel-total strong { font-size: 17px; font-weight: 700; }
+.panel-row.panel-total strong.money-loss { color: var(--danger); }
+.panel-row.panel-total strong.money-profit { color: var(--success); }
+
+.panel-meta {
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  margin: 12px 0 0;
+  padding-top: 12px;
+}
+
+.panel-actions {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
 }
-.choice-option small {
-  margin: var(--space-1) 0 0;
-}
-.borrower-panel {
-  background: var(--surface-muted);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-5);
-  padding: var(--space-4);
-}
-.borrower-panel .field:last-child {
-  margin-bottom: 0;
-}
-.terms-grid {
-  grid-template-columns: repeat(3, 1fr);
-}
-.capital-context {
-  position: sticky;
-  top: var(--space-5);
-}
-.capital-context > strong {
-  color: var(--accent);
-  display: block;
-  font-size: var(--text-2xl);
-  font-variant-numeric: tabular-nums;
-  margin: var(--space-1) 0 var(--space-3);
-}
-.capital-context p {
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-}
-.capital-context dl {
-  border-top: 1px solid var(--border);
-  margin-top: var(--space-4);
-  padding-top: var(--space-2);
-}
-.capital-context dl div {
-  display: flex;
-  font-size: var(--text-sm);
-  justify-content: space-between;
-  padding: var(--space-2) 0;
-}
-.capital-context dt {
-  color: var(--text-muted);
-}
-.capital-context dd {
-  font-weight: var(--font-weight-medium);
-}
-.page-error {
-  align-items: center;
-  background: var(--danger-soft);
-  border: 1px solid var(--danger);
-  border-radius: var(--radius-md);
-  display: flex;
-  gap: var(--space-3);
-  justify-content: space-between;
-  margin-bottom: var(--space-4);
-  padding: var(--space-3) var(--space-4);
-}
-.page-error p {
-  color: var(--danger);
-}
-@media (max-width: 900px) {
-  .loan-create-layout {
-    grid-template-columns: 1fr;
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1024px) {
+  .loan-layout { grid-template-columns: 1fr; }
+
+  /* Panel becomes a sticky bottom bar */
+  .form-aside {
+    bottom: 0;
+    position: sticky;
+    top: auto;
+    z-index: 10;
   }
-  .capital-context {
-    grid-row: 1;
-    position: static;
+
+  .panel-card {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    box-shadow: var(--shadow-md);
+    padding: 12px 16px;
   }
-  .terms-grid {
-    grid-template-columns: 1fr 1fr;
-  }
+
+  .panel-title { display: none; }
+
+  .panel-available { display: inline-flex; align-items: baseline; gap: 8px; }
+  .panel-available > span { font-size: 11px; }
+  .panel-available strong { font-size: 16px; margin: 0; }
+
+  .panel-rows { display: inline-flex; gap: 14px; margin-left: 12px; }
+  .panel-row { border-bottom: 0; display: inline-flex; padding: 0; }
+  .panel-row strong { font-size: 13px; }
+  .panel-row.panel-total strong { font-size: 14px; }
+
+  .panel-meta { display: none; }
+
+  .panel-actions { flex-direction: row; margin-top: 10px; }
+  .panel-actions .btn,
+  .panel-actions .btn-light { flex: 1; }
 }
+
 @media (max-width: 560px) {
   .choice-row,
-  .terms-grid {
-    grid-template-columns: 1fr;
-  }
-  .actions > * {
-    flex: 1;
-  }
+  .grid.two { grid-template-columns: 1fr; }
 }
 </style>

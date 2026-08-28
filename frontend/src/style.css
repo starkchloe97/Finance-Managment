@@ -309,6 +309,9 @@ button:disabled,
     border-color 0.15s,
     color 0.15s;
 }
+.btn-light svg{
+  width: 18px;
+}
 
 .btn-light:hover:not(:disabled) {
   background: var(--surface-hover);

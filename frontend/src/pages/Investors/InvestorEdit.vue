@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useInvestorStore } from '@/stores/investorStore'
+import InvestorFormFields from '@/components/investors/InvestorFormFields.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -47,10 +48,6 @@ async function submit() {
     submitting.value = false
   }
 }
-
-function cancel() {
-  router.push(`/investors/${route.params.id}`)
-}
 </script>
 
 <template>
@@ -64,94 +61,19 @@ function cancel() {
         <div>
           <span class="section-kicker">Capital / Investors</span>
           <h1>Edit investor</h1>
-          <p class="page-subtitle">{{ investor.investor_code }}</p>
+          <p class="page-sub">{{ investor.investor_code }}</p>
         </div>
       </div>
 
       <form class="card form-card" @submit.prevent="submit">
-        <section class="form-section">
-          <div class="form-section-heading">
-            <h2>Profile details</h2>
-            <p>Keep the investor identity and contact information current.</p>
-          </div>
-          <div class="grid">
-            <div class="field">
-              <label for="name">Name</label>
-              <input
-                id="name"
-                v-model="form.name"
-                type="text"
-                autocomplete="name"
-                required
-                :aria-invalid="fieldError('name') ? 'true' : undefined"
-                aria-describedby="name-error"
-              />
-              <small v-if="fieldError('name')" id="name-error" class="error">{{
-                fieldError('name')
-              }}</small>
-            </div>
-            <div class="field">
-              <label for="email">Email</label>
-              <input
-                id="email"
-                v-model="form.email"
-                type="email"
-                autocomplete="email"
-                :aria-invalid="fieldError('email') ? 'true' : undefined"
-                aria-describedby="email-error"
-              />
-              <small v-if="fieldError('email')" id="email-error" class="error">{{
-                fieldError('email')
-              }}</small>
-            </div>
-            <div class="field">
-              <label for="phone">Phone</label>
-              <input
-                id="phone"
-                v-model="form.phone"
-                type="tel"
-                autocomplete="tel"
-                :aria-invalid="fieldError('phone') ? 'true' : undefined"
-                aria-describedby="phone-error"
-              />
-              <small v-if="fieldError('phone')" id="phone-error" class="error">{{
-                fieldError('phone')
-              }}</small>
-            </div>
-            <div class="field">
-              <label for="status">Status</label>
-              <select id="status" v-model="form.status">
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-          </div>
-        </section>
+        <InvestorFormFields :form="form" :field-error="fieldError" :submitting="submitting" />
 
-        <section class="form-section">
-          <div class="form-section-heading">
-            <h2>Additional information</h2>
-            <p>Keep context available for future investment conversations.</p>
-          </div>
-          <div class="field">
-            <label for="address">Address</label>
-            <textarea
-              id="address"
-              v-model="form.address"
-              rows="3"
-              autocomplete="street-address"
-            ></textarea>
-          </div>
-          <div class="field">
-            <label for="notes">Notes</label>
-            <textarea id="notes" v-model="form.notes" rows="3"></textarea>
-          </div>
-        </section>
-
-        <p v-if="investorStore.error" class="form-error" role="alert">{{ investorStore.error }}</p>
+        <p v-if="investorStore.error" class="form-error" role="alert">
+          {{ investorStore.error }}
+        </p>
 
         <div class="form-actions">
-          <button class="btn-light" type="button" @click="cancel">Cancel</button>
+          <RouterLink class="btn-light" :to="`/investors/${route.params.id}`">Cancel</RouterLink>
           <button type="submit" :disabled="submitting" :aria-busy="submitting">
             {{ submitting ? 'Saving changes' : 'Save changes' }}
           </button>
@@ -162,39 +84,17 @@ function cancel() {
 </template>
 
 <style scoped>
+/* identical to the create page — or move these shared rules to the global stylesheet */
 .form-page,
-.form-card {
-  min-width: 0;
-}
+.form-card { min-width: 0; }
 
-.page-subtitle {
+.page-sub {
   color: var(--text-secondary);
+  font-size: 14px;
   margin-top: var(--space-2);
 }
 
-.form-card {
-  max-width: 980px;
-}
-
-.form-section + .form-section {
-  border-top: 1px solid var(--border);
-  margin-top: var(--space-5);
-  padding-top: var(--space-5);
-}
-
-.form-section-heading {
-  margin-bottom: var(--space-4);
-}
-
-.form-section-heading h2 {
-  font-size: var(--text-lg);
-}
-
-.form-section-heading p {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-  margin-top: var(--space-1);
-}
+.form-card { max-width: 980px; }
 
 .form-error {
   background: var(--danger-soft);
@@ -206,19 +106,17 @@ function cancel() {
 }
 
 .form-actions {
+  border-top: 1px solid var(--border);
   display: flex;
   gap: var(--space-3);
   justify-content: flex-end;
   margin-top: var(--space-5);
+  padding-top: var(--space-5);
 }
 
 @media (max-width: 560px) {
-  .form-actions {
-    flex-direction: column-reverse;
-  }
-
-  .form-actions button {
-    width: 100%;
-  }
+  .form-actions { flex-direction: column-reverse; }
+  .form-actions button,
+  .form-actions .btn-light { width: 100%; }
 }
 </style>

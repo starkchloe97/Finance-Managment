@@ -7,6 +7,10 @@ import { money } from '@/utils/money'
 import Pagination from '@/components/ui/Pagination.vue'
 import StatePanel from '@/components/ui/StatePanel.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import FinanceStatus from '@/components/ui/FinanceStatus.vue'
+import InfoTip from '@/components/ui/InfoTip.vue'
+import { avatarStyle, initialOf } from '@/utils/avatar'
+import { toneFor } from '@/utils/tone'
 
 const router = useRouter()
 const investmentStore = useInvestmentStore()
@@ -16,12 +20,18 @@ const deleting = ref(null)
 onMounted(() => investmentStore.fetchInvestments())
 
 const createInvestment = () => router.push({ name: 'investments.create' })
-const statusClass = (status) => {
-  if (status === 'active') return 'status-success'
-  if (status === 'cancelled') return 'status-danger'
-  if (status === 'matured' || status === 'withdrawn') return 'status-warning'
-  return 'status-info'
+
+// An active investment whose maturity date has passed is ready to mature —
+// worth flagging visually without blocking anything.
+const isMaturityDue = (investment) => {
+  if (investment.status !== 'active' || !investment.maturity_date) return false
+  return investment.maturity_date <= new Date().toISOString().slice(0, 10)
 }
+
+const returnText = (investment) =>
+  investment.return_type === 'percentage'
+    ? `${investment.return_percentage ?? 0}%`
+    : money(investment.fixed_return_amount)
 
 const deleteInvestment = async () => {
   if (!deleting.value) return
@@ -40,9 +50,13 @@ const deleteInvestment = async () => {
       <div>
         <span class="section-kicker">Capital</span>
         <h1>Investments</h1>
-        <p class="page-subtitle">Track principal, return terms, and capital committed to jobs.</p>
+        <p class="page-sub">
+          {{ pagination.total }}
+          {{ pagination.total === 1 ? 'placement' : 'placements' }} — principal, return terms, and
+          capital committed to jobs.
+        </p>
       </div>
-      <button type="button" @click="createInvestment">Add investment</button>
+      <button type="button" @click="createInvestment">+ Add investment</button>
     </div>
 
     <div v-if="error" class="page-error" role="alert">
@@ -53,34 +67,33 @@ const deleteInvestment = async () => {
     </div>
 
     <section class="card list-card">
-      <div class="list-card-header">
-        <div>
-          <h2>Capital placements</h2>
-          <p class="hint">
-            Open an investment to review allocation, returns, and lifecycle actions.
-          </p>
-        </div>
-        <span v-if="pagination.total" class="result-count">{{ pagination.total }} total</span>
-      </div>
-
       <StatePanel
         :loading="loading && !investments.length"
         :error="''"
-        :empty="!loading && !investments.length"
+        :empty="!loading && !error && !investments.length"
         empty-title="No investments yet. Add a placement to start tracking capital."
         empty-action="Add investment"
         empty-to="/investments/create"
       >
         <div class="table-wrap">
-          <table class="investment-table">
+          <table>
             <thead>
               <tr>
                 <th>Investment</th>
                 <th>Investor</th>
                 <th>Category</th>
-                <th class="right">Principal</th>
-                <th>Return terms</th>
-                <th>Maturity</th>
+                <th class="right">
+                  Principal
+                  <InfoTip label="The amount of capital originally placed." />
+                </th>
+                <th>
+                  Return
+                  <InfoTip label="How the investment earns — a share of profit, or a fixed amount." />
+                </th>
+                <th>
+                  Maturity
+                  <InfoTip label="When the term ends. Amber means the date has passed and it can be matured." />
+                </th>
                 <th>Status</th>
                 <th class="right">Actions</th>
               </tr>
@@ -94,47 +107,76 @@ const deleteInvestment = async () => {
                   <span class="record-code">{{ investment.investment_date || 'No date' }}</span>
                 </td>
                 <td>
-                  <RouterLink
-                    v-if="investment.investor"
-                    :to="`/investors/${investment.investor.id}`"
-                  >
-                    {{ investment.investor.name }}
-                  </RouterLink>
+                  <div v-if="investment.investor" class="investor-cell">
+                    <span
+                      class="investor-avatar"
+                      :style="avatarStyle(investment.investor.name)"
+                      aria-hidden="true"
+                    >
+                      {{ initialOf(investment.investor.name) }}
+                    </span>
+                    <RouterLink
+                      class="investor-link"
+                      :to="`/investors/${investment.investor.id}`"
+                      title="View investor"
+                    >
+                      {{ investment.investor.name }}
+                    </RouterLink>
+                  </div>
                   <span v-else>—</span>
                 </td>
-                <td class="capitalize">{{ investment.investment_category }}</td>
-                <td class="right money">{{ money(investment.amount) }}</td>
                 <td>
-                  <span v-if="investment.return_type === 'percentage'">
-                    {{ investment.return_percentage }}% percentage
+                  <span
+                    v-if="investment.investment_category"
+                    class="badge"
+                    :class="`tone-${toneFor(investment.investment_category)}`"
+                  >
+                    {{ investment.investment_category }}
                   </span>
-                  <span v-else>{{ money(investment.fixed_return_amount) }} fixed</span>
+                  <span v-else>—</span>
                 </td>
-                <td>{{ investment.maturity_date || '—' }}</td>
+                <td class="right record-amount">{{ money(investment.amount) }}</td>
+                <td>{{ returnText(investment) }}</td>
+                <td :class="{ 'maturity-due': isMaturityDue(investment) }">
+                  {{ investment.maturity_date || '—' }}
+                </td>
                 <td>
-                  <span class="status" :class="statusClass(investment.status)">
-                    {{ investment.status }}
-                  </span>
+                  <FinanceStatus :status="investment.status" kind="investment" />
                 </td>
                 <td class="right">
                   <div class="row-actions">
-                    <RouterLink class="btn-light btn-sm" :to="`/investments/${investment.id}`">
-                      Open
+                    <RouterLink
+                      class="icon-action"
+                      :to="`/investments/${investment.id}`"
+                      title="Open investment"
+                      aria-label="Open investment"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
+                      </svg>
                     </RouterLink>
                     <RouterLink
                       v-if="investment.status === 'active'"
-                      class="btn-light btn-sm"
+                      class="icon-action"
                       :to="`/investments/${investment.id}/edit`"
+                      title="Edit investment"
+                      aria-label="Edit investment"
                     >
-                      Edit
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                      </svg>
                     </RouterLink>
                     <button
                       v-if="investment.status === 'active'"
-                      class="btn-danger btn-sm"
+                      class="icon-action danger"
                       type="button"
+                      title="Delete investment"
+                      aria-label="Delete investment"
                       @click="deleting = investment"
                     >
-                      Delete
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
                     </button>
                   </div>
                 </td>
@@ -171,8 +213,9 @@ const deleteInvestment = async () => {
   min-width: 0;
 }
 
-.page-subtitle {
+.page-sub {
   color: var(--text-secondary);
+  font-size: 14px;
   margin-top: var(--space-2);
 }
 
@@ -188,70 +231,83 @@ const deleteInvestment = async () => {
   padding: var(--space-3) var(--space-4);
 }
 
-.page-error p {
-  color: var(--danger);
-}
-
-.list-card-header {
-  align-items: flex-start;
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: var(--space-4);
-}
-
-.list-card-header h2 {
-  font-size: var(--text-lg);
-}
-
-.result-count,
-.record-code {
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-}
-
-.result-count {
-  white-space: nowrap;
-}
-
-.record-link,
-.record-code {
-  display: block;
-}
+.page-error p { color: var(--danger); }
 
 .record-link {
-  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  display: block;
+  font-weight: 600;
+  text-decoration: none;
 }
+.record-link:hover { color: var(--accent); }
 
 .record-code {
-  margin-top: var(--space-1);
+  color: var(--text-muted);
+  display: block;
+  font-size: 12px;
+  margin-top: 1px;
 }
 
-.row-actions {
+.record-amount { color: var(--text-primary); font-weight: 600; }
+
+.maturity-due {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.investor-cell {
   align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.investor-avatar {
+  align-items: center;
+  border-radius: 9px;
+  color: #fff;
   display: inline-flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+  flex: 0 0 28px;
+  font-size: 11px;
+  font-weight: 600;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.investor-link {
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-decoration: none;
+}
+.investor-link:hover { color: var(--accent); }
+
+.row-actions {
+  display: inline-flex;
+  gap: 4px;
   justify-content: flex-end;
 }
 
-.capitalize {
-  text-transform: capitalize;
+.icon-action {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+  width: 32px;
 }
+.icon-action svg { height: 16px; width: 16px; }
+.icon-action:hover { background: var(--accent-soft); color: var(--accent); }
+.icon-action.danger:hover { background: var(--danger-soft); color: var(--danger); }
 
 @media (max-width: 700px) {
-  .page-error,
-  .list-card-header {
-    align-items: stretch;
+  .page-error {
+    align-items: flex-start;
     flex-direction: column;
-    gap: var(--space-3);
-  }
-
-  .result-count {
-    align-self: flex-start;
-  }
-
-  .investment-table {
-    min-width: 980px;
   }
 }
 </style>

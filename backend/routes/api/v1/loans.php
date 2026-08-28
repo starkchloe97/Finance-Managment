@@ -8,6 +8,12 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('company-capital', [CompanyCapitalController::class, 'show']);
     Route::post('company-capital/initialize', [CompanyCapitalController::class, 'initialize']);
+    Route::post('company-capital', [CompanyCapitalController::class, 'store']);
+    Route::post('company-capital/withdraw', [CompanyCapitalController::class, 'withdraw']);
+    Route::patch('company-capital/transactions/{transaction}', [CompanyCapitalController::class, 'updateAvailability']);
+
+    Route::post('company-capital/drafts/{draft}/convert', [CompanyCapitalController::class, 'convertDraft']);
+    Route::post('company-capital/drafts/{draft}/remove', [CompanyCapitalController::class, 'removeDraft']);
 
     Route::get('loan-borrowers', [LoanBorrowerController::class, 'index']);
     Route::post('loan-borrowers', [LoanBorrowerController::class, 'store']);

@@ -46,15 +46,22 @@ const cancel = () =>
 
 <template>
   <div class="page-container">
-    <div v-if="loading" class="loading-state">Loading investment...</div>
+   <div v-if="loading" class="state-panel state-loading">
+  <div class="skeleton-block"></div>
+</div>
 
     <template v-else-if="investment">
-      <div class="page-header">
-        <div>
-          <h1>Edit {{ investment.investment_code }}</h1>
-          <p>Update investment information.</p>
-        </div>
-      </div>
+      <div class="page-head">
+  <div>
+    <span class="section-kicker">Capital / Investments</span>
+    <h1>{{ isCreate ? 'Add investment' : `Edit ${investment.investment_code}` }}</h1>
+    <p class="page-sub">
+      {{ isCreate
+        ? 'Record capital an investor is placing with the company.'
+        : 'Update terms while the investment is still active.' }}
+    </p>
+  </div>
+</div>
 
       <InvestmentForm
         mode="edit"

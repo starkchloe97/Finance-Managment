@@ -18,6 +18,10 @@ class CompanyCapitalResource extends JsonResource
                 'name' => $this->resource['account']->name,
             ] : null,
             'opening_balance' => $this->resource['opening_balance'],
+            'available_to_lend' => $this->resource['available_to_lend'],
+            'lent_out' => $this->resource['lent_out'],
+            'reserved' => $this->resource['reserved'],
+            'total_capital' => $this->resource['total_capital'],
             'current_balance' => $this->resource['current_balance'],
             'transactions' => collect($this->resource['transactions'])->map(
                 fn (CompanyCapitalTransaction $transaction) => [
@@ -25,11 +29,14 @@ class CompanyCapitalResource extends JsonResource
                     'transaction_code' => $transaction->transaction_code,
                     'type' => $transaction->type->value,
                     'amount' => $transaction->amount,
+                    'available' => $transaction->available,
                     'transaction_date' => $transaction->transaction_date->toDateString(),
                     'description' => $transaction->description,
                     'created_at' => $transaction->created_at,
                 ]
             )->values(),
+            'drafts' => $this->resource['drafts'] ?? [],
+            'draft_history' => $this->resource['draft_history'] ?? [],
         ];
     }
 }

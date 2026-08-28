@@ -6,6 +6,8 @@ import { useInvestorStore } from '@/stores/investorStore'
 import Pagination from '@/components/ui/Pagination.vue'
 import StatePanel from '@/components/ui/StatePanel.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import FinanceStatus from '@/components/ui/FinanceStatus.vue'
+import { avatarStyle, initialOf } from '@/utils/avatar'
 
 const router = useRouter()
 const investorStore = useInvestorStore()
@@ -17,7 +19,6 @@ onMounted(() => investorStore.fetchInvestors())
 const createInvestor = () => router.push('/investors/create')
 const viewInvestor = (id) => router.push(`/investors/${id}`)
 const editInvestor = (id) => router.push(`/investors/${id}/edit`)
-const statusClass = (status) => (status === 'active' ? 'status-success' : 'status-neutral')
 
 const deleteInvestor = async () => {
   if (!deleting.value) return
@@ -36,9 +37,13 @@ const deleteInvestor = async () => {
       <div>
         <span class="section-kicker">Capital</span>
         <h1>Investors</h1>
-        <p class="page-subtitle">Manage investor profiles and the capital they place with you.</p>
+        <p class="page-sub">
+          {{ pagination.total }}
+          {{ pagination.total === 1 ? 'investor' : 'investors' }} — profiles, capital placed, and
+          loan balances.
+        </p>
       </div>
-      <button type="button" @click="createInvestor">Add investor</button>
+      <button type="button" @click="createInvestor">+ Add investor</button>
     </div>
 
     <div v-if="error" class="page-error" role="alert">
@@ -49,24 +54,16 @@ const deleteInvestor = async () => {
     </div>
 
     <section class="card list-card">
-      <div class="list-card-header">
-        <div>
-          <h2>Investor directory</h2>
-          <p class="hint">Use an investor profile to review their investment mix and activity.</p>
-        </div>
-        <span v-if="pagination.total" class="result-count">{{ pagination.total }} total</span>
-      </div>
-
       <StatePanel
         :loading="loading && !investors.length"
         :error="''"
-        :empty="!loading && !investors.length"
+        :empty="!loading && !error && !investors.length"
         empty-title="No investors yet. Create an investor to start tracking capital."
         empty-action="Add investor"
         empty-to="/investors/create"
       >
         <div class="table-wrap">
-          <table class="investor-table">
+          <table>
             <thead>
               <tr>
                 <th>Investor</th>
@@ -78,30 +75,69 @@ const deleteInvestor = async () => {
             <tbody>
               <tr v-for="investor in investors" :key="investor.id">
                 <td>
-                  <RouterLink class="record-link" :to="`/investors/${investor.id}`">
-                    {{ investor.name }}
-                  </RouterLink>
-                  <span class="record-code">{{ investor.investor_code }}</span>
+                  <div class="investor-cell">
+                    <span
+                      class="investor-avatar"
+                      :style="avatarStyle(investor.name)"
+                      aria-hidden="true"
+                    >
+                      {{ initialOf(investor.name) }}
+                    </span>
+                    <div class="investor-id">
+                      <RouterLink class="record-link" :to="`/investors/${investor.id}`">
+                        {{ investor.name }}
+                      </RouterLink>
+                      <span class="record-code">{{ investor.investor_code }}</span>
+                    </div>
+                  </div>
                 </td>
                 <td>
-                  <span>{{ investor.email || 'No email' }}</span>
-                  <span class="record-code">{{ investor.phone || 'No phone' }}</span>
+                  <div class="contact-cell">
+                    <a v-if="investor.email" class="contact-link" :href="`mailto:${investor.email}`">
+                      {{ investor.email }}
+                    </a>
+                    <span v-else class="record-code">No email</span>
+                    <a v-if="investor.phone" class="record-code contact-link" :href="`tel:${investor.phone}`">
+                      {{ investor.phone }}
+                    </a>
+                    <span v-else class="record-code">No phone</span>
+                  </div>
                 </td>
                 <td>
-                  <span class="status" :class="statusClass(investor.status)">
-                    {{ investor.status }}
-                  </span>
+                  <FinanceStatus :status="investor.status" kind="investor" />
                 </td>
                 <td class="right">
                   <div class="row-actions">
-                    <RouterLink class="btn-light btn-sm" :to="`/investors/${investor.id}`">
-                      Open
+                    <RouterLink
+                      class="icon-action"
+                      :to="`/investors/${investor.id}`"
+                      title="View investor"
+                      aria-label="View investor"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" />
+                      </svg>
                     </RouterLink>
-                    <RouterLink class="btn-light btn-sm" :to="`/investors/${investor.id}/edit`">
-                      Edit
+                    <RouterLink
+                      class="icon-action"
+                      :to="`/investors/${investor.id}/edit`"
+                      title="Edit investor"
+                      aria-label="Edit investor"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                      </svg>
                     </RouterLink>
-                    <button class="btn-danger btn-sm" type="button" @click="deleting = investor">
-                      Delete
+                    <button
+                      class="icon-action danger"
+                      type="button"
+                      title="Delete investor"
+                      aria-label="Delete investor"
+                      @click="deleting = investor"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
                     </button>
                   </div>
                 </td>
@@ -133,12 +169,14 @@ const deleteInvestor = async () => {
 </template>
 
 <style scoped>
-.entity-list-page {
+.entity-list-page,
+.list-card {
   min-width: 0;
 }
 
-.page-subtitle {
+.page-sub {
   color: var(--text-secondary);
+  font-size: 14px;
   margin-top: var(--space-2);
 }
 
@@ -154,71 +192,84 @@ const deleteInvestor = async () => {
   padding: var(--space-3) var(--space-4);
 }
 
-.page-error p {
-  color: var(--danger);
+.page-error p { color: var(--danger); }
+
+.investor-cell {
+  align-items: center;
+  display: flex;
+  gap: 12px;
 }
 
-.list-card {
+.investor-avatar {
+  align-items: center;
+  border-radius: 10px;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 36px;
+  font-size: 13px;
+  font-weight: 600;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+
+.investor-id {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
   min-width: 0;
 }
 
-.list-card-header {
-  align-items: flex-start;
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: var(--space-4);
+.record-link {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
 }
+.record-link:hover { color: var(--accent); }
 
-.list-card-header h2 {
-  font-size: var(--text-lg);
-}
-
-.result-count,
 .record-code {
   color: var(--text-muted);
-  font-size: var(--text-xs);
+  font-size: 12px;
 }
 
-.result-count {
-  white-space: nowrap;
-}
+.contact-cell { display: flex; flex-direction: column; gap: 1px; }
 
-.investor-table td > span,
-.record-link,
-.record-code {
-  display: block;
+.contact-link {
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-decoration: none;
 }
-
-.record-link {
-  font-weight: var(--font-weight-semibold);
-}
-
-.record-code {
-  margin-top: var(--space-1);
-}
+.contact-link:hover { color: var(--accent); }
+.contact-link.record-code { font-size: 12px; }
 
 .row-actions {
-  align-items: center;
   display: inline-flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: 4px;
   justify-content: flex-end;
 }
 
+.icon-action {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+  width: 32px;
+}
+.icon-action svg { height: 16px; width: 16px; }
+.icon-action:hover { background: var(--accent-soft); color: var(--accent); }
+.icon-action.danger:hover { background: var(--danger-soft); color: var(--danger); }
+
 @media (max-width: 700px) {
-  .page-error,
-  .list-card-header {
-    align-items: stretch;
+  .page-error {
+    align-items: flex-start;
     flex-direction: column;
-    gap: var(--space-3);
-  }
-
-  .result-count {
-    align-self: flex-start;
-  }
-
-  .investor-table {
-    min-width: 580px;
   }
 }
 </style>
