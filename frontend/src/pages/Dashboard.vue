@@ -195,6 +195,7 @@ onMounted(() => store.fetchDashboard().catch(() => {}))
       </div>
 
       <KpiGrid :items="kpis" />
+      <RecentJobs :jobs="dashboard.recent_jobs" />
 
       <div class="dashboard-primary-grid">
         <FinancialOverview :series="dashboard.financial_overview" :kpis="dashboard.kpis" />
@@ -206,7 +207,6 @@ onMounted(() => store.fetchDashboard().catch(() => {}))
         <AttentionPanel :alerts="dashboard.alerts" />
       </div>
 
-      <RecentJobs :jobs="dashboard.recent_jobs" />
     </template>
   </div>
 </template>

@@ -266,6 +266,21 @@ const deleteInvestor = async () => {
 .icon-action:hover { background: var(--accent-soft); color: var(--accent); }
 .icon-action.danger:hover { background: var(--danger-soft); color: var(--danger); }
 
+button.icon-action.danger {
+  padding-left: 0;
+  padding-right: 0;
+}
+button.icon-action.danger svg {
+  flex-shrink: 0;
+}
+td a + button{
+  margin-left: 0px;
+}
+
+button{
+  min-height: auto;
+}
+
 @media (max-width: 700px) {
   .page-error {
     align-items: flex-start;

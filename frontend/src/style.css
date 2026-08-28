@@ -804,10 +804,11 @@ input[type='radio'] {
 .page-head,
 .head-title,
 .toolbar {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    justify-content: space-between;
 }
 
 .toolbar {

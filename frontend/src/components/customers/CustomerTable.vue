@@ -170,4 +170,18 @@ const emit = defineEmits(['delete'])
   background: var(--danger-soft);
   color: var(--danger);
 }
+button.icon-action.danger {
+  padding-left: 0;
+  padding-right: 0;
+}
+button.icon-action.danger svg {
+  flex-shrink: 0;
+}
+td a + button{
+  margin-left: 0px;
+}
+
+button{
+  min-height: auto;
+}
 </style>

@@ -544,6 +544,7 @@ onMounted(() => load().catch(() => { }))
     </template>
 
     <!-- ============ Loan register ============ -->
+    
     <section class="card list-card">
       <div class="list-card-header">
         <div>
