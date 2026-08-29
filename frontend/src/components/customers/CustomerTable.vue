@@ -147,7 +147,7 @@ const emit = defineEmits(['delete'])
   gap: 4px;
   justify-content: flex-end;
 }
-
+ 
 .icon-action {
   align-items: center;
   background: transparent;
