@@ -130,6 +130,43 @@ const routes = [
         component: () => import('@/pages/investments/InvestmentEdit.vue'),
         meta: secure('Finance / Investments / Edit investment'),
       },
+      {
+        path: 'assets',
+        name: 'assets.index',
+        component: () =>
+          import('@/pages/assets/Assets.vue'),
+        meta: secure('Operations / Assets'),
+      },
+
+      {
+        path: 'assets/create',
+        name: 'assets.create',
+        component: () =>
+          import('@/pages/assets/AssetCreate.vue'),
+        meta: secure(
+          'Operations / Assets / New vehicle'
+        ),
+      },
+
+      {
+        path: 'assets/:id',
+        name: 'assets.show',
+        component: () =>
+          import('@/pages/assets/AssetShow.vue'),
+        meta: secure(
+          'Operations / Assets / Vehicle details'
+        ),
+      },
+
+      {
+        path: 'assets/:id/edit',
+        name: 'assets.edit',
+        component: () =>
+          import('@/pages/assets/AssetEdit.vue'),
+        meta: secure(
+          'Operations / Assets / Edit vehicle'
+        ),
+      },
     ],
   },
 ]

@@ -63,17 +63,22 @@ watch(
   (open) => {
     if (open) {
       trigger = document.activeElement
+      document.body.style.overflow = 'hidden'   // ← add
       document.addEventListener('keydown', onKeydown)
       focusDialog()
     } else {
       document.removeEventListener('keydown', onKeydown)
+      document.body.style.overflow = ''          // ← add
       if (trigger && typeof trigger.focus === 'function') trigger.focus()
       trigger = null
     }
   },
 )
 
-onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', onKeydown)
+  document.body.style.overflow = ''             // ← add
+})
 </script>
 
 <template>
