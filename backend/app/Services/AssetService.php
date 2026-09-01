@@ -130,4 +130,12 @@ class AssetService
             STR_PAD_LEFT
         );
     }
+    public function availableVehicles()
+{
+    return Asset::query()
+        ->where('asset_type', 'vehicle')
+        ->where('status', 'active')
+        ->latest()
+        ->get();
+}
 }

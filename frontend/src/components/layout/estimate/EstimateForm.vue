@@ -31,6 +31,8 @@ const line = () => ({
   sell_total: 0,
   profit: 0,
   remarks: '',
+
+  vehicles: [],
 })
 
 const form = reactive({

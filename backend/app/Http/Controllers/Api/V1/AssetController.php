@@ -40,6 +40,15 @@ class AssetController extends Controller
         return new AssetResource($asset);
     }
 
+    
+    public function availableVehicles()
+{
+    return AssetResource::collection(
+        $this->service->availableVehicles()
+    );
+}
+    
+
     public function show(
         Asset $asset
     ) {
@@ -67,4 +76,5 @@ class AssetController extends Controller
             'message' => 'Asset deleted.',
         ]);
     }
+
 }

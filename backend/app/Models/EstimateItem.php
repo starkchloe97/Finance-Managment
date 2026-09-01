@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class EstimateItem extends Model
 {
@@ -23,4 +24,8 @@ class EstimateItem extends Model
     {
         return $this->belongsTo(Estimate::class);
     }
+    public function vehicles(): HasMany
+{
+    return $this->hasMany(EstimateItemVehicle::class);
+}
 }

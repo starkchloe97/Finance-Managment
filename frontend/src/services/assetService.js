@@ -42,4 +42,10 @@ export const assetService = {
 
     return response.data
   },
+
+  async getAvailableVehicles() {
+    const response = await api.get('/assets/available-vehicles')
+
+    return response.data
+  },
 }
