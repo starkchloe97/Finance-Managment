@@ -167,6 +167,43 @@ const routes = [
           'Operations / Assets / Edit vehicle'
         ),
       },
+      {
+        path: 'vehicle-contracts',
+        name: 'vehicle-contracts.index',
+        component: () =>
+          import('@/pages/vehicle-contracts/VehicleContractsList.vue'),
+        meta: secure('Operations / Vehicle Contracts'),
+      },
+
+      {
+        path: 'vehicle-contracts/create',
+        name: 'vehicle-contracts.create',
+        component: () =>
+          import('@/pages/vehicle-contracts/VehicleContractCreate.vue'),
+        meta: secure(
+          'Operations / Vehicle Contracts / New contract'
+        ),
+      },
+
+      {
+        path: 'vehicle-contracts/:id',
+        name: 'vehicle-contracts.show',
+        component: () =>
+          import('@/pages/vehicle-contracts/VehicleContractShow.vue'),
+        meta: secure(
+          'Operations / Vehicle Contracts / Contract details'
+        ),
+      },
+
+      {
+        path: 'vehicle-contracts/:id/edit',
+        name: 'vehicle-contracts.edit',
+        component: () =>
+          import('@/pages/vehicle-contracts/VehicleContractEdit.vue'),
+        meta: secure(
+          'Operations / Vehicle Contracts / Edit contract'
+        ),
+      },
     ],
   },
 ]
