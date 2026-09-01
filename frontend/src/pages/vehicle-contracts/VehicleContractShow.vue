@@ -217,9 +217,8 @@ onMounted(loadContract)
 
           <div class="detail-item">
             <span>Model Year</span>
-            <strong>
-              {{ contract.model_year || '—' }}
-            </strong>
+            <strong>{{ contract.vehicle_model_year || '—' }}</strong>
+
           </div>
 
           <div class="detail-item">
@@ -277,32 +276,40 @@ onMounted(loadContract)
         <div class="details-grid">
 
           <div class="detail-item">
-            <span>Driver</span>
-            <strong>
-              {{ contract.with_driver ? 'Included' : 'Not Included' }}
-            </strong>
-          </div>
+  <span>Driver</span>
+  <strong>
+    {{ contract.service_type === 'with_driver' ? 'Included' : 'Not Included' }}
+  </strong>
+</div>
 
-          <div class="detail-item">
-            <span>Fuel</span>
-            <strong>
-              {{ contract.without_fuel ? 'Excluded' : 'Included' }}
-            </strong>
-          </div>
+<div class="detail-item">
+  <span>Fuel</span>
+  <strong>
+    {{ contract.fuel_included ? 'Included' : 'Excluded' }}
+  </strong>
+</div>
 
-          <div class="detail-item">
-            <span>Duty Hours</span>
-            <strong>
-              {{ contract.duty_hours || '—' }}
-            </strong>
-          </div>
+<div class="detail-item">
+  <span>Duty Hours</span>
+  <strong>
+    {{ contract.duty_hours_per_day || '—' }}
+  </strong>
+</div>
 
-          <div class="detail-item">
-            <span>Duty Days</span>
-            <strong>
-              {{ contract.duty_days || '—' }}
-            </strong>
-          </div>
+<div class="detail-item">
+  <span>Duty Days</span>
+  <strong>
+    {{ contract.duty_days_per_week || '—' }}
+  </strong>
+</div>
+
+<div class="detail-item">
+  <span>Mileage Limit</span>
+  <strong>
+    {{ contract.monthly_mileage_limit || '—' }}
+    KM / vehicle / month
+  </strong>
+</div>
 
           <div class="detail-item">
             <span>Mileage Limit</span>
@@ -425,13 +432,10 @@ onMounted(loadContract)
           </h3>
 
           <p>
-            This is a Vehicle Rental Agreement with Driver and
-            without Fuel, effective from
-            <strong>
-              {{ contract.effective_date || '________' }}
-            </strong>.
-          </p>
-
+  This is a {{ contract.service_type === 'with_driver' ? 'Vehicle Rental Agreement with Driver' : 'Vehicle Rental Agreement without Driver' }}
+  {{ contract.fuel_included ? 'with Fuel' : 'without Fuel' }},
+  effective from <strong>{{ contract.effective_date || '________' }}</strong>.
+</p>
 
           <h3>
             2. VEHICLE RENTAL DETAILS
@@ -548,10 +552,10 @@ onMounted(loadContract)
             The rental includes driver services for:
           </p>
 
-          <ul>
-            <li>10 hours per day</li>
-            <li>6 days per week</li>
-          </ul>
+<ul>
+  <li><strong>{{ contract.duty_hours_per_day }} hours per day</strong></li>
+  <li><strong>{{ contract.duty_days_per_week }} days per week</strong></li>
+</ul>
 
 
           <h3>

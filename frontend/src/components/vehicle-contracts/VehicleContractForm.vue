@@ -29,11 +29,29 @@ const totalMonthlyRental = computed(() => {
   return vehicles * rental
 })
 
+
+const calculateTotalMonthlyRental = (vehicles, rental) => {
+  return (Number(vehicles) || 0) * (Number(rental) || 0)
+}
+
 const updateRental = (value) => {
   emit('update:modelValue', {
     ...props.modelValue,
     monthly_rental_per_vehicle: value,
-    total_monthly_rental: totalMonthlyRental.value,
+    total_monthly_rental: calculateTotalMonthlyRental(
+      props.modelValue.total_vehicles,
+      value
+    ),
+  })
+}
+const updateTotalVehicles = (value) => {
+  emit('update:modelValue', {
+    ...props.modelValue,
+    total_vehicles: value,
+    total_monthly_rental: calculateTotalMonthlyRental(
+      value,
+      props.modelValue.monthly_rental_per_vehicle
+    ),
   })
 }
 </script>
@@ -208,12 +226,7 @@ const updateRental = (value) => {
             type="number"
             min="1"
             :value="form.total_vehicles"
-            @input="
-              updateField(
-                'total_vehicles',
-                Number($event.target.value)
-              )
-            "
+           @input="updateField('total_vehicles', Number($event.target.value))"
           />
         </div>
 

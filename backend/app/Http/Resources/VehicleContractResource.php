@@ -15,16 +15,12 @@ class VehicleContractResource extends JsonResource
 
             'agreement_date' => $this->agreement_date?->format('Y-m-d'),
 
-            'vendor' => [
-                'name' => $this->vendor_name,
-                'address' => $this->vendor_address,
-            ],
+            'vendor_name' => $this->vendor_name,
+            'vendor_address' => $this->vendor_address,
 
-            'customer' => [
-                'name' => $this->customer_name,
-                'address' => $this->customer_address,
-                'tin' => $this->customer_tin,
-            ],
+            'customer_name' => $this->customer_name,
+            'customer_address' => $this->customer_address,
+            'customer_tin' => $this->customer_tin,
 
             'effective_date' => $this->effective_date?->format('Y-m-d'),
             'end_date' => $this->end_date?->format('Y-m-d'),
@@ -35,44 +31,34 @@ class VehicleContractResource extends JsonResource
             'routine_maintenance_included' =>
                 $this->routine_maintenance_included,
 
-            'vehicle' => [
-                'total_vehicles' => $this->total_vehicles,
-                'make' => $this->vehicle_make,
-                'model' => $this->vehicle_model,
-                'model_year' => $this->vehicle_model_year,
-                'type' => $this->vehicle_type,
-            ],
+            'total_vehicles' => $this->total_vehicles,
+            'vehicle_make' => $this->vehicle_make,
+            'vehicle_model' => $this->vehicle_model,
+            'vehicle_model_year' => $this->vehicle_model_year,
+            'vehicle_type' => $this->vehicle_type,
 
-            'rental' => [
-                'monthly_per_vehicle' =>
-                    $this->monthly_rental_per_vehicle,
-                'total_monthly' =>
-                    $this->total_monthly_rental,
-            ],
+            'monthly_rental_per_vehicle' =>
+                $this->monthly_rental_per_vehicle,
+            'total_monthly_rental' =>
+                $this->total_monthly_rental,
 
-            'duty' => [
-                'hours_per_day' => $this->duty_hours_per_day,
-                'days_per_week' => $this->duty_days_per_week,
-                'public_holiday_rate' =>
-                    $this->public_holiday_rate,
-                'overtime_rate' =>
-                    $this->overtime_rate,
-            ],
+            'duty_hours_per_day' => $this->duty_hours_per_day,
+            'duty_days_per_week' => $this->duty_days_per_week,
+            'public_holiday_rate' =>
+                $this->public_holiday_rate,
+            'overtime_rate' =>
+                $this->overtime_rate,
 
-            'payment' => [
-                'terms' => $this->payment_terms,
-                'advance_months' => $this->advance_months,
-            ],
+            'payment_terms' => $this->payment_terms,
+            'advance_months' => $this->advance_months,
 
             'insurance_claim_period_days' =>
                 $this->insurance_claim_period_days,
 
-            'mileage' => [
-                'monthly_limit' =>
-                    $this->monthly_mileage_limit,
-                'excess_rate' =>
-                    $this->excess_mileage_rate,
-            ],
+            'monthly_mileage_limit' =>
+                $this->monthly_mileage_limit,
+            'excess_mileage_rate' =>
+                $this->excess_mileage_rate,
 
             'refrigeration_customer_responsibility' =>
                 $this->refrigeration_customer_responsibility,
@@ -80,35 +66,25 @@ class VehicleContractResource extends JsonResource
             'early_termination_months' =>
                 $this->early_termination_months,
 
-            'signatures' => [
-                'vendor' => [
-                    'name' => $this->vendor_signatory_name,
-                    'designation' =>
-                        $this->vendor_signatory_designation,
-                    'cnic' => $this->vendor_signatory_cnic,
-                    'date' =>
-                        $this->vendor_signature_date?->format('Y-m-d'),
-                ],
+            'vendor_signatory_name' => $this->vendor_signatory_name,
+            'vendor_signatory_designation' =>
+                $this->vendor_signatory_designation,
+            'vendor_signatory_cnic' => $this->vendor_signatory_cnic,
+            'vendor_signature_date' =>
+                $this->vendor_signature_date?->format('Y-m-d'),
 
-                'customer' => [
-                    'name' => $this->customer_signatory_name,
-                    'designation' =>
-                        $this->customer_signatory_designation,
-                    'cnic' => $this->customer_signatory_cnic,
-                    'date' =>
-                        $this->customer_signature_date?->format('Y-m-d'),
-                ],
+            'customer_signatory_name' => $this->customer_signatory_name,
+            'customer_signatory_designation' =>
+                $this->customer_signatory_designation,
+            'customer_signatory_cnic' => $this->customer_signatory_cnic,
+            'customer_signature_date' =>
+                $this->customer_signature_date?->format('Y-m-d'),
 
-                'witness_1' => [
-                    'name' => $this->witness_1_name,
-                    'cnic' => $this->witness_1_cnic,
-                ],
+            'witness_1_name' => $this->witness_1_name,
+            'witness_1_cnic' => $this->witness_1_cnic,
 
-                'witness_2' => [
-                    'name' => $this->witness_2_name,
-                    'cnic' => $this->witness_2_cnic,
-                ],
-            ],
+            'witness_2_name' => $this->witness_2_name,
+            'witness_2_cnic' => $this->witness_2_cnic,
 
             'status' => $this->status,
             'notes' => $this->notes,
