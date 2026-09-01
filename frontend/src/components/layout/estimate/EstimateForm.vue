@@ -78,6 +78,20 @@ onMounted(async () => {
             sell_total: Number(item.sell_total),
             profit: Number(item.profit),
             remarks: item.remarks || '',
+            vehicles: item.vehicles?.map((v) => ({
+            source: v.source || 'company',
+            asset_id: v.asset_id || null,
+            vehicle_name: v.vehicle_name || '',
+            make: v.make || '',
+            model: v.model || '',
+            model_year: v.model_year || '',
+            registration_number: v.registration_number || '',
+            vin: v.vin || '',
+            engine_number: v.engine_number || '',
+            vehicle_type: v.vehicle_type || '',
+            color: v.color || '',
+            notes: v.notes || '',
+            })) || [],
           }))
         : [line()],
     })

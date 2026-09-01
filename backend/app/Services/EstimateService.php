@@ -179,7 +179,7 @@ private function saveVehicleRequirements(
                     );
                 }
             }
-            $estimate->items()->createMany($lines);
+            // $estimate->items()->createMany($lines);
 
             return $estimate->load(
                 'customer',
