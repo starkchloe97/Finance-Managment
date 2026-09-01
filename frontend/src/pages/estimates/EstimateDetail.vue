@@ -8,12 +8,22 @@ import EstimateItems from '@/components/estimates/EstimateItems.vue'
 import EstimateConversionDialog from '@/components/estimates/EstimateConversionDialog.vue'
 import InfoTip from '@/components/ui/InfoTip.vue'
 import { avatarStyle, initialOf } from '@/utils/avatar'
-
+import EstimateVehicles from '@/components/estimates/EstimateVehicles.vue'
 const route = useRoute()
 const estimate = ref(null)
 const loading = ref(true)
 const error = ref('')
 const converting = ref(false)
+const activeTab = ref('items')
+
+const vehicleCount = computed(() => {
+  return (
+    estimate.value?.items?.reduce(
+      (total, item) => total + (item.vehicles?.length || 0),
+      0
+    ) || 0
+  )
+})
 
 const load = async () => {
   loading.value = true
@@ -219,15 +229,55 @@ const when = (value) => (value ? String(value).slice(0, 10) : '—')
                   </svg>
                 </span>
                 <div>
-                  <h2>Quoted items</h2>
-                  <p class="block-hint">Exactly what the customer is paying for, line by line.</p>
+                  <h2>Estimate breakdown</h2>
+                  <p class="block-hint">Quote items and the vehicles required to fulfil this estimate.</p>
                 </div>
               </div>
               <span class="block-total">{{ money(estimate.estimated_sell) }}</span>
             </header>
 
-            <EstimateItems v-if="estimate.items?.length" :items="estimate.items" />
-            <div v-else class="block-empty"><p>No line items on this quote.</p></div>
+            <div class="detail-tabs">
+              <button
+                type="button"
+                class="detail-tab"
+                :class="{ 'is-active': activeTab === 'items' }"
+                @click="activeTab = 'items'"
+              >
+                <span>Quote items</span>
+                <span class="tab-count">
+                  {{ estimate.items?.length || 0 }}
+                </span>
+              </button>
+
+              <button
+                v-if="vehicleCount > 0"
+                type="button"
+                class="detail-tab"
+                :class="{ 'is-active': activeTab === 'vehicles' }"
+                @click="activeTab = 'vehicles'"
+              >
+                <span>Vehicles</span>
+                <span class="tab-count">
+                  {{ vehicleCount }}
+                </span>
+              </button>
+            </div>
+
+            <div v-if="activeTab === 'items'">
+              <EstimateItems
+                v-if="estimate.items?.length"
+                :items="estimate.items"
+              />
+
+              <div v-else class="block-empty">
+                <p>No line items on this quote.</p>
+              </div>
+            </div>
+
+            <EstimateVehicles
+              v-else-if="activeTab === 'vehicles'"
+              :items="estimate.items"
+            />
           </section>
         </div>
       </div>
@@ -541,5 +591,59 @@ const when = (value) => (value ? String(value).slice(0, 10) : '—')
   .hero-actions .btn,
   .hero-actions .btn-light { flex: 1; justify-content: center; }
   .detail-error { align-items: flex-start; flex-direction: column; }
+}
+
+.detail-tabs {
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 4px;
+  padding: 0 20px;
+}
+
+.detail-tab {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 7px;
+  margin-bottom: -1px;
+  padding: 12px 4px 11px;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.detail-tab:hover {
+  color: var(--text-primary);
+}
+
+.detail-tab.is-active {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.tab-count {
+  align-items: center;
+  background: var(--surface-subtle, var(--background-secondary));
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 600;
+  height: 19px;
+  justify-content: center;
+  min-width: 19px;
+  padding: 0 5px;
+}
+
+.detail-tab.is-active .tab-count {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 </style>

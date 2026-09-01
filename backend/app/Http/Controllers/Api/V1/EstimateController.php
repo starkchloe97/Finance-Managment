@@ -54,7 +54,7 @@ class EstimateController extends Controller
     public function show(Estimate $estimate)
     {
         return new EstimateResource(
-            $estimate->load('customer', 'items', 'transportJob')
+            $estimate->load('customer', 'items.vehicles.asset', 'transportJob')
         );
     }
 
