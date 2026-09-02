@@ -300,10 +300,9 @@ onMounted(loadContract)
             <RouterLink
               class="btn secondary"
               :to="{
-                name: 'vehicle-contracts.vehicle-reports',
+                name: 'contract-vehicles.daily-reports',
                 params: {
-                  id: contract.id,
-                  vehicleId: vehicle.id,
+                  id: vehicle.id,
                 },
               }"
             >

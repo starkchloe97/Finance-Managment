@@ -214,6 +214,15 @@ const routes = [
           'Operations / Vehicle Contracts / Daily reports'
         ),
       },
+      {
+        path: '/contract-vehicles/:id/daily-reports',
+        name: 'contract-vehicles.daily-reports',
+        component: () =>
+          import(
+            '@/pages/vehicle-daily-reports/VehicleDailyReportsPage.vue'
+          ),
+        props: true,
+      },
     ],
   },
 ]
