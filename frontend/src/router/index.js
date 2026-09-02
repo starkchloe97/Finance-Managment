@@ -204,6 +204,16 @@ const routes = [
           'Operations / Vehicle Contracts / Edit contract'
         ),
       },
+
+      {
+        path: 'vehicle-contracts/:id/vehicles/:vehicleId/reports',
+        name: 'vehicle-contracts.vehicle-reports',
+        component: () =>
+          import('@/pages/vehicle-contracts/VehicleContractVehicleReports.vue'),
+        meta: secure(
+          'Operations / Vehicle Contracts / Daily reports'
+        ),
+      },
     ],
   },
 ]
