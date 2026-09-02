@@ -4,8 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class VehicleContract extends Model
+
 {
     use HasFactory;
 
@@ -100,4 +102,12 @@ class VehicleContract extends Model
         'monthly_mileage_limit' => 'integer',
         'early_termination_months' => 'integer',
     ];
+
+    public function vehicles(): HasMany
+    {
+        return $this->hasMany(
+            ContractVehicle::class,
+            'vehicle_contract_id'
+        );
+    }
 }

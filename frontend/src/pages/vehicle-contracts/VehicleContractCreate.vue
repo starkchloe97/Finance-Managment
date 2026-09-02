@@ -23,7 +23,6 @@ const form = ref({
   customer_address: '',
   customer_tin: '',
 
-  effective_date: '2026-09-01',
   end_date: '2027-08-31',
   duration_months: 12,
 

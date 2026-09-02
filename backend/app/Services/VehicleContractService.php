@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Helpers\NumberGenerator;
 use App\Models\VehicleContract;
+use Illuminate\Support\Facades\DB;
 
 class VehicleContractService
 {
@@ -57,7 +58,9 @@ class VehicleContractService
     }
 
     public function create(array $data): VehicleContract
-    {
+{
+    return DB::transaction(function () use ($data) {
+
         $data['contract_number'] = NumberGenerator::generate(
             'CON',
             VehicleContract::class
@@ -67,8 +70,64 @@ class VehicleContractService
             (float) $data['total_vehicles']
             * (float) $data['monthly_rental_per_vehicle'];
 
-        return VehicleContract::create($data);
+        $contract = VehicleContract::create($data);
+
+        $this->createContractVehicles(
+            $contract,
+            $data
+        );
+
+        return $contract->load('vehicles');
+    });
+}
+
+private function createContractVehicles(
+    VehicleContract $contract,
+    array $data
+): void {
+    $quantity = (int) $data['total_vehicles'];
+
+    for ($i = 0; $i < $quantity; $i++) {
+        $contract->vehicles()->create([
+            'vehicle_number' => null,
+
+            'make' =>
+                $data['vehicle_make'],
+
+            'model' =>
+                $data['vehicle_model'],
+
+            'model_year' =>
+                $data['vehicle_model_year'],
+
+            'vehicle_type' =>
+                $data['vehicle_type'],
+
+            'monthly_rental' =>
+                $data['monthly_rental_per_vehicle'],
+
+            'duty_hours_per_day' =>
+                $data['duty_hours_per_day'],
+
+            'duty_days_per_week' =>
+                $data['duty_days_per_week'],
+
+            'public_holiday_rate' =>
+                $data['public_holiday_rate'],
+
+            'overtime_rate' =>
+                $data['overtime_rate'],
+
+            'monthly_mileage_limit' =>
+                $data['monthly_mileage_limit'],
+
+            'excess_mileage_rate' =>
+                $data['excess_mileage_rate'],
+
+            'status' => 'active',
+        ]);
     }
+}
 
     public function update(
         VehicleContract $contract,

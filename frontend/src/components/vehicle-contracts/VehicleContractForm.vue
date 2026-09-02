@@ -180,13 +180,13 @@ const updateTotalVehicles = (value) => {
         </header>
 
         <div class="grid">
-          <div class="ff has-unit">
+          <div class="ff has-unit span-2">
             <input id="monthly_rental" type="number" min="0" step="0.01" placeholder=" " :value="form.monthly_rental_per_vehicle" @input="updateRental(Number($event.target.value))" />
             <label for="monthly_rental">Rental / vehicle</label>
             <span class="unit">PKR</span>
           </div>
 
-          <div class="derived">
+          <div class="derived span-2">
             <span>Total / month</span>
             <strong>PKR {{ totalMonthlyRental.toLocaleString() }}</strong>
             <InfoTip label="Calculated automatically — vehicles × rental per vehicle." />
@@ -579,6 +579,7 @@ const updateTotalVehicles = (value) => {
 .group:last-child { margin-bottom: 0; }
 
 .group-chip {
+  align-items: center;
   border-radius: 999px;
   display: inline-flex;
   font-size: 10px;

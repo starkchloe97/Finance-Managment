@@ -9,7 +9,9 @@ class VehicleContractResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        
         return [
+            
             'id' => $this->id,
             'contract_number' => $this->contract_number,
 
@@ -28,7 +30,11 @@ class VehicleContractResource extends JsonResource
             'service_type' => $this->service_type,
             'fuel_included' => $this->fuel_included,
             'routine_maintenance_included' =>
-                $this->routine_maintenance_included,
+            $this->routine_maintenance_included,
+
+            'vehicles' => ContractVehicleResource::collection(
+            $this->whenLoaded('vehicles')
+            ),
 
             'total_vehicles' => $this->total_vehicles,
             'vehicle_make' => $this->vehicle_make,
