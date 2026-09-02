@@ -3,43 +3,21 @@
 namespace App\Services;
 
 use App\Models\ContractVehicle;
-use Carbon\Carbon;
+use Illuminate\Support\Carbon;
 
 class VehicleDailyReportCalculationService
 {
     public function calculate(
-        ContractVehicle $vehicle,
+        ContractVehicle $contractVehicle,
         array $data
     ): array {
-        $timeIn = $data['time_in'] ?? null;
-        $timeOut = $data['time_out'] ?? null;
+        $totalMinutes = $this->calculateTotalMinutes(
+            $data['time_in'] ?? null,
+            $data['time_out'] ?? null
+        );
 
-        $totalMinutes = 0;
-
-        if ($timeIn && $timeOut) {
-            $start = Carbon::createFromFormat(
-                'H:i',
-                $timeIn
-            );
-
-            $end = Carbon::createFromFormat(
-                'H:i',
-                $timeOut
-            );
-
-            /*
-             * Handle overnight shifts.
-             */
-            if ($end->lessThanOrEqualTo($start)) {
-                $end->addDay();
-            }
-
-            $totalMinutes = $start->diffInMinutes($end);
-        }
-
-        $normalMinutes = min(
-            $totalMinutes,
-            ((int) $vehicle->duty_hours_per_day) * 60
+        $normalMinutes = (int) round(
+            ((float) ($contractVehicle->duty_hours_per_day ?? 10)) * 60
         );
 
         $overtimeMinutes = max(
@@ -47,62 +25,111 @@ class VehicleDailyReportCalculationService
             $totalMinutes - $normalMinutes
         );
 
-        /*
-         * Overtime amount
-         *
-         * Example:
-         * 90 minutes × Rs 300/hour
-         *
-         * = Rs 450
-         */
-        $overtimeAmount =
-            ($overtimeMinutes / 60)
-            * (float) $vehicle->overtime_rate;
+        $overtimeRate = (float) (
+            $contractVehicle->overtime_rate ?? 0
+        );
+
+        $isSpecialDay =
+            !empty($data['is_public_holiday']) ||
+            !empty($data['is_weekly_off']);
 
         /*
-         * Meter calculation
+         * Normal day:
+         *
+         * 10 hours included
+         * Extra time charged at hourly OT rate.
          */
-        $meterIn = isset($data['meter_in'])
-            ? (float) $data['meter_in']
-            : null;
-
-        $meterOut = isset($data['meter_out'])
-            ? (float) $data['meter_out']
-            : null;
-
-        $totalRunning = 0;
-
-        if (
-            $meterIn !== null &&
-            $meterOut !== null
-        ) {
-            $totalRunning = $meterOut - $meterIn;
-
+        if (!$isSpecialDay) {
+            $overtimeAmount = round(
+                ($overtimeMinutes / 60) * $overtimeRate,
+                2
+            );
+        } else {
             /*
-             * Never allow a negative distance.
-             * A negative value means the meter
-             * data needs verification.
+             * Public holiday / weekly off:
+             *
+             * Up to normal duty hours = special-day rate.
+             *
+             * Extra hours = normal OT rate.
              */
-            if ($totalRunning < 0) {
-                $totalRunning = 0;
+            $holidayRate = (float) (
+                $contractVehicle->public_holiday_rate ?? 0
+            );
+
+            if ($totalMinutes > 0) {
+                $overtimeAmount = $holidayRate;
+
+                if ($overtimeMinutes > 0) {
+                    $overtimeAmount += round(
+                        ($overtimeMinutes / 60) * $overtimeRate,
+                        2
+                    );
+                }
+            } else {
+                $overtimeAmount = 0;
             }
         }
 
+        $totalRunning = $this->calculateRunning(
+            $data['meter_in'] ?? null,
+            $data['meter_out'] ?? null
+        );
+
         return [
-            'total_minutes' =>
+            'total_minutes' => $totalMinutes,
+
+            'normal_minutes' => min(
                 $totalMinutes,
+                $normalMinutes
+            ),
 
-            'normal_minutes' =>
-                $normalMinutes,
+            'overtime_minutes' => $overtimeMinutes,
 
-            'overtime_minutes' =>
-                $overtimeMinutes,
+            'overtime_amount' => $overtimeAmount,
 
-            'total_running' =>
-                $totalRunning,
-
-            'overtime_amount' =>
-                round($overtimeAmount, 2),
+            'total_running' => $totalRunning,
         ];
+    }
+
+    private function calculateTotalMinutes(
+        ?string $timeIn,
+        ?string $timeOut
+    ): int {
+        if (!$timeIn || !$timeOut) {
+            return 0;
+        }
+
+        $start = Carbon::createFromFormat(
+            'H:i',
+            $timeIn
+        );
+
+        $end = Carbon::createFromFormat(
+            'H:i',
+            $timeOut
+        );
+
+        if ($end->lessThanOrEqualTo($start)) {
+            $end->addDay();
+        }
+
+        return $start->diffInMinutes($end);
+    }
+
+    private function calculateRunning(
+        $meterIn,
+        $meterOut
+    ): float {
+        if (
+            $meterIn === null ||
+            $meterOut === null
+        ) {
+            return 0;
+        }
+
+        return max(
+            0,
+            (float) $meterOut - (float) $meterIn
+        );
     }
 }

@@ -9,7 +9,9 @@ use App\Models\ContractVehicle;
 use App\Models\VehicleDailyReport;
 use App\Services\VehicleDailyReportCalculationService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Carbon;
 
 class VehicleDailyReportController extends Controller
 {
@@ -115,4 +117,79 @@ class VehicleDailyReportController extends Controller
                 'Daily report deleted successfully.',
         ]);
     }
+
+    public function monthlySummary(
+    Request $request,
+    ContractVehicle $contractVehicle
+): JsonResponse {
+    $validated = $request->validate([
+        'month' => [
+            'required',
+            'date_format:Y-m',
+        ],
+    ]);
+
+    $start = Carbon::createFromFormat(
+        'Y-m',
+        $validated['month']
+    )->startOfMonth();
+
+    $end = $start->copy()->endOfMonth();
+
+    $reports = $contractVehicle
+        ->dailyReports()
+        ->whereBetween('report_date', [
+            $start->toDateString(),
+            $end->toDateString(),
+        ])
+        ->get();
+
+    $totalRunning = (float) $reports->sum(
+        'total_running'
+    );
+
+    $monthlyLimit = (float) (
+        $contractVehicle->monthly_mileage_limit ?? 0
+    );
+
+    $excessMileage = max(
+        0,
+        $totalRunning - $monthlyLimit
+    );
+
+    $excessRate = (float) (
+        $contractVehicle->excess_mileage_rate ?? 0
+    );
+
+    $excessAmount = round(
+        $excessMileage * $excessRate,
+        2
+    );
+
+    return response()->json([
+        'data' => [
+            'contract_vehicle' => $contractVehicle,
+
+            'month' => $validated['month'],
+
+            'report_count' => $reports->count(),
+
+            'total_running' => $totalRunning,
+
+            'monthly_mileage_limit' => $monthlyLimit,
+
+            'excess_mileage' => $excessMileage,
+
+            'excess_mileage_rate' => $excessRate,
+
+            'excess_mileage_amount' => $excessAmount,
+
+            'total_overtime_minutes' =>
+                $reports->sum('overtime_minutes'),
+
+            'total_overtime_amount' =>
+                $reports->sum('overtime_amount'),
+        ],
+    ]);
+}
 }

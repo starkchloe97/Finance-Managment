@@ -18,5 +18,10 @@ Route::middleware('auth:sanctum')->group(function () {
             )->parameters([
                 'daily-reports' => 'dailyReport',
             ]);
+
+            Route::get(
+                'daily-reports/monthly-summary',
+                [VehicleDailyReportController::class, 'monthlySummary']
+            );
         });
 });
