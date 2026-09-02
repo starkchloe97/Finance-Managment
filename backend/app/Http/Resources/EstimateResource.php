@@ -66,8 +66,7 @@ class EstimateResource extends JsonResource
                                 'model' => $vehicle->model,
                                 'model_year' => $vehicle->model_year,
 
-                                'registration_number' =>
-                                    $vehicle->registration_number,
+                                'registration_number' => $vehicle->registration_number,
 
                                 'vin' => $vehicle->vin,
                                 'engine_number' => $vehicle->engine_number,
@@ -84,12 +83,9 @@ class EstimateResource extends JsonResource
                                         'make' => $vehicle->asset->make,
                                         'model' => $vehicle->asset->model,
                                         'model_year' => $vehicle->asset->model_year,
-                                        'registration_number' =>
-                                            $vehicle->asset->registration_number,
-                                        'vehicle_type' =>
-                                            $vehicle->asset->vehicle_type,
-                                        'color' =>
-                                            $vehicle->asset->color,
+                                        'registration_number' => $vehicle->asset->registration_number,
+                                        'vehicle_type' => $vehicle->asset->vehicle_type,
+                                        'color' => $vehicle->asset->color,
                                     ] : null)
                                     : null,
                             ];

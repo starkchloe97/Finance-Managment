@@ -30,18 +30,19 @@ class VehicleContractController extends Controller
 
     public function store(VehicleContractRequest $request)
     {
-            $contract = $this->service->create(
-                $request->validated()
-            );
+        $contract = $this->service->create(
+            $request->validated()
+        );
 
-            return new VehicleContractResource(
-                $contract->load('vehicles')
-            );
+        return new VehicleContractResource(
+            $contract->load('vehicles')
+        );
     }
 
     public function show(VehicleContract $vehicleContract)
     {
-         $vehicleContract->load('vehicles');
+        $vehicleContract->load('vehicles');
+
         return new VehicleContractResource(
             $vehicleContract
         );

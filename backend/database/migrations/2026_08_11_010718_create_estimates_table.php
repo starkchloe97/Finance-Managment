@@ -13,48 +13,48 @@ return new class extends Migration
     {
         Schema::create('estimates', function (Blueprint $table) {
 
-    $table->id();
+            $table->id();
 
-    $table->string('code')->unique();
+            $table->string('code')->unique();
 
-    $table->foreignId('customer_id')->constrained();
+            $table->foreignId('customer_id')->constrained();
 
-    $table->date('estimate_date');
+            $table->date('estimate_date');
 
-    $table->date('valid_until')->nullable();
+            $table->date('valid_until')->nullable();
 
-    $table->string('pickup');
+            $table->string('pickup');
 
-    $table->string('destination');
+            $table->string('destination');
 
-    $table->enum('service_type', [
-        'goods',
-        'vehicle'
-    ]);
+            $table->enum('service_type', [
+                'goods',
+                'vehicle',
+            ]);
 
-    // Cost and sell are captured together, so profit is known as soon as the
-    // quote is built. All three are sums of the line items.
-    $table->decimal('estimated_cost', 15, 2)->default(0);
+            // Cost and sell are captured together, so profit is known as soon as the
+            // quote is built. All three are sums of the line items.
+            $table->decimal('estimated_cost', 15, 2)->default(0);
 
-    $table->decimal('estimated_sell', 15, 2)->default(0);
+            $table->decimal('estimated_sell', 15, 2)->default(0);
 
-    $table->decimal('estimated_profit', 15, 2)->default(0);
+            $table->decimal('estimated_profit', 15, 2)->default(0);
 
-    $table->enum('status', [
-        'draft',
-        'sent',
-        'accepted',
-        'rejected',
-        'expired'
-    ])->default('draft');
+            $table->enum('status', [
+                'draft',
+                'sent',
+                'accepted',
+                'rejected',
+                'expired',
+            ])->default('draft');
 
-    $table->text('remarks')->nullable();
+            $table->text('remarks')->nullable();
 
-    $table->timestamps();
+            $table->timestamps();
 
-    $table->softDeletes();
+            $table->softDeletes();
 
-});
+        });
     }
 
     /**

@@ -1,4 +1,5 @@
 <?php
+
 require __DIR__.'/vendor/autoload.php';
 $app = require __DIR__.'/bootstrap/app.php';
 $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
@@ -17,6 +18,6 @@ $db->table('migrations')->where('migration', 'LIKE', '%company_capital_drafts%')
 $tables = $db->select("SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name LIKE 'company_capital_%'");
 echo "Remaining company_capital tables:\n";
 foreach ($tables as $t) {
-    echo '  ' . (array)$t['table_name'] . "\n";
+    echo '  '.(array) $t['table_name']."\n";
 }
 echo "Done.\n";

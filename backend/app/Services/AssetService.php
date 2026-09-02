@@ -53,20 +53,18 @@ class AssetService
 
             ->when(
                 $filters['asset_type'] ?? null,
-                fn ($query, $type) =>
-                    $query->where(
-                        'asset_type',
-                        $type
-                    )
+                fn ($query, $type) => $query->where(
+                    'asset_type',
+                    $type
+                )
             )
 
             ->when(
                 $filters['status'] ?? null,
-                fn ($query, $status) =>
-                    $query->where(
-                        'status',
-                        $status
-                    )
+                fn ($query, $status) => $query->where(
+                    'status',
+                    $status
+                )
             )
 
             ->latest()
@@ -92,11 +90,9 @@ class AssetService
         return Asset::create([
             ...$data,
 
-            'asset_code' =>
-                $this->nextAssetCode(),
+            'asset_code' => $this->nextAssetCode(),
 
-            'created_by' =>
-                $userId,
+            'created_by' => $userId,
         ]);
     }
 
@@ -123,19 +119,20 @@ class AssetService
                 ?? 0
             ) + 1;
 
-        return 'AST-' . str_pad(
+        return 'AST-'.str_pad(
             (string) $nextNumber,
             6,
             '0',
             STR_PAD_LEFT
         );
     }
+
     public function availableVehicles()
-{
-    return Asset::query()
-        ->where('asset_type', 'vehicle')
-        ->where('status', 'active')
-        ->latest()
-        ->get();
-}
+    {
+        return Asset::query()
+            ->where('asset_type', 'vehicle')
+            ->where('status', 'active')
+            ->latest()
+            ->get();
+    }
 }

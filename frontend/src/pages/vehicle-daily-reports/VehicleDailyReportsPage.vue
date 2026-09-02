@@ -1,245 +1,46 @@
-<!-- <script setup>
-import { onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
-
-import {
-  getDailyReports,
-} from '@/services/vehicleDailyReportService'
-
-const route = useRoute()
-
-const loading = ref(true)
-const reports = ref([])
-const error = ref('')
-
-const contractVehicleId = route.params.id
-
-const loadReports = async () => {
-  loading.value = true
-  error.value = ''
-
-  try {
-    const response = await getDailyReports(
-      contractVehicleId
-    )
-
-    reports.value =
-      response.data?.data ?? []
-  } catch (err) {
-    error.value =
-      err.response?.data?.message ||
-      'Unable to load daily reports.'
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(loadReports)
-</script>
-
-<template>
-  <div class="daily-reports-page">
-
-    <header class="page-head">
-      <div>
-        <p class="eyebrow">
-          Operations / Vehicle Reporting
-        </p>
-
-        <h1>Vehicle Daily Reporting</h1>
-
-        <p>
-          Track daily utilization, mileage and overtime
-          for the rented vehicle.
-        </p>
-      </div>
-
-      <RouterLink
-        class="btn secondary"
-        :to="{
-          name: 'vehicle-contracts.index'
-        }"
-      >
-        Back
-      </RouterLink>
-    </header>
-
-    <div
-      v-if="error"
-      class="form-error"
-    >
-      {{ error }}
-    </div>
-
-    <div v-if="loading">
-      Loading reports...
-    </div>
-
-    <template v-else>
-
-      <section class="reports-table">
-
-        <div class="table-head">
-          <span>Date</span>
-          <span>Time In</span>
-          <span>Time Out</span>
-          <span>Meter In</span>
-          <span>Meter Out</span>
-          <span>Running</span>
-          <span>OT</span>
-          <span>OT Amount</span>
-        </div>
-
-        <div
-          v-for="report in reports"
-          :key="report.id"
-          class="table-row"
-        >
-          <span>
-            {{ report.report_date }}
-          </span>
-
-          <span>
-            {{ report.time_in || '—' }}
-          </span>
-
-          <span>
-            {{ report.time_out || '—' }}
-          </span>
-
-          <span>
-            {{ report.meter_in ?? '—' }}
-          </span>
-
-          <span>
-            {{ report.meter_out ?? '—' }}
-          </span>
-
-          <span>
-            {{ report.total_running ?? 0 }} KM
-          </span>
-
-          <span>
-            {{ formatMinutes(report.overtime_minutes) }}
-          </span>
-
-          <span>
-            PKR {{ report.overtime_amount }}
-          </span>
-        </div>
-
-      </section>
-
-    </template>
-
-  </div>
-</template>
-
-<script>
-export default {
-  methods: {
-    formatMinutes(minutes) {
-      if (!minutes) {
-        return '0m'
-      }
-
-      const hours = Math.floor(minutes / 60)
-      const mins = minutes % 60
-
-      if (!hours) {
-        return `${mins}m`
-      }
-
-      return mins
-        ? `${hours}h ${mins}m`
-        : `${hours}h`
-    },
-  },
-}
-</script> -->
-
-
-
-
-
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
-import {
-  getDailyReports,
-} from '@/services/vehicleDailyReportService'
+import { useVehicleDailyReportStore } from '@/stores/vehicleDailyReportStore'
+import { useToast } from '@/composables/useToast'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 
 const route = useRoute()
-
-const loading = ref(true)
-const error = ref('')
-
-const reports = ref([])
-const pagination = ref(null)
-
-const contractVehicle = ref(null)
+const router = useRouter()
+const store = useVehicleDailyReportStore()
+const { show: showToast } = useToast()
 
 const contractVehicleId = computed(
   () => route.params.id
 )
 
-const loadReports = async () => {
-  loading.value = true
-  error.value = ''
+const deletingReportId = ref(null)
+const showDeleteDialog = ref(false)
+const deleteLoading = ref(false)
+
+const load = async () => {
+  const id = contractVehicleId.value
 
   try {
-    const response = await getDailyReports(
-      contractVehicleId.value
-    )
-
-    const responseData =
-      response.data?.data ?? []
-
-    /*
-     * Laravel resource pagination returns:
-     *
-     * {
-     *   data: [],
-     *   links: {},
-     *   meta: {}
-     * }
-     */
-
-    if (Array.isArray(responseData)) {
-      reports.value = responseData
-    } else {
-      reports.value = []
-    }
-
-    pagination.value =
-      response.data?.meta ?? null
-
-    /*
-     * Vehicle information is returned
-     * through VehicleDailyReportResource
-     * when reports exist.
-     */
-    if (reports.value.length) {
-      contractVehicle.value =
-        reports.value[0].vehicle ?? null
-    }
-  } catch (err) {
-    error.value =
-      err.response?.data?.message ||
-      'Unable to load daily reports.'
-  } finally {
-    loading.value = false
+    await Promise.all([
+      store.fetchContractVehicle(id),
+      store.fetchReports(id),
+    ])
+  } catch {
+    // errors are stored in store.error
   }
 }
 
 const formatMinutes = (minutes) => {
-  if (!minutes) {
+  const total = Number(minutes || 0)
+
+  if (!total) {
     return '0m'
   }
 
-  const hours = Math.floor(minutes / 60)
-  const remainingMinutes = minutes % 60
+  const hours = Math.floor(total / 60)
+  const remainingMinutes = total % 60
 
   if (!hours) {
     return `${remainingMinutes}m`
@@ -262,7 +63,52 @@ const formatMoney = (value) => {
   )
 }
 
-onMounted(loadReports)
+const createReport = () => {
+  router.push({
+    name: 'contract-vehicles.daily-reports.create',
+    params: { id: contractVehicleId.value },
+  })
+}
+
+const editReport = (report) => {
+  router.push({
+    name: 'contract-vehicles.daily-reports.edit',
+    params: {
+      id: contractVehicleId.value,
+      reportId: report.id,
+    },
+  })
+}
+
+const confirmDelete = (report) => {
+  deletingReportId.value = report.id
+  showDeleteDialog.value = true
+}
+
+const deleteReport = async () => {
+  deleteLoading.value = true
+
+  try {
+    await store.removeReport(
+      contractVehicleId.value,
+      deletingReportId.value
+    )
+
+    showToast('Daily report deleted')
+  } catch (err) {
+    showToast(
+      err.response?.data?.message ||
+        'Unable to delete daily report.',
+      'error'
+    )
+  } finally {
+    deleteLoading.value = false
+    showDeleteDialog.value = false
+    deletingReportId.value = null
+  }
+}
+
+onMounted(load)
 </script>
 
 <template>
@@ -290,7 +136,7 @@ onMounted(loadReports)
         <RouterLink
           class="btn secondary"
           :to="{
-            name: 'vehicle-contracts.index'
+            name: 'vehicle-daily-reports.index'
           }"
         >
           Back
@@ -299,6 +145,7 @@ onMounted(loadReports)
         <button
           class="btn primary"
           type="button"
+          @click="createReport"
         >
           + Add Daily Report
         </button>
@@ -310,16 +157,16 @@ onMounted(loadReports)
     <!-- Error -->
 
     <div
-      v-if="error"
+      v-if="store.error"
       class="form-error"
     >
-      {{ error }}
+      {{ store.error }}
     </div>
 
     <!-- Loading -->
 
     <div
-      v-if="loading"
+      v-if="store.loading"
       class="loading-state"
     >
       Loading daily reports...
@@ -330,23 +177,23 @@ onMounted(loadReports)
       <!-- Vehicle information -->
 
       <section
-        v-if="contractVehicle"
+        v-if="store.contractVehicle"
         class="vehicle-summary"
       >
 
         <div class="vehicle-main">
 
           <span class="vehicle-code">
-            {{ contractVehicle.vehicle_number }}
+            {{ store.contractVehicle.vehicle_number }}
           </span>
 
           <h2>
-            {{ contractVehicle.make }}
-            {{ contractVehicle.model }}
+            {{ store.contractVehicle.make }}
+            {{ store.contractVehicle.model }}
           </h2>
 
           <p>
-            {{ contractVehicle.vehicle_type }}
+            {{ store.contractVehicle.vehicle_type }}
           </p>
 
         </div>
@@ -356,14 +203,14 @@ onMounted(loadReports)
           <div>
             <span>Normal Duty</span>
             <strong>
-              {{ contractVehicle.duty_hours_per_day }}h/day
+              {{ store.contractVehicle.duty_hours_per_day }}h/day
             </strong>
           </div>
 
           <div>
             <span>Duty Days</span>
             <strong>
-              {{ contractVehicle.duty_days_per_week }}/week
+              {{ store.contractVehicle.duty_days_per_week }}/week
             </strong>
           </div>
 
@@ -372,7 +219,7 @@ onMounted(loadReports)
             <strong>
               PKR
               {{ formatMoney(
-                contractVehicle.overtime_rate
+                store.contractVehicle.overtime_rate
               ) }}
               /hr
             </strong>
@@ -381,7 +228,7 @@ onMounted(loadReports)
           <div>
             <span>Mileage Limit</span>
             <strong>
-              {{ contractVehicle.monthly_mileage_limit }}
+              {{ store.contractVehicle.monthly_mileage_limit }}
               KM/month
             </strong>
           </div>
@@ -400,7 +247,7 @@ onMounted(loadReports)
             <h2>Daily Reports</h2>
 
             <p>
-              {{ reports.length }}
+              {{ store.reports.length }}
               reporting entries
             </p>
           </div>
@@ -408,7 +255,7 @@ onMounted(loadReports)
         </div>
 
         <div
-          v-if="!reports.length"
+          v-if="!store.reports.length"
           class="empty-state"
         >
           <h3>No daily reports yet</h3>
@@ -421,6 +268,7 @@ onMounted(loadReports)
           <button
             class="btn primary"
             type="button"
+            @click="createReport"
           >
             + Add Daily Report
           </button>
@@ -444,13 +292,14 @@ onMounted(loadReports)
                 <th>OT</th>
                 <th>OT Amount</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
 
             <tbody>
 
               <tr
-                v-for="report in reports"
+                v-for="report in store.reports"
                 :key="report.id"
               >
 
@@ -505,6 +354,26 @@ onMounted(loadReports)
                   </span>
                 </td>
 
+                <td>
+                  <div class="row-actions">
+                    <button
+                      type="button"
+                      class="btn secondary"
+                      @click="editReport(report)"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      class="btn danger"
+                      @click="confirmDelete(report)"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+
               </tr>
 
             </tbody>
@@ -516,6 +385,17 @@ onMounted(loadReports)
       </section>
 
     </template>
+
+    <ConfirmDialog
+      :open="showDeleteDialog"
+      title="Delete Daily Report"
+      message="Are you sure you want to delete this daily report? This action cannot be undone."
+      variant="danger"
+      confirm-label="Delete"
+      :loading="deleteLoading"
+      @confirm="deleteReport"
+      @cancel="showDeleteDialog = false"
+    />
 
   </div>
 </template>
@@ -536,6 +416,49 @@ onMounted(loadReports)
 .page-actions {
   display: flex;
   gap: 0.6rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.25rem;
+  color: var(--text-muted, #6b7280);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: var(--primary, #111827);
+  color: white;
+}
+
+.btn.secondary {
+  background: var(--surface-muted, #f3f4f6);
+  color: var(--text, #111827);
+}
+
+.btn.danger {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .vehicle-summary {
@@ -638,12 +561,18 @@ onMounted(loadReports)
   background: #fafafa;
 }
 
+.row-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
 .status {
   display: inline-flex;
   padding: 0.25rem 0.5rem;
   border-radius: 999px;
   font-size: 0.68rem;
   font-weight: 700;
+  text-transform: capitalize;
 }
 
 .status-draft {
@@ -686,6 +615,7 @@ onMounted(loadReports)
 .loading-state {
   padding: 3rem;
   text-align: center;
+  color: #6b7280;
 }
 
 @media (max-width: 1000px) {

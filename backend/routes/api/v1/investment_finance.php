@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\V1\FinancialAdjustmentController;
 use App\Http\Controllers\Api\V1\InvestmentAllocationController;
 use App\Http\Controllers\Api\V1\InvestorProfitDistributionController;
-use App\Http\Controllers\Api\V1\FinancialAdjustmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {

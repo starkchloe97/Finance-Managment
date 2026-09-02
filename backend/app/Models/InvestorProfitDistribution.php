@@ -15,8 +15,23 @@ class InvestorProfitDistribution extends Model
         'status' => ProfitDistributionStatus::class, 'distributed_at' => 'datetime',
     ];
 
-    public function investment(): BelongsTo { return $this->belongsTo(Investment::class); }
-    public function transportJob(): BelongsTo { return $this->belongsTo(TransportJob::class); }
-    public function investor(): BelongsTo { return $this->belongsTo(Investor::class); }
-    public function allocation(): BelongsTo { return $this->belongsTo(InvestmentAllocation::class); }
+    public function investment(): BelongsTo
+    {
+        return $this->belongsTo(Investment::class);
+    }
+
+    public function transportJob(): BelongsTo
+    {
+        return $this->belongsTo(TransportJob::class);
+    }
+
+    public function investor(): BelongsTo
+    {
+        return $this->belongsTo(Investor::class);
+    }
+
+    public function allocation(): BelongsTo
+    {
+        return $this->belongsTo(InvestmentAllocation::class);
+    }
 }

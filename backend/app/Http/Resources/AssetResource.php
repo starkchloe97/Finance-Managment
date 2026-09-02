@@ -23,33 +23,25 @@ class AssetResource extends JsonResource
             'model' => $this->model,
             'model_year' => $this->model_year,
 
-            'registration_number' =>
-                $this->registration_number,
+            'registration_number' => $this->registration_number,
 
             'vin' => $this->vin,
 
-            'engine_number' =>
-                $this->engine_number,
+            'engine_number' => $this->engine_number,
 
-            'vehicle_type' =>
-                $this->vehicle_type,
+            'vehicle_type' => $this->vehicle_type,
 
             'color' => $this->color,
 
-            'purchase_date' =>
-                $this->purchase_date?->toDateString(),
+            'purchase_date' => $this->purchase_date?->toDateString(),
 
-            'purchase_price' =>
-                $this->purchase_price,
+            'purchase_price' => $this->purchase_price,
 
-            'current_value' =>
-                $this->current_value,
+            'current_value' => $this->current_value,
 
-            'status' =>
-                $this->status?->value,
+            'status' => $this->status?->value,
 
-            'status_label' =>
-                $this->status?->label(),
+            'status_label' => $this->status?->label(),
 
             'notes' => $this->notes,
 

@@ -12,50 +12,35 @@ class ContractVehicleResource extends JsonResource
         return [
             'id' => $this->id,
 
-            'vehicle_contract_id' =>
-                $this->vehicle_contract_id,
+            'vehicle_contract_id' => $this->vehicle_contract_id,
 
-            'vehicle_number' =>
-                $this->vehicle_number,
+            'vehicle_number' => $this->vehicle_number,
 
-            'make' =>
-                $this->make,
+            'make' => $this->make,
 
-            'model' =>
-                $this->model,
+            'model' => $this->model,
 
-            'model_year' =>
-                $this->model_year,
+            'model_year' => $this->model_year,
 
-            'vehicle_type' =>
-                $this->vehicle_type,
+            'vehicle_type' => $this->vehicle_type,
 
-            'monthly_rental' =>
-                $this->monthly_rental,
+            'monthly_rental' => $this->monthly_rental,
 
-            'duty_hours_per_day' =>
-                $this->duty_hours_per_day,
+            'duty_hours_per_day' => $this->duty_hours_per_day,
 
-            'duty_days_per_week' =>
-                $this->duty_days_per_week,
+            'duty_days_per_week' => $this->duty_days_per_week,
 
-            'public_holiday_rate' =>
-                $this->public_holiday_rate,
+            'public_holiday_rate' => $this->public_holiday_rate,
 
-            'overtime_rate' =>
-                $this->overtime_rate,
+            'overtime_rate' => $this->overtime_rate,
 
-            'monthly_mileage_limit' =>
-                $this->monthly_mileage_limit,
+            'monthly_mileage_limit' => $this->monthly_mileage_limit,
 
-            'excess_mileage_rate' =>
-                $this->excess_mileage_rate,
+            'excess_mileage_rate' => $this->excess_mileage_rate,
 
-            'status' =>
-                $this->status,
+            'status' => $this->status,
 
-            'notes' =>
-                $this->notes,
+            'notes' => $this->notes,
         ];
     }
 }

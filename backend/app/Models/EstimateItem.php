@@ -17,15 +17,16 @@ class EstimateItem extends Model
         'cost_total',
         'sell_total',
         'profit',
-        'remarks'
+        'remarks',
     ];
 
     public function estimate()
     {
         return $this->belongsTo(Estimate::class);
     }
+
     public function vehicles(): HasMany
-{
-    return $this->hasMany(EstimateItemVehicle::class);
-}
+    {
+        return $this->hasMany(EstimateItemVehicle::class);
+    }
 }

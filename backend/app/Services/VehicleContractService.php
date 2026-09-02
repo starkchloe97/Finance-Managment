@@ -12,7 +12,7 @@ class VehicleContractService
     {
         $query = VehicleContract::query();
 
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
 
             $query->where(function ($q) use ($search) {
@@ -40,12 +40,14 @@ class VehicleContractService
             });
         }
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where(
                 'status',
                 $filters['status']
             );
         }
+
+        $query->with('vehicles');
 
         return $query
             ->latest()
@@ -58,83 +60,71 @@ class VehicleContractService
     }
 
     public function create(array $data): VehicleContract
-{
-    return DB::transaction(function () use ($data) {
+    {
+        return DB::transaction(function () use ($data) {
 
-        $data['contract_number'] = NumberGenerator::generate(
-            'CON',
-            VehicleContract::class
-        );
+            $data['contract_number'] = NumberGenerator::generate(
+                'CON',
+                VehicleContract::class
+            );
 
-        $totalVehicles = max(
-            (int) ($data['total_vehicles'] ?? count($data['vehicles'] ?? [])),
-            1
-        );
+            $totalVehicles = max(
+                (int) ($data['total_vehicles'] ?? count($data['vehicles'] ?? [])),
+                1
+            );
 
-        $data['total_vehicles'] = $totalVehicles;
-        $data['total_monthly_rental'] =
-            $totalVehicles
-            * (float) ($data['monthly_rental_per_vehicle'] ?? 0);
+            $data['total_vehicles'] = $totalVehicles;
+            $data['total_monthly_rental'] =
+                $totalVehicles
+                * (float) ($data['monthly_rental_per_vehicle'] ?? 0);
 
-        $contract = VehicleContract::create($data);
+            $contract = VehicleContract::create($data);
 
-        $this->createContractVehicles(
-            $contract,
-            $data
-        );
+            $this->createContractVehicles(
+                $contract,
+                $data
+            );
 
-        return $contract->load('vehicles');
-    });
-}
-
-private function createContractVehicles(
-    VehicleContract $contract,
-    array $data
-): void {
-    $vehicles = $data['vehicles'] ?? [];
-
-    foreach ($vehicles as $vehicle) {
-        $contract->vehicles()->create([
-            'vehicle_number' =>
-                $vehicle['vehicle_number'],
-
-            'make' =>
-                $data['vehicle_make'],
-
-            'model' =>
-                $data['vehicle_model'],
-
-            'model_year' =>
-                $data['vehicle_model_year'],
-
-            'vehicle_type' =>
-                $data['vehicle_type'],
-
-            'monthly_rental' =>
-                $data['monthly_rental_per_vehicle'],
-
-            'duty_hours_per_day' =>
-                $data['duty_hours_per_day'],
-
-            'duty_days_per_week' =>
-                $data['duty_days_per_week'],
-
-            'public_holiday_rate' =>
-                $data['public_holiday_rate'],
-
-            'overtime_rate' =>
-                $data['overtime_rate'],
-
-            'monthly_mileage_limit' =>
-                $data['monthly_mileage_limit'],
-
-            'excess_mileage_rate' =>
-                $data['excess_mileage_rate'],
-
-            'status' => 'active',
-        ]);
+            return $contract->load('vehicles');
+        });
     }
-}
+
+    private function createContractVehicles(
+        VehicleContract $contract,
+        array $data
+    ): void {
+        $vehicles = $data['vehicles'] ?? [];
+
+        foreach ($vehicles as $vehicle) {
+            $contract->vehicles()->create([
+                'vehicle_number' => $vehicle['vehicle_number'],
+
+                'make' => $data['vehicle_make'],
+
+                'model' => $data['vehicle_model'],
+
+                'model_year' => $data['vehicle_model_year'],
+
+                'vehicle_type' => $data['vehicle_type'],
+
+                'monthly_rental' => $data['monthly_rental_per_vehicle'],
+
+                'duty_hours_per_day' => $data['duty_hours_per_day'],
+
+                'duty_days_per_week' => $data['duty_days_per_week'],
+
+                'public_holiday_rate' => $data['public_holiday_rate'],
+
+                'overtime_rate' => $data['overtime_rate'],
+
+                'monthly_mileage_limit' => $data['monthly_mileage_limit'],
+
+                'excess_mileage_rate' => $data['excess_mileage_rate'],
+
+                'status' => 'active',
+            ]);
+        }
+    }
 
     public function update(
         VehicleContract $contract,

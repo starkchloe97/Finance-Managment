@@ -76,7 +76,6 @@ class CompanyCapitalController extends Controller
         return new CompanyCapitalResource($this->capital->snapshot());
     }
 
-
     public function convertDraft(CompanyCapitalDraftConvertRequest $request, int $draft): CompanyCapitalResource
     {
         return new CompanyCapitalResource($this->capital->convertDraft(

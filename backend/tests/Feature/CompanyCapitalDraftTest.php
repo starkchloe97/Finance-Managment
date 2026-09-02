@@ -3,9 +3,8 @@
 namespace Tests\Feature;
 
 use App\Enums\CompanyCapitalDraftStatus;
-use App\Models\CompanyCapitalDraft;
-use App\Models\CompanyCapitalDraftActivity;
 use App\Models\Investor;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -20,7 +19,7 @@ class CompanyCapitalDraftTest extends TestCase
     {
         parent::setUp();
 
-        $this->user = \App\Models\User::factory()->create();
+        $this->user = User::factory()->create();
         Sanctum::actingAs($this->user);
     }
 

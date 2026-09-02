@@ -8,7 +8,7 @@ class NumberGenerator
      * Build the next human-readable code for a model, e.g. CUS-000042.
      *
      * Soft-deleted rows still hold their code, so global scopes are dropped
-     * here — counting only the visible rows would hand out a code that is  
+     * here — counting only the visible rows would hand out a code that is
      * already taken and hit the unique index.
      *
      * Usage:

@@ -313,7 +313,7 @@ class CompanyCapitalService
                 'amount' => $draft->amount,
                 'transaction_date' => $draft->transaction_date?->toDateString(),
                 'note' => $draft->note,
-                'transaction_code' => $draft->transaction_code ?? 'DRFT-' . str_pad((string) $draft->id, 6, '0', STR_PAD_LEFT),
+                'transaction_code' => $draft->transaction_code ?? 'DRFT-'.str_pad((string) $draft->id, 6, '0', STR_PAD_LEFT),
                 'creator_name' => $draft->creator?->name,
                 'created_at' => $draft->created_at,
             ])

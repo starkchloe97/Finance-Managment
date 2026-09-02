@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\VehicleDailyReportRequest;
+use App\Http\Resources\ContractVehicleResource;
 use App\Http\Resources\VehicleDailyReportResource;
 use App\Models\ContractVehicle;
 use App\Models\VehicleDailyReport;
@@ -59,10 +60,9 @@ class VehicleDailyReportController extends Controller
         ContractVehicle $contractVehicle,
         VehicleDailyReport $dailyReport
     ): VehicleDailyReportResource {
-        abort_unless(
-            $dailyReport->contract_vehicle_id
-                === $contractVehicle->id,
-            404
+        $this->ensureOwnedByVehicle(
+            $contractVehicle,
+            $dailyReport
         );
 
         return new VehicleDailyReportResource(
@@ -75,10 +75,9 @@ class VehicleDailyReportController extends Controller
         ContractVehicle $contractVehicle,
         VehicleDailyReport $dailyReport
     ): VehicleDailyReportResource {
-        abort_unless(
-            $dailyReport->contract_vehicle_id
-                === $contractVehicle->id,
-            404
+        $this->ensureOwnedByVehicle(
+            $contractVehicle,
+            $dailyReport
         );
 
         $data = $request->validated();
@@ -104,92 +103,101 @@ class VehicleDailyReportController extends Controller
         ContractVehicle $contractVehicle,
         VehicleDailyReport $dailyReport
     ): JsonResponse {
-        abort_unless(
-            $dailyReport->contract_vehicle_id
-                === $contractVehicle->id,
-            404
+        $this->ensureOwnedByVehicle(
+            $contractVehicle,
+            $dailyReport
         );
 
         $dailyReport->delete();
 
         return response()->json([
-            'message' =>
-                'Daily report deleted successfully.',
+            'message' => 'Daily report deleted successfully.',
         ]);
     }
 
     public function monthlySummary(
-    Request $request,
-    ContractVehicle $contractVehicle
-): JsonResponse {
-    $validated = $request->validate([
-        'month' => [
-            'required',
-            'date_format:Y-m',
-        ],
-    ]);
+        Request $request,
+        ContractVehicle $contractVehicle
+    ): JsonResponse {
+        $validated = $request->validate([
+            'month' => [
+                'required',
+                'date_format:Y-m',
+            ],
+        ]);
 
-    $start = Carbon::createFromFormat(
-        'Y-m',
-        $validated['month']
-    )->startOfMonth();
+        $start = Carbon::createFromFormat(
+            'Y-m',
+            $validated['month']
+        )->startOfMonth();
 
-    $end = $start->copy()->endOfMonth();
+        $end = $start->copy()->endOfMonth();
 
-    $reports = $contractVehicle
-        ->dailyReports()
-        ->whereBetween('report_date', [
-            $start->toDateString(),
-            $end->toDateString(),
-        ])
-        ->get();
+        $reports = $contractVehicle
+            ->dailyReports()
+            ->whereBetween('report_date', [
+                $start->toDateString(),
+                $end->toDateString(),
+            ])
+            ->get();
 
-    $totalRunning = (float) $reports->sum(
-        'total_running'
-    );
+        $totalRunning = (float) $reports->sum(
+            'total_running'
+        );
 
-    $monthlyLimit = (float) (
-        $contractVehicle->monthly_mileage_limit ?? 0
-    );
+        $monthlyLimit = (float) (
+            $contractVehicle->monthly_mileage_limit ?? 0
+        );
 
-    $excessMileage = max(
-        0,
-        $totalRunning - $monthlyLimit
-    );
+        $excessMileage = max(
+            0,
+            $totalRunning - $monthlyLimit
+        );
 
-    $excessRate = (float) (
-        $contractVehicle->excess_mileage_rate ?? 0
-    );
+        $excessRate = (float) (
+            $contractVehicle->excess_mileage_rate ?? 0
+        );
 
-    $excessAmount = round(
-        $excessMileage * $excessRate,
-        2
-    );
+        $excessAmount = round(
+            $excessMileage * $excessRate,
+            2
+        );
 
-    return response()->json([
-        'data' => [
-            'contract_vehicle' => $contractVehicle,
+        return response()->json([
+            'data' => [
+                'contract_vehicle' => new ContractVehicleResource(
+                    $contractVehicle
+                ),
 
-            'month' => $validated['month'],
+                'month' => $validated['month'],
 
-            'report_count' => $reports->count(),
+                'report_count' => $reports->count(),
 
-            'total_running' => $totalRunning,
+                'total_running' => $totalRunning,
 
-            'monthly_mileage_limit' => $monthlyLimit,
+                'monthly_mileage_limit' => $monthlyLimit,
 
-            'excess_mileage' => $excessMileage,
+                'excess_mileage' => $excessMileage,
 
-            'excess_mileage_rate' => $excessRate,
+                'excess_mileage_rate' => $excessRate,
 
-            'excess_mileage_amount' => $excessAmount,
+                'excess_mileage_amount' => $excessAmount,
 
-            'total_overtime_minutes' =>
-                $reports->sum('overtime_minutes'),
+                'total_overtime_minutes' => $reports->sum('overtime_minutes'),
 
-            'total_overtime_amount' =>
-                $reports->sum('overtime_amount'),
-        ],
-    ]);
-}
+                'total_overtime_amount' => $reports->sum('overtime_amount'),
+            ],
+        ]);
+    }
+
+    private function ensureOwnedByVehicle(
+        ContractVehicle $contractVehicle,
+        VehicleDailyReport $dailyReport
+    ): void {
+        abort_unless(
+            $dailyReport->contract_vehicle_id
+                === $contractVehicle->id,
+            404
+        );
+    }
 }

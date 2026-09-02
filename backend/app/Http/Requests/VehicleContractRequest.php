@@ -41,7 +41,7 @@ class VehicleContractRequest extends FormRequest
             'vehicles' => [
                 'required',
                 'array',
-                'size:' . $this->input('total_vehicles'),
+                'size:'.$this->input('total_vehicles'),
             ],
 
             'vehicles.*.vehicle_number' => [

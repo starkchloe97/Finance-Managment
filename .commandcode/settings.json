@@ -36,7 +36,9 @@
       "Shell(php artisan migrate)",
       "Shell(php artisan tinker --execute=Schema::getColumnListing('vehicle_daily_reports'))",
       "Shell(php artisan db:table vehicle_daily_reports)",
-      "Shell(curl -i -H \"Origin: http://localhost:5173\" http://127.0.0.1:8000/api/v1/contract-vehicles/3/daily-reports)"
+      "Shell(curl -i -H \"Origin: http://localhost:5173\" http://127.0.0.1:8000/api/v1/contract-vehicles/3/daily-reports)",
+      "Shell(php artisan pint)",
+      "Shell(vendorbinpint.bat:*)"
     ],
     "deny": [],
     "defaultMode": "default"

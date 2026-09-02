@@ -16,6 +16,7 @@ class InvestmentSettlementService
             $distributions = (float) $investment->profitDistributions()->where('status', ProfitDistributionStatus::Confirmed)->sum('profit_amount');
             $actual = round((float) $investment->amount + $distributions - (float) $investment->deduction_amount, 2);
             InvestmentSettlement::create(['investment_id' => $investment->id, 'principal_amount' => $investment->amount, 'distribution_amount' => $distributions, 'deduction_amount' => $investment->deduction_amount, 'actual_settlement_amount' => $actual, 'calculated_at' => now()]);
+
             return $actual;
         });
     }

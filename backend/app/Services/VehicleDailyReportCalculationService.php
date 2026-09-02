@@ -30,8 +30,8 @@ class VehicleDailyReportCalculationService
         );
 
         $isSpecialDay =
-            !empty($data['is_public_holiday']) ||
-            !empty($data['is_weekly_off']);
+            ! empty($data['is_public_holiday']) ||
+            ! empty($data['is_weekly_off']);
 
         /*
          * Normal day:
@@ -39,7 +39,7 @@ class VehicleDailyReportCalculationService
          * 10 hours included
          * Extra time charged at hourly OT rate.
          */
-        if (!$isSpecialDay) {
+        if (! $isSpecialDay) {
             $overtimeAmount = round(
                 ($overtimeMinutes / 60) * $overtimeRate,
                 2
@@ -95,7 +95,7 @@ class VehicleDailyReportCalculationService
         ?string $timeIn,
         ?string $timeOut
     ): int {
-        if (!$timeIn || !$timeOut) {
+        if (! $timeIn || ! $timeOut) {
             return 0;
         }
 

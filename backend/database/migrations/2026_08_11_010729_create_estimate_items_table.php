@@ -11,32 +11,32 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('estimate_items', function (Blueprint $table) {
+        Schema::create('estimate_items', function (Blueprint $table) {
 
-    $table->id();
+            $table->id();
 
-    $table->foreignId('estimate_id')
-          ->constrained()
-          ->cascadeOnDelete();
+            $table->foreignId('estimate_id')
+                ->constrained()
+                ->cascadeOnDelete();
 
-    $table->string('title');
-$table->string('category')->nullable();
+            $table->string('title');
+            $table->string('category')->nullable();
 
-$table->decimal('quantity', 12, 2);
+            $table->decimal('quantity', 12, 2);
 
-$table->decimal('cost_price', 15, 2)->default(0);
-$table->decimal('sell_price', 15, 2)->default(0);
+            $table->decimal('cost_price', 15, 2)->default(0);
+            $table->decimal('sell_price', 15, 2)->default(0);
 
-$table->decimal('cost_total', 15, 2)->default(0);
-$table->decimal('sell_total', 15, 2)->default(0);
+            $table->decimal('cost_total', 15, 2)->default(0);
+            $table->decimal('sell_total', 15, 2)->default(0);
 
-$table->decimal('profit', 15, 2)->default(0);
+            $table->decimal('profit', 15, 2)->default(0);
 
-$table->text('remarks')->nullable();
+            $table->text('remarks')->nullable();
 
-    $table->timestamps();
+            $table->timestamps();
 
-});
+        });
     }
 
     /**

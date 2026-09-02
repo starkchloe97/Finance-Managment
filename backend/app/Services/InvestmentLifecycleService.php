@@ -10,6 +10,7 @@ use Illuminate\Validation\ValidationException;
 class InvestmentLifecycleService
 {
     public function __construct(private InvestmentSettlementService $settlements) {}
+
     public function mature(Investment $investment): Investment
     {
         return $this->transition(

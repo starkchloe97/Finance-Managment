@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\AssetStatus;
 use App\Enums\AssetType;
+use App\Models\Asset;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,7 +19,7 @@ class AssetRequest extends FormRequest
     {
         $asset = $this->route('asset');
 
-        $assetId = $asset instanceof \App\Models\Asset
+        $assetId = $asset instanceof Asset
             ? $asset->id
             : null;
 
@@ -56,7 +57,7 @@ class AssetRequest extends FormRequest
                 'nullable',
                 'integer',
                 'min:1900',
-                'max:' . (date('Y') + 1),
+                'max:'.(date('Y') + 1),
             ],
 
             'registration_number' => [

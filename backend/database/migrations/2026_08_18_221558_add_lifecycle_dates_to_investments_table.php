@@ -9,19 +9,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('investments', function (Blueprint $table) {
-            if (!Schema::hasColumn('investments', 'matured_at')) {
+            if (! Schema::hasColumn('investments', 'matured_at')) {
                 $table->timestamp('matured_at')->nullable();
             }
 
-            if (!Schema::hasColumn('investments', 'withdrawn_at')) {
+            if (! Schema::hasColumn('investments', 'withdrawn_at')) {
                 $table->timestamp('withdrawn_at')->nullable();
             }
 
-            if (!Schema::hasColumn('investments', 'settled_at')) {
+            if (! Schema::hasColumn('investments', 'settled_at')) {
                 $table->timestamp('settled_at')->nullable();
             }
 
-            if (!Schema::hasColumn('investments', 'cancelled_at')) {
+            if (! Schema::hasColumn('investments', 'cancelled_at')) {
                 $table->timestamp('cancelled_at')->nullable();
             }
         });
@@ -43,7 +43,7 @@ return new class extends Migration
                 }
             }
 
-            if (!empty($columns)) {
+            if (! empty($columns)) {
                 $table->dropColumn($columns);
             }
         });

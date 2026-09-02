@@ -4,9 +4,9 @@ namespace App\Models;
 
 use App\Enums\JobStatus;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TransportJob extends Model
 {
@@ -64,9 +64,21 @@ class TransportJob extends Model
         return $this->hasMany(TransportJobActivity::class, 'job_id');
     }
 
-    public function allocations(): HasMany { return $this->hasMany(InvestmentAllocation::class, 'transport_job_id'); }
-    public function profitDistributions(): HasMany { return $this->hasMany(InvestorProfitDistribution::class, 'transport_job_id'); }
-    public function financialAdjustments(): HasMany { return $this->hasMany(FinancialAdjustment::class, 'transport_job_id'); }
+    public function allocations(): HasMany
+    {
+        return $this->hasMany(InvestmentAllocation::class, 'transport_job_id');
+    }
+
+    public function profitDistributions(): HasMany
+    {
+        return $this->hasMany(InvestorProfitDistribution::class, 'transport_job_id');
+    }
+
+    public function financialAdjustments(): HasMany
+    {
+        return $this->hasMany(FinancialAdjustment::class, 'transport_job_id');
+    }
+
     public function investors(): BelongsToMany
     {
         return $this->belongsToMany(Investor::class, 'investment_allocations', 'transport_job_id', 'investment_id')

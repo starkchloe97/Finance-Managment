@@ -206,22 +206,47 @@ const routes = [
       },
 
       {
-        path: 'vehicle-contracts/:id/vehicles/:vehicleId/reports',
-        name: 'vehicle-contracts.vehicle-reports',
+        path: 'vehicle-daily-reports',
+        name: 'vehicle-daily-reports.index',
         component: () =>
-          import('@/pages/vehicle-contracts/VehicleContractVehicleReports.vue'),
-        meta: secure(
-          'Operations / Vehicle Contracts / Daily reports'
-        ),
+          import(
+            '@/pages/vehicle-daily-reports/VehicleDailyReportsIndex.vue'
+          ),
+        meta: secure('Operations / Vehicle Reporting'),
       },
       {
-        path: '/contract-vehicles/:id/daily-reports',
+        path: 'contract-vehicles/:id/daily-reports',
         name: 'contract-vehicles.daily-reports',
         component: () =>
           import(
             '@/pages/vehicle-daily-reports/VehicleDailyReportsPage.vue'
           ),
         props: true,
+        meta: secure(
+          'Operations / Vehicle Reporting / Daily reports'
+        ),
+      },
+      {
+        path: 'contract-vehicles/:id/daily-reports/create',
+        name: 'contract-vehicles.daily-reports.create',
+        component: () =>
+          import(
+            '@/pages/vehicle-daily-reports/VehicleDailyReportCreate.vue'
+          ),
+        meta: secure(
+          'Operations / Vehicle Reporting / Add report'
+        ),
+      },
+      {
+        path: 'contract-vehicles/:id/daily-reports/:reportId/edit',
+        name: 'contract-vehicles.daily-reports.edit',
+        component: () =>
+          import(
+            '@/pages/vehicle-daily-reports/VehicleDailyReportEdit.vue'
+          ),
+        meta: secure(
+          'Operations / Vehicle Reporting / Edit report'
+        ),
       },
     ],
   },

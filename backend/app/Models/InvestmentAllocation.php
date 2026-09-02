@@ -16,6 +16,13 @@ class InvestmentAllocation extends Model
         'allocated_at' => 'datetime',
     ];
 
-    public function investment(): BelongsTo { return $this->belongsTo(Investment::class); }
-    public function transportJob(): BelongsTo { return $this->belongsTo(TransportJob::class); }
+    public function investment(): BelongsTo
+    {
+        return $this->belongsTo(Investment::class);
+    }
+
+    public function transportJob(): BelongsTo
+    {
+        return $this->belongsTo(TransportJob::class);
+    }
 }

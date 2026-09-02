@@ -9,9 +9,9 @@ class VehicleContractResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        
+
         return [
-            
+
             'id' => $this->id,
             'contract_number' => $this->contract_number,
 
@@ -29,11 +29,10 @@ class VehicleContractResource extends JsonResource
 
             'service_type' => $this->service_type,
             'fuel_included' => $this->fuel_included,
-            'routine_maintenance_included' =>
-            $this->routine_maintenance_included,
+            'routine_maintenance_included' => $this->routine_maintenance_included,
 
             'vehicles' => ContractVehicleResource::collection(
-            $this->whenLoaded('vehicles')
+                $this->whenLoaded('vehicles')
             ),
 
             'total_vehicles' => $this->total_vehicles,
@@ -42,48 +41,35 @@ class VehicleContractResource extends JsonResource
             'vehicle_model_year' => $this->vehicle_model_year,
             'vehicle_type' => $this->vehicle_type,
 
-            'monthly_rental_per_vehicle' =>
-                $this->monthly_rental_per_vehicle,
-            'total_monthly_rental' =>
-                $this->total_monthly_rental,
+            'monthly_rental_per_vehicle' => $this->monthly_rental_per_vehicle,
+            'total_monthly_rental' => $this->total_monthly_rental,
 
             'duty_hours_per_day' => $this->duty_hours_per_day,
             'duty_days_per_week' => $this->duty_days_per_week,
-            'public_holiday_rate' =>
-                $this->public_holiday_rate,
-            'overtime_rate' =>
-                $this->overtime_rate,
+            'public_holiday_rate' => $this->public_holiday_rate,
+            'overtime_rate' => $this->overtime_rate,
 
             'payment_terms' => $this->payment_terms,
             'advance_months' => $this->advance_months,
 
-            'insurance_claim_period_days' =>
-                $this->insurance_claim_period_days,
+            'insurance_claim_period_days' => $this->insurance_claim_period_days,
 
-            'monthly_mileage_limit' =>
-                $this->monthly_mileage_limit,
-            'excess_mileage_rate' =>
-                $this->excess_mileage_rate,
+            'monthly_mileage_limit' => $this->monthly_mileage_limit,
+            'excess_mileage_rate' => $this->excess_mileage_rate,
 
-            'refrigeration_customer_responsibility' =>
-                $this->refrigeration_customer_responsibility,
+            'refrigeration_customer_responsibility' => $this->refrigeration_customer_responsibility,
 
-            'early_termination_months' =>
-                $this->early_termination_months,
+            'early_termination_months' => $this->early_termination_months,
 
             'vendor_signatory_name' => $this->vendor_signatory_name,
-            'vendor_signatory_designation' =>
-                $this->vendor_signatory_designation,
+            'vendor_signatory_designation' => $this->vendor_signatory_designation,
             'vendor_signatory_cnic' => $this->vendor_signatory_cnic,
-            'vendor_signature_date' =>
-                $this->vendor_signature_date?->format('Y-m-d'),
+            'vendor_signature_date' => $this->vendor_signature_date?->format('Y-m-d'),
 
             'customer_signatory_name' => $this->customer_signatory_name,
-            'customer_signatory_designation' =>
-                $this->customer_signatory_designation,
+            'customer_signatory_designation' => $this->customer_signatory_designation,
             'customer_signatory_cnic' => $this->customer_signatory_cnic,
-            'customer_signature_date' =>
-                $this->customer_signature_date?->format('Y-m-d'),
+            'customer_signature_date' => $this->customer_signature_date?->format('Y-m-d'),
 
             'witness_1_name' => $this->witness_1_name,
             'witness_1_cnic' => $this->witness_1_cnic,

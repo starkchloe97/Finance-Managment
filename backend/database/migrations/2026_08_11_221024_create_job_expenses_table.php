@@ -13,25 +13,25 @@ return new class extends Migration
     {
         Schema::create('job_expenses', function (Blueprint $table) {
 
-    $table->id();
+            $table->id();
 
-    $table->foreignId('job_id')
-          ->constrained('transport_jobs')
-          ->cascadeOnDelete();
+            $table->foreignId('job_id')
+                ->constrained('transport_jobs')
+                ->cascadeOnDelete();
 
-    $table->string('title');
+            $table->string('title');
 
-    $table->string('category');
+            $table->string('category');
 
-    $table->decimal('amount',15,2);
+            $table->decimal('amount', 15, 2);
 
-    $table->date('expense_date');
+            $table->date('expense_date');
 
-    $table->text('notes')->nullable();
+            $table->text('notes')->nullable();
 
-    $table->timestamps();
+            $table->timestamps();
 
-});
+        });
     }
 
     /**

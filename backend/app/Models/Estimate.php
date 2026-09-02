@@ -25,8 +25,8 @@ class Estimate extends Model
     ];
 
     protected $casts = [
-        'estimate_date'=>'date',
-        'valid_until'=>'date'
+        'estimate_date' => 'date',
+        'valid_until' => 'date',
     ];
 
     public function customer()
@@ -38,6 +38,7 @@ class Estimate extends Model
     {
         return $this->hasMany(EstimateItem::class);
     }
+
     public function transportJob()
     {
         return $this->hasOne(TransportJob::class);
