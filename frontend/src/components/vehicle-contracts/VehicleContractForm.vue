@@ -6,7 +6,7 @@ const props = defineProps({
   modelValue: { type: Object, required: true },
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'total-vehicles-change'])
 
 const form = computed({
   get: () => props.modelValue,
@@ -17,6 +17,22 @@ const updateField = (field, value) => {
   emit('update:modelValue', {
     ...props.modelValue,
     [field]: value,
+  })
+}
+
+const updateVehicle = (index, field, value) => {
+  const vehicles = Array.isArray(form.value.vehicles)
+    ? [...form.value.vehicles]
+    : []
+
+  vehicles[index] = {
+    ...vehicles[index],
+    [field]: value,
+  }
+
+  emit('update:modelValue', {
+    ...props.modelValue,
+    vehicles,
   })
 }
 
@@ -49,6 +65,7 @@ const updateTotalVehicles = (value) => {
       props.modelValue.monthly_rental_per_vehicle,
     ),
   })
+  emit('total-vehicles-change', value)
 }
 </script>
 
@@ -165,6 +182,49 @@ const updateTotalVehicles = (value) => {
             <label for="vehicle_type">Vehicle type</label>
           </div>
         </div>
+      </section>
+
+      <section class="sec">
+
+        <div
+  v-for="(vehicle, index) in form.vehicles"
+  :key="index"
+  class="vehicle-instance"
+>
+  <div class="vehicle-instance-head">
+    <span class="vehicle-number">
+      Vehicle {{ index + 1 }}
+    </span>
+
+    <span class="vehicle-summary">
+      {{ form.vehicle_make || 'Make' }}
+      {{ form.vehicle_model || 'Model' }}
+    </span>
+  </div>
+
+  <div class="grid">
+    <div class="ff span-2">
+      <input
+        :id="`vehicle_number_${index}`"
+        type="text"
+        placeholder=" "
+        :value="vehicle.vehicle_number"
+        @input="
+          updateVehicle(
+            index,
+            'vehicle_number',
+            $event.target.value
+          )
+        "
+      />
+
+      <label :for="`vehicle_number_${index}`">
+        Registration / Vehicle No.
+      </label>
+    </div>
+  </div>
+</div>
+
       </section>
 
       <!-- ========== RENTAL & PAYMENT ========== -->
@@ -643,6 +703,32 @@ const updateTotalVehicles = (value) => {
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.vehicle-instance {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.vehicle-instance-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.vehicle-number {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.vehicle-summary {
+  font-size: 0.72rem;
+  color: #6b7280;
 }
 
 /* ---------- Responsive ---------- */

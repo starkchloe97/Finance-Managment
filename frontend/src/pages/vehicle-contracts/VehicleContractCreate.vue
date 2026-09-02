@@ -11,6 +11,38 @@ const router = useRouter()
 const saving = ref(false)
 const error = ref('')
 
+const createEmptyVehicle = () => ({
+  vehicle_number: '',
+})
+
+
+const syncVehicles = (quantity) => {
+  const count = Math.max(Number(quantity) || 1, 1)
+
+  const current = Array.isArray(form.value.vehicles)
+    ? form.value.vehicles
+    : []
+
+  const vehicles = Array.from(
+    { length: count },
+    (_, index) => current[index] ?? createEmptyVehicle()
+  )
+
+  form.value.vehicles = vehicles
+}
+
+const updateTotalVehicles = (value) => {
+  const total = Math.max(Number(value) || 1, 1)
+
+  form.value.total_vehicles = total
+
+  form.value.total_monthly_rental =
+    total *
+    (Number(form.value.monthly_rental_per_vehicle) || 0)
+
+  syncVehicles(total)
+}
+
 const form = ref({
   agreement_date: '2026-09-01',
 
@@ -30,6 +62,15 @@ const form = ref({
 
   fuel_included: false,
   routine_maintenance_included: true,
+
+  vehicles: [
+  {
+    vehicle_number: '',
+  },
+  {
+    vehicle_number: '',
+  },
+],
 
   total_vehicles: 2,
 
@@ -172,6 +213,7 @@ const save = async () => {
       <section class="contract-editor-form">
           <VehicleContractForm
             v-model="form"
+            @total-vehicles-change="updateTotalVehicles"
           />
         </section>
 

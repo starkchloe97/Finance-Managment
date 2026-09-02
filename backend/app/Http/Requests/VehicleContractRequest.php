@@ -38,7 +38,17 @@ class VehicleContractRequest extends FormRequest
             'fuel_included' => ['boolean'],
             'routine_maintenance_included' => ['boolean'],
 
-            'total_vehicles' => ['required', 'integer', 'min:1'],
+            'vehicles' => [
+                'required',
+                'array',
+                'size:' . $this->input('total_vehicles'),
+            ],
+
+            'vehicles.*.vehicle_number' => [
+                'required',
+                'string',
+                'max:50',
+            ],
 
             'vehicle_make' => ['nullable', 'string', 'max:255'],
             'vehicle_model' => ['nullable', 'string', 'max:255'],

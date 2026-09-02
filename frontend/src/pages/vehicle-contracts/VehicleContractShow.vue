@@ -256,6 +256,65 @@ onMounted(loadContract)
       </section>
 
 
+      <!-- Contract Vehicles -->
+      <section class="content-card">
+
+        <div class="section-header">
+          <div>
+            <span class="eyebrow">Rental Fleet</span>
+            <h2>Contract Vehicles</h2>
+          </div>
+
+          <span class="count">
+            {{ contract.vehicles?.length || 0 }} Vehicles
+          </span>
+        </div>
+
+        <div
+          v-if="contract.vehicles?.length"
+          class="vehicle-list"
+        >
+          <div
+            v-for="vehicle in contract.vehicles"
+            :key="vehicle.id"
+            class="vehicle-row"
+          >
+            <div>
+              <strong>
+                {{ vehicle.vehicle_number || 'Unassigned vehicle' }}
+              </strong>
+
+              <span>
+                {{ vehicle.make || contract.vehicle_make }}
+                {{ vehicle.model || contract.vehicle_model }}
+              </span>
+            </div>
+
+            <div>
+              <span>
+                PKR
+                {{ formatMoney(vehicle.monthly_rental ?? contract.monthly_rental_per_vehicle) }}
+              </span>
+            </div>
+
+            <RouterLink
+              class="btn secondary"
+              :to="{
+                name: 'vehicle-contracts.vehicle-reports',
+                params: {
+                  id: contract.id,
+                  vehicleId: vehicle.id,
+                },
+              }"
+            >
+              Daily Reports
+            </RouterLink>
+          </div>
+        </div>
+
+      </section>
+
+
       <!-- Agreement Terms -->
       <section class="content-card">
 
@@ -699,6 +758,60 @@ onMounted(loadContract)
   font-size: 1rem;
 }
 
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.count {
+  color: var(--text-muted, #6b7280);
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.vehicle-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.vehicle-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem;
+  border-radius: 8px;
+  background: var(--surface-muted, #f9fafb);
+}
+
+.vehicle-row strong,
+.vehicle-row span {
+  display: block;
+}
+
+.vehicle-row strong {
+  margin-bottom: 0.2rem;
+  font-size: 0.82rem;
+}
+
+.vehicle-row span {
+  color: var(--text-muted, #6b7280);
+  font-size: 0.78rem;
+}
+
+.vehicle-row .btn {
+  white-space: nowrap;
+}
+
 .eyebrow {
   margin: 0 0 0.25rem;
   color: var(--text-muted, #6b7280);
@@ -831,6 +944,15 @@ onMounted(loadContract)
 
   .summary-grid,
   .details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .vehicle-row {
     grid-template-columns: 1fr;
   }
 

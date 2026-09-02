@@ -66,9 +66,15 @@ class VehicleContractService
             VehicleContract::class
         );
 
+        $totalVehicles = max(
+            (int) ($data['total_vehicles'] ?? count($data['vehicles'] ?? [])),
+            1
+        );
+
+        $data['total_vehicles'] = $totalVehicles;
         $data['total_monthly_rental'] =
-            (float) $data['total_vehicles']
-            * (float) $data['monthly_rental_per_vehicle'];
+            $totalVehicles
+            * (float) ($data['monthly_rental_per_vehicle'] ?? 0);
 
         $contract = VehicleContract::create($data);
 
@@ -85,11 +91,12 @@ private function createContractVehicles(
     VehicleContract $contract,
     array $data
 ): void {
-    $quantity = (int) $data['total_vehicles'];
+    $vehicles = $data['vehicles'] ?? [];
 
-    for ($i = 0; $i < $quantity; $i++) {
+    foreach ($vehicles as $vehicle) {
         $contract->vehicles()->create([
-            'vehicle_number' => null,
+            'vehicle_number' =>
+                $vehicle['vehicle_number'],
 
             'make' =>
                 $data['vehicle_make'],
@@ -133,9 +140,15 @@ private function createContractVehicles(
         VehicleContract $contract,
         array $data
     ): VehicleContract {
+        $totalVehicles = max(
+            (int) ($data['total_vehicles'] ?? $contract->total_vehicles ?? count($data['vehicles'] ?? [])),
+            1
+        );
+
+        $data['total_vehicles'] = $totalVehicles;
         $data['total_monthly_rental'] =
-            (float) $data['total_vehicles']
-            * (float) $data['monthly_rental_per_vehicle'];
+            $totalVehicles
+            * (float) ($data['monthly_rental_per_vehicle'] ?? $contract->monthly_rental_per_vehicle ?? 0);
 
         $contract->update($data);
 
