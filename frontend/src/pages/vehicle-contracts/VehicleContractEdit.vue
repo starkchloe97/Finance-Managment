@@ -17,7 +17,7 @@ const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
 
-const form = reactive({
+const form = ref({
   agreement_date: '',
   vendor_name: '',
   vendor_address: '',
@@ -26,7 +26,6 @@ const form = reactive({
   customer_address: '',
   customer_tin: '',
 
-  effective_date: '',
   end_date: '',
   duration_months: 12,
 
@@ -86,9 +85,9 @@ const form = reactive({
 })
 
 const assignContract = (contract) => {
-  Object.keys(form).forEach((key) => {
+  Object.keys(form.value).forEach((key) => {
     if (contract[key] !== undefined) {
-      form[key] = contract[key]
+      form.value[key] = contract[key]
     }
   })
 }
@@ -126,7 +125,7 @@ const save = async () => {
   try {
     const response = await updateVehicleContract(
       route.params.id,
-      form
+      form.value
     )
 
     const contract =

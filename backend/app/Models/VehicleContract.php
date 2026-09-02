@@ -20,7 +20,6 @@ class VehicleContract extends Model
         'customer_address',
         'customer_tin',
 
-        'effective_date',
         'end_date',
         'duration_months',
 
@@ -76,7 +75,6 @@ class VehicleContract extends Model
 
     protected $casts = [
         'agreement_date' => 'date',
-        'effective_date' => 'date',
         'end_date' => 'date',
 
         'vendor_signature_date' => 'date',

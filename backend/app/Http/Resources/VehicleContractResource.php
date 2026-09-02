@@ -22,7 +22,6 @@ class VehicleContractResource extends JsonResource
             'customer_address' => $this->customer_address,
             'customer_tin' => $this->customer_tin,
 
-            'effective_date' => $this->effective_date?->format('Y-m-d'),
             'end_date' => $this->end_date?->format('Y-m-d'),
             'duration_months' => $this->duration_months,
 

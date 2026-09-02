@@ -34,7 +34,6 @@ return new class extends Migration
             /*
              * Agreement period
              */
-            $table->date('effective_date');
             $table->date('end_date');
             $table->unsignedInteger('duration_months')->nullable();
 

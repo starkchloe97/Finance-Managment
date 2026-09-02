@@ -311,13 +311,7 @@ onMounted(loadContract)
   </strong>
 </div>
 
-          <div class="detail-item">
-            <span>Mileage Limit</span>
-            <strong>
-              {{ contract.mileage_limit || '—' }}
-              KM / vehicle / month
-            </strong>
-          </div>
+
 
           <div class="detail-item">
             <span>Excess Mileage</span>
@@ -337,10 +331,8 @@ onMounted(loadContract)
           </div>
 
           <div class="detail-item">
-            <span>Agreement Validity</span>
+            <span>End Date</span>
             <strong>
-              {{ contract.effective_date || '—' }}
-              →
               {{ contract.end_date || '—' }}
             </strong>
           </div>
@@ -392,13 +384,12 @@ onMounted(loadContract)
 
           <p>
             <strong>
-              M/s Dynamic Logistics Int'l Pvt Ltd
+              {{ contract.vendor_name || 'Vendor Name' }}
             </strong>
           </p>
 
           <p>
-            Office Address: Suite 405-406, Progressive Centre,
-            30-A Block 6, P.E.C.H.S, Karachi, Pakistan
+            Office Address: {{ contract.vendor_address || 'Vendor Address' }}
           </p>
 
           <p>
@@ -433,8 +424,7 @@ onMounted(loadContract)
 
           <p>
   This is a {{ contract.service_type === 'with_driver' ? 'Vehicle Rental Agreement with Driver' : 'Vehicle Rental Agreement without Driver' }}
-  {{ contract.fuel_included ? 'with Fuel' : 'without Fuel' }},
-  effective from <strong>{{ contract.effective_date || '________' }}</strong>.
+  {{ contract.fuel_included ? 'with Fuel' : 'without Fuel' }}.
 </p>
 
           <h3>
@@ -459,7 +449,7 @@ onMounted(loadContract)
 
             <li>
               <strong>Model Year:</strong>
-              {{ contract.model_year || '—' }}
+              {{ contract.vehicle_model_year || '—' }}
             </li>
 
             <li>
@@ -523,10 +513,16 @@ onMounted(loadContract)
           </p>
 
           <ul>
-            <li>With driver</li>
-            <li>With routine maintenance</li>
-            <li>Without fuel</li>
-          </ul>
+  <li>
+    {{ contract.service_type === 'with_driver' ? 'With driver' : 'Without driver' }}
+  </li>
+  <li>
+    {{ contract.routine_maintenance_included ? 'With routine maintenance' : 'Without routine maintenance' }}
+  </li>
+  <li>
+    {{ contract.fuel_included ? 'With fuel' : 'Without fuel' }}
+  </li>
+</ul>
 
           <p>
             The Customer shall be responsible for fuel consumption
@@ -565,8 +561,8 @@ onMounted(loadContract)
           <p>
             The monthly mileage limit shall be:
             <strong>
-              {{ contract.mileage_limit || '2,500' }}
-              KM per vehicle per month.
+{{ contract.monthly_mileage_limit || '2,500' }}             
+ KM per vehicle per month.
             </strong>
           </p>
 

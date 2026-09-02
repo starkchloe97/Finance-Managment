@@ -24,8 +24,7 @@ class VehicleContractRequest extends FormRequest
             'customer_address' => ['nullable', 'string'],
             'customer_tin' => ['nullable', 'string', 'max:100'],
 
-            'effective_date' => ['required', 'date'],
-            'end_date' => ['required', 'date', 'after_or_equal:effective_date'],
+            'end_date' => ['required', 'date'],
             'duration_months' => ['nullable', 'integer', 'min:1'],
 
             'service_type' => [

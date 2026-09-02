@@ -123,11 +123,7 @@ const serviceDescription = computed(() => {
 
       <p>
         This is a
-        <strong>{{ serviceDescription }}</strong>,
-        effective from
-        <strong>
-          {{ formatDate(contract.effective_date) }}
-        </strong>.
+        <strong>{{ serviceDescription }}</strong>.
       </p>
 
       <p>
@@ -509,9 +505,7 @@ const serviceDescription = computed(() => {
         <strong>
           {{ contract.duration_months }} months
         </strong>,
-        commencing from
-        <strong>{{ formatDate(contract.effective_date) }}</strong>
-        and ending on
+        ending on
         <strong>{{ formatDate(contract.end_date) }}</strong>,
         unless terminated earlier in accordance with the terms
         of this Agreement.

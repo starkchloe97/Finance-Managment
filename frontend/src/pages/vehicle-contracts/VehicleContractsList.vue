@@ -202,11 +202,7 @@ onMounted(loadContracts)
 
               <td>
                 <span class="muted">
-                  {{ contract.effective_date || '—' }}
-                </span>
-
-                <span class="muted">
-                  to {{ contract.end_date || '—' }}
+                  {{ contract.end_date || '—' }}
                 </span>
               </td>
 

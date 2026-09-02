@@ -11,7 +11,7 @@ const router = useRouter()
 const saving = ref(false)
 const error = ref('')
 
-const form = reactive({
+const form = ref({
   agreement_date: '2026-09-01',
 
   vendor_name: "M/s Dynamic Logistics Int'l Pvt Ltd",
@@ -88,7 +88,7 @@ const save = async () => {
   error.value = ''
 
   try {
-    const response = await createVehicleContract(form)
+    const response = await createVehicleContract(form.value)
 
     const contract =
       response.data?.data ??
@@ -154,12 +154,8 @@ const save = async () => {
 
     <div class="contract-editor">
 
-      <section class="contract-editor-form">
-        <VehicleContractForm
-          v-model="form"
-        />
-      </section>
-
+        
+        
       <section class="contract-editor-preview">
         <div class="preview-header">
           <span>Live Preview</span>
@@ -173,6 +169,12 @@ const save = async () => {
           :contract="form"
         />
       </section>
+
+      <section class="contract-editor-form">
+          <VehicleContractForm
+            v-model="form"
+          />
+        </section>
 
     </div>
   </div>
@@ -198,7 +200,7 @@ const save = async () => {
 
 .contract-editor {
   display: grid;
-  grid-template-columns: minmax(360px, 0.8fr) minmax(500px, 1.2fr);
+  grid-template-columns: minmax(500px, 1.2fr) minmax(360px, 0.8fr);
   gap: 1rem;
   align-items: start;
 }
