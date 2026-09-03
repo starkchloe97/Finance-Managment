@@ -38,7 +38,16 @@
       "Shell(php artisan db:table vehicle_daily_reports)",
       "Shell(curl -i -H \"Origin: http://localhost:5173\" http://127.0.0.1:8000/api/v1/contract-vehicles/3/daily-reports)",
       "Shell(php artisan pint)",
-      "Shell(vendorbinpint.bat:*)"
+      "Shell(vendorbinpint.bat:*)",
+      "Shell(php artisan route:list --path=contract-vehicles --path=vehicle-contracts 2 >& 1)",
+      "Shell(cd E:\\Projects\\Finance-Managment/backend && php artisan route:list 2>nul | findstr \"contract-vehicles\\|vehicle-contracts\\|daily-reports\")",
+      "Shell(cd E:\\Projects\\Finance-Managment/backend && php artisan route:list 2>nul | findstr \"contract-vehicles\")",
+      "Shell(curl -i -H Origin: http://localhost:5173 http://127.0.0.1:8000/api/v1/contract-vehicles)",
+      "Shell(findstr:*)",
+      "Shell(curl -s -i -H Origin: http://localhost:5173 http://127.0.0.1:8000/api/v1/contract-vehicles)",
+      "Shell(for:*)",
+      "Shell(appHttpControllersApiV1ContractVehicleController.php:*)",
+      "Shell(do:*)"
     ],
     "deny": [],
     "defaultMode": "default"

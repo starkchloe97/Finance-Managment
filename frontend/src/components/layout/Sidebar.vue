@@ -53,7 +53,12 @@ const navigation = [
         label: 'Vehicle Contracts',
         to: '/vehicle-contracts',
         icon: '<path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM1 6v9h15V6H1zm16 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>',
-      }
+      },
+      {
+        label: 'On Road Vehicles',
+        to: '/on-road-vehicles',
+        icon: '<path d="M3 9l9-7v7H7v10a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9h-4L3 9z"/><circle cx="12" cy="12" r="3"/>',
+      },
     ],
   },
   {

@@ -28,7 +28,7 @@ defineExpose({ focusMenuButton })
 </script>
 
 <template>
-  <header class="navbar">
+  <header class="navbar no-print">
     <div class="navbar-left">
       <button
         ref="menuButton"
@@ -196,6 +196,12 @@ defineExpose({ focusMenuButton })
 
   .mobile-menu {
     display: inline-flex;
+  }
+}
+
+@media print {
+  .navbar {
+    display: none;
   }
 }
 </style>

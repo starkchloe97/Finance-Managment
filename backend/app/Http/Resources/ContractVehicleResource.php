@@ -41,6 +41,10 @@ class ContractVehicleResource extends JsonResource
             'status' => $this->status,
 
             'notes' => $this->notes,
+
+            'contract' => new VehicleContractResource(
+                $this->whenLoaded('contract')
+            ),
         ];
     }
 }

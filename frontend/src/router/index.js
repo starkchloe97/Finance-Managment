@@ -206,6 +206,15 @@ const routes = [
       },
 
       {
+        path: 'on-road-vehicles',
+        name: 'on-road-vehicles.index',
+        component: () =>
+          import(
+            '@/pages/vehicle-daily-reports/OnRoadVehicles.vue'
+          ),
+        meta: secure('Operations / On Road Vehicles'),
+      },
+      {
         path: 'vehicle-daily-reports',
         name: 'vehicle-daily-reports.index',
         component: () =>

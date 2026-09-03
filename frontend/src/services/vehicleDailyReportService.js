@@ -3,6 +3,9 @@ import api from '@/api/axios'
 export const getContractVehicle = (contractVehicleId) =>
   api.get(`/contract-vehicles/${contractVehicleId}`)
 
+export const getContractVehicles = (params = {}) =>
+  api.get('/contract-vehicles', { params })
+
 export const getDailyReports = (contractVehicleId, params = {}) =>
   api.get(
     `/contract-vehicles/${contractVehicleId}/daily-reports`,

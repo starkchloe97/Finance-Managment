@@ -11,6 +11,11 @@ Route::middleware('auth:sanctum')->group(function () {
         VehicleContractController::class
     );
 
+    Route::get(
+        'contract-vehicles',
+        [ContractVehicleController::class, 'index']
+    );
+
     Route::prefix('contract-vehicles/{contractVehicle}')
         ->group(function () {
             Route::get(
