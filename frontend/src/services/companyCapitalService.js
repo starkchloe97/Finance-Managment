@@ -6,6 +6,16 @@ const companyCapitalService = {
     return response.data
   },
 
+  async getProfitSnapshot() {
+    const response = await api.get('/company-capital/profit')
+    return response.data
+  },
+
+  async addProfitToCapital(data) {
+    const response = await api.post('/company-capital/profit/add', data)
+    return response.data
+  },
+
   async initializeCapital(data) {
     const response = await api.post('/company-capital/initialize', data)
     return response.data
