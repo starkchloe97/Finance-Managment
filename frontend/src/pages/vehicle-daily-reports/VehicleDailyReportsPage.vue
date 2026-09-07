@@ -203,12 +203,12 @@ onMounted(load)
           </div>
 
           <div class="hero-actions">
-            <RouterLink class="btn-light" :to="{ name: 'vehicle-daily-reports.index' }">
+            <!-- <RouterLink class="btn-light" :to="{ name: 'vehicle-daily-reports.index' }">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M19 12H5" /><path d="m12 19-7-7 7-7" />
               </svg>
               Back
-            </RouterLink>
+            </RouterLink> -->
             <button class="btn" type="button" @click="createReport">
               + Add daily report
             </button>

@@ -463,7 +463,7 @@ const updateTotalVehicles = (value) => {
   align-items: center;
   display: flex;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 
 .sec-icon {
@@ -560,8 +560,7 @@ const updateTotalVehicles = (value) => {
 .ff.always-float > label {
   background: var(--surface);
   color: var(--text-muted);
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 9px;
   left: 8px;
   letter-spacing: 0.05em;
   line-height: 1;
@@ -645,7 +644,7 @@ const updateTotalVehicles = (value) => {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  margin-bottom: 8px;
+  margin-bottom: 13px;
   padding: 2px 9px;
   text-transform: uppercase;
 }
