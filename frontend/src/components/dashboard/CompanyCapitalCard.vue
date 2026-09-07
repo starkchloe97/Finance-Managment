@@ -79,9 +79,9 @@ onMounted(load)
     <div class="capital-head">
       <div>
         <span class="capital-kicker">Company capital</span>
-        <h2>Available to lend</h2>
+        <h2>Available company capital</h2>
       </div>
-      <span class="capital-badge">Loan capital</span>
+      <span class="capital-badge">Available to lend</span>
     </div>
 
     <div v-if="loading" class="capital-loading">Loading capital…</div>
