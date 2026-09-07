@@ -50,7 +50,7 @@ class CompanyProfitCapitalService
                 true,
             );
 
-            return $this->snapshot();
+            return $this->capital->snapshot();
         });
     }
 
