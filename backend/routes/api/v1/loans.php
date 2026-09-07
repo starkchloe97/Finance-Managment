@@ -11,6 +11,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('company-capital', [CompanyCapitalController::class, 'store']);
     Route::post('company-capital/withdraw', [CompanyCapitalController::class, 'withdraw']);
     Route::patch('company-capital/transactions/{transaction}', [CompanyCapitalController::class, 'updateAvailability']);
+    Route::get('company-capital/profit', [CompanyCapitalController::class, 'profitSnapshot']);
+    Route::post('company-capital/profit/add', [CompanyCapitalController::class, 'addProfitToCapital']);
 
     Route::post('company-capital/drafts/{draft}/convert', [CompanyCapitalController::class, 'convertDraft']);
     Route::post('company-capital/drafts/{draft}/remove', [CompanyCapitalController::class, 'removeDraft']);
