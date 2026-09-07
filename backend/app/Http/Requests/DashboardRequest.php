@@ -22,6 +22,7 @@ class DashboardRequest extends FormRequest
                 'last_month',
                 'this_quarter',
                 'this_year',
+                'all_time',
                 'custom',
             ])],
             'from' => ['required_if:period,custom', 'date_format:Y-m-d'],

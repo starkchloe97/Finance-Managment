@@ -7,11 +7,14 @@ use App\Http\Requests\DashboardRequest;
 use App\Models\Customer;
 use App\Models\Estimate;
 use App\Models\TransportJob;
+use App\Services\CompanyProfitCapitalService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 
 class ReportController extends Controller
 {
+    public function __construct(private CompanyProfitCapitalService $profitCapital) {}
+
     public function dashboard(DashboardRequest $request): JsonResponse
     {
         [$from, $to] = $this->period($request);
@@ -47,6 +50,7 @@ class ReportController extends Controller
         $profit = (float) $totals->profit;
         $previousRevenue = (float) $previous->revenue;
         $previousProfit = (float) $previous->profit;
+        $profitSnapshot = $this->profitCapital->snapshot();
 
         return response()->json([
             'meta' => [
@@ -74,6 +78,10 @@ class ReportController extends Controller
                 'profit_margin' => [
                     'value' => $this->margin($profit, $revenue),
                     'previous' => $this->margin($previousProfit, $previousRevenue),
+                ],
+                'available_profit' => [
+                    'value' => $profitSnapshot['available_profit'],
+                    'previous' => null,
                 ],
                 'active_jobs' => [
                     'value' => (clone $jobs)->whereNotIn('status', ['completed'])->count(),
@@ -141,6 +149,7 @@ class ReportController extends Controller
             ],
             'this_quarter' => [$today->copy()->startOfQuarter(), $today->copy()->endOfQuarter()],
             'this_year' => [$today->copy()->startOfYear(), $today->copy()->endOfYear()],
+            'all_time' => [Carbon::create(2000, 1, 1)->startOfDay(), $today->copy()->endOfDay()],
             default => [$today->copy()->startOfMonth(), $today->copy()->endOfMonth()],
         };
     }

@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (! Schema::hasColumn('vehicle_contracts', 'effective_date')) {
+            return;
+        }
+
         Schema::table('vehicle_contracts', function (Blueprint $table) {
             $table->dropColumn('effective_date');
         });

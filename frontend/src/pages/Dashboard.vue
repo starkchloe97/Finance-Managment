@@ -86,7 +86,6 @@ const kpis = computed(() => {
       variant: 'revenue',
       spark: spark('revenue'),
       tip: `Total money quoted across all jobs in this period.${prevNote(data.revenue)}`,
-
     },
     {
       title: 'Actual cost',
@@ -99,7 +98,6 @@ const kpis = computed(() => {
       variant: 'cost',
       spark: spark('actual_cost', 'cost'),
       tip: `What the jobs really cost — planned cost plus any unexpected expenses.${prevNote(actualCost)}`,
-
     },
     {
       title: 'Final profit',
@@ -112,7 +110,14 @@ const kpis = computed(() => {
       variant: 'profit',
       spark: spark('profit'),
       tip: `What's left after every cost. A negative number means the jobs lost money.${prevNote(profit)}`,
-
+    },
+    {
+      title: 'Available profit',
+      value: money(data.available_profit?.value),
+      subtitle: 'Undistributed',
+      icon: 'profit',
+      variant: 'profit',
+      tip: 'Company profit that has not been transferred to capital. This is an all-time figure, independent of the selected period.',
     },
     margin
       ? {
@@ -206,7 +211,6 @@ onMounted(() => store.fetchDashboard().catch(() => {}))
         <PendingEstimates :estimates="dashboard.pending_estimates" />
         <AttentionPanel :alerts="dashboard.alerts" />
       </div>
-
     </template>
   </div>
 </template>

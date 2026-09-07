@@ -5,10 +5,11 @@ defineProps({
   options: {
     type: Array,
     default: () => [
-      { value: 'week', label: 'Week' },
-      { value: 'month', label: 'Month' },
-      { value: 'quarter', label: 'Quarter' },
-      { value: 'year', label: 'Year' },
+      { value: 'this_week', label: 'Week' },
+      { value: 'this_month', label: 'Month' },
+      { value: 'this_quarter', label: 'Quarter' },
+      { value: 'this_year', label: 'Year' },
+      { value: 'all_time', label: 'All time' },
       { value: 'custom', label: 'Custom' },
     ],
   },

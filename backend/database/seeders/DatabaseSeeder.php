@@ -2,18 +2,24 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'Test@example.com',
-            'password' => Hash::make('password'),
+        $this->call([
+            UserSeeder::class,
+            CustomerSeeder::class,
+            AssetSeeder::class,
+            InvestorSeeder::class,
+            LoanBorrowerSeeder::class,
+            EstimateAndJobSeeder::class,
+            InvestmentSeeder::class,
+            InvestmentAllocationSeeder::class,
+            CompanyCapitalSeeder::class,
+            LoanSeeder::class,
+            VehicleContractSeeder::class,
         ]);
     }
 }

@@ -47,7 +47,8 @@
       "Shell(curl -s -i -H Origin: http://localhost:5173 http://127.0.0.1:8000/api/v1/contract-vehicles)",
       "Shell(for:*)",
       "Shell(appHttpControllersApiV1ContractVehicleController.php:*)",
-      "Shell(do:*)"
+      "Shell(do:*)",
+      "Shell(php artisan tinker --execute= = new App\\Http\\Requests\\DashboardRequest(['period' => 'this_year']); ->setMethod('GET');  = app(App\\Http\\Controllers\\Api\\V1\\ReportController::class);  = ->dashboard();  = ->getData(true); echo 'KPIs: '.json_encode(['kpis']['available_profit']).', Recent jobs: '.count(['recent_jobs']).', Pending estimates: '.count(['pending_estimates']).', Alerts: '.count(['alerts']).PHP_EOL;)"
     ],
     "deny": [],
     "defaultMode": "default"

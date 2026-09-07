@@ -32,6 +32,7 @@ class DashboardReportTest extends TestCase
             ->assertJsonPath('kpis.extra_costs.value', 50)
             ->assertJsonPath('kpis.profit.value', 350)
             ->assertJsonPath('kpis.profit_margin.value', 35)
+            ->assertJsonPath('kpis.available_profit.value', 350)
             ->assertJsonPath('current_pipeline.confirmed', 1);
     }
 
