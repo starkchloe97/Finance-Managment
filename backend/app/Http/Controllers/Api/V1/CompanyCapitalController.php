@@ -104,15 +104,13 @@ class CompanyCapitalController extends Controller
         return response()->json(['data' => $this->profitCapital->snapshot()]);
     }
 
-    public function addProfitToCapital(CompanyProfitCapitalRequest $request)
+    public function addProfitToCapital(CompanyProfitCapitalRequest $request): CompanyCapitalResource
     {
-        return response()->json([
-            'data' => $this->profitCapital->addToCapital(
-                (float) $request->validated('amount'),
-                $request->validated('transaction_date'),
-                $request->validated('notes'),
-                $request->user(),
-            ),
-        ]);
+        return new CompanyCapitalResource($this->profitCapital->addToCapital(
+            (float) $request->validated('amount'),
+            $request->validated('transaction_date'),
+            $request->validated('notes'),
+            $request->user(),
+        ));
     }
 }
