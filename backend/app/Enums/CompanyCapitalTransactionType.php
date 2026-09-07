@@ -12,4 +12,5 @@ enum CompanyCapitalTransactionType: string
     case CapitalWithdrawn = 'capital_withdrawn';
     case CapitalReserved = 'capital_reserved';
     case CapitalMadeAvailable = 'capital_made_available';
+    case ProfitAdded = 'profit_added';
 }
