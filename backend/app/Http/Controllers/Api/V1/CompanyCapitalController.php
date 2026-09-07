@@ -9,13 +9,18 @@ use App\Http\Requests\CompanyCapitalDraftConvertRequest;
 use App\Http\Requests\CompanyCapitalDraftRemoveRequest;
 use App\Http\Requests\CompanyCapitalOpeningBalanceRequest;
 use App\Http\Requests\CompanyCapitalWithdrawRequest;
+use App\Http\Requests\CompanyProfitCapitalRequest;
 use App\Http\Resources\CompanyCapitalResource;
 use App\Models\CompanyCapitalTransaction;
 use App\Services\CompanyCapitalService;
+use App\Services\CompanyProfitCapitalService;
 
 class CompanyCapitalController extends Controller
 {
-    public function __construct(private CompanyCapitalService $capital) {}
+    public function __construct(
+        private CompanyCapitalService $capital,
+        private CompanyProfitCapitalService $profitCapital,
+    ) {}
 
     public function show(): CompanyCapitalResource
     {
@@ -92,5 +97,22 @@ class CompanyCapitalController extends Controller
             $request->validated('removal_note'),
             $request->user(),
         ));
+    }
+
+    public function profitSnapshot()
+    {
+        return response()->json(['data' => $this->profitCapital->snapshot()]);
+    }
+
+    public function addProfitToCapital(CompanyProfitCapitalRequest $request)
+    {
+        return response()->json([
+            'data' => $this->profitCapital->addToCapital(
+                (float) $request->validated('amount'),
+                $request->validated('transaction_date'),
+                $request->validated('notes'),
+                $request->user(),
+            ),
+        ]);
     }
 }
