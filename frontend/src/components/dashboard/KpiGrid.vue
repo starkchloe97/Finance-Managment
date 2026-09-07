@@ -1,5 +1,6 @@
 <script setup>
 import KpiCard from './KpiCard.vue'
+import CompanyCapitalCard from './CompanyCapitalCard.vue'
 
 defineProps({ items: { type: Array, default: () => [] } })
 </script>
@@ -8,6 +9,8 @@ defineProps({ items: { type: Array, default: () => [] } })
   <section class="kpi-grid" aria-label="Financial overview">
     <KpiCard v-for="item in items" :key="item.title" v-bind="item" />
   </section>
+
+  <CompanyCapitalCard />
 </template>
 
 <style scoped>
