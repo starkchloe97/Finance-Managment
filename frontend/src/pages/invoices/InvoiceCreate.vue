@@ -1,12 +1,15 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useInvoiceStore } from '@/stores/invoiceStore'
+import { getInvoiceCompanyDetails } from '@/services/invoiceService'
 
 const router = useRouter()
+const route = useRoute()
 const store = useInvoiceStore()
 const saving = ref(false)
 const error = ref('')
+const isEditing = computed(() => route.name === 'invoices.edit')
 const detailFields = computed(() =>
   form.category === 'job'
     ? [
@@ -34,11 +37,16 @@ const form = reactive({
   party_contact: '',
   party_phone: '',
   party_address: '',
-  party_tax_number: '',
+  party_ntn_no: '',
+  party_str_no: '',
   company_name: '',
   company_phone: '',
   company_address: '',
-  company_tax_number: '',
+  company_str_no: '',
+  company_ntn_no: '',
+  company_stnt_no: '',
+  company_bank_details: '',
+  company_logo_url: '',
   invoice_date: new Date().toISOString().slice(0, 10),
   due_date: '',
   tax_amount: 0,
@@ -52,11 +60,40 @@ const addLine = () =>
 const removeLine = (index) => {
   if (form.items.length > 1) form.items.splice(index, 1)
 }
+onMounted(async () => {
+  if (isEditing.value) {
+    try {
+      const invoice = await store.fetchInvoice(route.params.id)
+      Object.assign(form, {
+        ...invoice,
+        items: invoice.items.map((item) => ({
+          description: item.description,
+          quantity: Number(item.quantity),
+          unit: item.unit || '',
+          unit_price: Number(item.unit_price),
+          details: item.details || {},
+        })),
+      })
+    } catch (e) {
+      error.value = e.response?.data?.message || 'Could not load invoice for editing.'
+    }
+    return
+  }
+
+  try {
+    const { data } = await getInvoiceCompanyDetails()
+    Object.assign(form, data.data)
+  } catch (e) {
+    error.value = e.response?.data?.message || 'Could not load saved company details.'
+  }
+})
 const save = async () => {
   saving.value = true
   error.value = ''
   try {
-    const invoice = await store.saveInvoice(form)
+    const invoice = isEditing.value
+      ? await store.updateInvoice(route.params.id, form)
+      : await store.saveInvoice(form)
     await router.push(`/invoices/${invoice.id}`)
   } catch (e) {
     error.value =
@@ -74,20 +111,20 @@ const save = async () => {
     <header class="page-heading">
       <div>
         <span class="section-kicker">Finance / Invoices</span>
-        <h1>Create invoice</h1>
+        <h1>{{ isEditing ? 'Edit invoice' : 'Create invoice' }}</h1>
       </div>
-      <RouterLink class="btn-light" to="/invoices">Cancel</RouterLink>
+      <RouterLink class="btn-light" :to="isEditing ? `/invoices/${route.params.id}` : '/invoices'">Cancel</RouterLink>
     </header>
     <div v-if="error" class="form-error" role="alert">{{ error }}</div>
     <section class="card form-grid">
       <label
-        >Direction<select v-model="form.direction">
+        >Direction<select v-model="form.direction" :disabled="isEditing">
           <option value="receivable">Receivable (customer invoice)</option>
           <option value="payable">Payable (vendor bill)</option>
         </select></label
       >
       <label
-        >Category<select v-model="form.category">
+        >Category<select v-model="form.category" :disabled="isEditing">
           <option value="job">Transport job</option>
           <option value="vehicle_rental">Vehicle rental</option>
           <option value="sales">Sales</option>
@@ -108,13 +145,17 @@ const save = async () => {
       <label class="wide"
         >Party address<textarea v-model="form.party_address" rows="2"></textarea>
       </label>
-      <label>Party tax registration<input v-model="form.party_tax_number" /></label>
+      <label>Client NTN No<input v-model="form.party_ntn_no" /></label>
+      <label>Client STR No<input v-model="form.party_str_no" /></label>
       <label>Issuer/company name<input v-model="form.company_name" maxlength="255" /></label>
       <label>Issuer phone<input v-model="form.company_phone" maxlength="40" /></label>
       <label class="wide"
         >Issuer address<textarea v-model="form.company_address" rows="2"></textarea>
       </label>
-      <label>Issuer tax registration<input v-model="form.company_tax_number" /></label>
+      <label>Issuer STR No<input v-model="form.company_str_no" /></label>
+      <label>Issuer NTN No<input v-model="form.company_ntn_no" /></label>
+      <label>Issuer STNT No<input v-model="form.company_stnt_no" /></label>
+      <label class="wide">Bank details<textarea v-model="form.company_bank_details" rows="2"></textarea></label>
     </section>
     <section class="card">
       <div class="section-header">
@@ -161,7 +202,7 @@ const save = async () => {
       <label class="wide">Notes<textarea v-model="form.notes" rows="2"></textarea></label>
     </section>
     <button class="btn" type="submit" :disabled="saving">
-      {{ saving ? 'Saving…' : 'Create invoice' }}
+      {{ saving ? 'Saving…' : isEditing ? 'Save invoice' : 'Create invoice' }}
     </button>
   </form>
 </template>

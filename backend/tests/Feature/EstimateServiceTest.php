@@ -28,6 +28,7 @@ class EstimateServiceTest extends TestCase
             'pickup' => 'Cape Town',
             'destination' => 'Johannesburg',
             'service_type' => 'goods',
+            'tonnage' => 12.5,
             'remarks' => 'Urgent move',
             'items' => [
                 [
@@ -52,6 +53,7 @@ class EstimateServiceTest extends TestCase
         $this->assertSame(125.0, (float) $estimate->estimated_cost);
         $this->assertSame(280.0, (float) $estimate->estimated_sell);
         $this->assertSame(155.0, (float) $estimate->estimated_profit);
+        $this->assertSame('12.500', $estimate->tonnage);
 
         $this->assertCount(2, $estimate->items);
 

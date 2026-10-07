@@ -26,7 +26,7 @@ class InvoiceAccountingTest extends TestCase
     {
         $invoice = $this->createInvoice([
             'items' => [
-                ['description' => 'Rental', 'quantity' => 3, 'unit' => 'vehicle', 'unit_price' => 110000],
+                ['description' => 'Rental', 'quantity' => 3, 'unit' => 'vehicle', 'unit_price' => 110000, 'amount' => 1],
             ],
             'tax_amount' => 10,
         ]);
@@ -36,7 +36,38 @@ class InvoiceAccountingTest extends TestCase
         $this->assertSame('330010.00', $invoice['total']);
         $this->assertSame('unpaid', $invoice['status']);
         $this->assertSame(330010.0, (float) $invoice['outstanding_amount']);
+        $this->assertSame(config('invoice.company_name'), $invoice['company_name']);
         $this->assertDatabaseHas('invoice_items', ['invoice_id' => $invoice['id'], 'amount' => 330000]);
+    }
+
+    public function test_invoice_company_details_are_prefilled_and_saved(): void
+    {
+        config([
+            'invoice.company_name' => 'Awan Goods Transport Services',
+            'invoice.company_phone' => '0300-1234567',
+            'invoice.company_address' => 'Lahore',
+            'invoice.company_str_no' => 'STR-123',
+            'invoice.company_ntn_no' => 'NTN-123',
+            'invoice.company_stnt_no' => 'STNT-123',
+            'invoice.company_bank_details' => 'Bank account details',
+        ]);
+
+        $this->getJson('/api/v1/invoices/company-details')
+            ->assertOk()
+            ->assertJsonPath('data.company_name', 'Awan Goods Transport Services')
+            ->assertJsonPath('data.company_ntn_no', 'NTN-123')
+            ->assertJsonPath('data.company_bank_details', 'Bank account details');
+
+        $invoice = $this->createInvoice([
+            'party_ntn_no' => 'CLIENT-NTN',
+            'party_str_no' => 'CLIENT-STR',
+        ]);
+
+        $this->assertSame('NTN-123', $invoice['company_ntn_no']);
+        $this->assertSame('STR-123', $invoice['company_str_no']);
+        $this->assertSame('STNT-123', $invoice['company_stnt_no']);
+        $this->assertSame('CLIENT-NTN', $invoice['party_ntn_no']);
+        $this->assertSame('CLIENT-STR', $invoice['party_str_no']);
     }
 
     public function test_partial_and_full_payments_update_invoice_balance_and_status(): void
@@ -59,6 +90,37 @@ class InvoiceAccountingTest extends TestCase
             ->assertJsonPath('data.paid_amount', 330000)
             ->assertJsonPath('data.outstanding_amount', 0)
             ->assertJsonPath('data.status', 'paid');
+    }
+
+    public function test_only_unpaid_manual_invoices_can_be_edited(): void
+    {
+        $invoice = $this->createInvoice([
+            'items' => [['description' => 'Initial service', 'quantity' => 1, 'unit_price' => 100]],
+        ]);
+        $payload = [
+            'direction' => 'receivable',
+            'category' => 'sales',
+            'party_name' => 'Updated customer',
+            'invoice_date' => today()->toDateString(),
+            'items' => [['description' => 'Corrected service', 'quantity' => 1, 'unit_price' => 200]],
+        ];
+
+        $this->putJson("/api/v1/invoices/{$invoice['id']}", $payload)
+            ->assertOk()
+            ->assertJsonPath('data.party_name', 'Updated customer')
+            ->assertJsonPath('data.total', '200.00')
+            ->assertJsonPath('data.items.0.description', 'Corrected service');
+
+        $this->recordPayment('received', $invoice['id'], 100)->assertCreated();
+        $this->putJson("/api/v1/invoices/{$invoice['id']}", $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['invoice']);
+
+        $this->getJson("/api/v1/invoices/{$invoice['id']}")
+            ->assertOk()
+            ->assertJsonPath('data.total', '200.00')
+            ->assertJsonPath('data.paid_amount', 100)
+            ->assertJsonPath('data.outstanding_amount', 100);
     }
 
     public function test_payables_use_paid_direction_and_are_independent_from_receivables(): void
@@ -144,8 +206,23 @@ class InvoiceAccountingTest extends TestCase
             'pickup' => 'KHI',
             'destination' => 'LHR',
             'service_type' => 'goods',
+            'tonnage' => 12.5,
             'status' => 'accepted',
             'estimated_sell' => 170000,
+        ]);
+        $estimateItem = $estimate->items()->create([
+            'title' => 'Goods freight',
+            'category' => 'vehicle',
+            'quantity' => 1,
+            'cost_price' => 100,
+            'sell_price' => 170000,
+            'cost_total' => 100,
+            'sell_total' => 170000,
+            'profit' => 169900,
+        ]);
+        $estimateItem->vehicles()->create([
+            'source' => 'hired',
+            'registration_number' => 'TRUCK-123',
         ]);
         $job = TransportJob::create([
             'code' => 'JOB-INVOICE',
@@ -163,6 +240,13 @@ class InvoiceAccountingTest extends TestCase
         $response = $this->postJson("/api/v1/jobs/{$job->id}/invoice")->assertCreated();
         $this->assertSame(170000.0, (float) $response->json('data.total'));
         $this->assertSame('receivable', $response->json('data.direction'));
+        $this->assertSame(config('invoice.company_name'), $response->json('data.company_name'));
+        $this->assertSame(today()->toDateString(), $response->json('data.items.0.details.date'));
+        $this->assertSame('goods', $response->json('data.items.0.details.type'));
+        $this->assertSame('KHI', $response->json('data.items.0.details.pickup'));
+        $this->assertSame('LHR', $response->json('data.items.0.details.drop'));
+        $this->assertSame('12.500', $response->json('data.items.0.details.ton'));
+        $this->assertSame('TRUCK-123', $response->json('data.items.0.details.truck_no'));
         $this->postJson("/api/v1/jobs/{$job->id}/invoice")->assertUnprocessable();
         $this->assertSame(50000.0, (float) $job->fresh()->final_profit);
     }

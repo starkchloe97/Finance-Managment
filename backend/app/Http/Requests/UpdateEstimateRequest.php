@@ -25,6 +25,7 @@ class UpdateEstimateRequest extends FormRequest
             'pickup' => 'required',
             'destination' => 'required',
             'service_type' => 'required|in:goods,vehicle',
+            'tonnage' => 'nullable|numeric|decimal:0,3|min:0|max:999999.999',
             'status' => 'sometimes|in:draft,sent,accepted,rejected,expired',
             'remarks' => 'nullable',
             'items' => 'required|array|min:1',

@@ -5,6 +5,7 @@ import { useInvoiceStore } from '@/stores/invoiceStore'
 import InvoicePaymentForm from '@/components/invoices/InvoicePaymentForm.vue'
 import FinanceStatus from '@/components/ui/FinanceStatus.vue'
 import StatePanel from '@/components/ui/StatePanel.vue'
+import { amountInWords } from '@/utils/numberToWords'
 import { money } from '@/utils/money'
 
 const route = useRoute()
@@ -37,75 +38,53 @@ onMounted(load)
           <h1>{{ store.invoice.invoice_no }}</h1>
         </div>
         <div class="actions">
-          <button class="btn-light" type="button" @click="print">Print</button
-          ><RouterLink class="btn-light" to="/invoices">Back to invoices</RouterLink>
+          <RouterLink
+            v-if="!store.invoice.transport_job_id && Number(store.invoice.paid_amount) === 0"
+            class="btn-light"
+            :to="`/invoices/${store.invoice.id}/edit`"
+          >Edit</RouterLink>
+          <button class="btn-light" type="button" @click="print">Print</button>
+          <RouterLink class="btn-light" to="/invoices">Back to invoices</RouterLink>
         </div>
       </header>
-      <section class="card invoice-paper">
-        <header class="invoice-head">
-          <div>
-            <h2>{{ store.invoice.company_name || 'Invoice' }}</h2>
-            <strong>{{
-              store.invoice.tax_label ||
-              (store.invoice.category === 'job' ? 'Transport Invoice' : 'Invoice')
-            }}</strong>
-            <span class="muted">{{ store.invoice.company_address }}</span
-            ><span class="muted">{{ store.invoice.company_phone }}</span
-            ><span v-if="store.invoice.company_tax_number" class="muted">
-              Company tax registration: {{ store.invoice.company_tax_number }}
-            </span>
-            ><span v-if="store.invoice.tax_number" class="muted">
-              {{ store.invoice.tax_label || 'Tax registration' }}: {{ store.invoice.tax_number }}
-            </span>
+
+      <section
+        class="invoice-paper"
+        :class="store.invoice.category === 'job' ? 'transport-invoice' : 'tax-invoice'"
+      >
+        <template v-if="store.invoice.category === 'job'">
+          <header class="transport-header">
+            <img
+              v-if="store.invoice.company_logo_url"
+              class="company-logo"
+              :src="store.invoice.company_logo_url"
+              alt=""
+            />
+            <div class="company-heading">
+              <h1>{{ store.invoice.company_name || 'AWAN GOODS TRANSPORT SERVICES' }}</h1>
+              <p v-if="store.invoice.company_address">{{ store.invoice.company_address }}</p>
+              <p v-if="store.invoice.company_phone">{{ store.invoice.company_phone }}</p>
+            </div>
+          </header>
+
+          <div class="transport-meta">
+            <div class="client-details">
+              <p><strong>Client Name</strong><span>{{ store.invoice.party_company || store.invoice.party_name }}</span></p>
+              <p><strong>Address</strong><span>{{ store.invoice.party_address }}</span></p>
+              <p><strong>Contact Person</strong><span>{{ store.invoice.party_contact }}</span></p>
+            </div>
+            <dl>
+              <div><dt>Invoice</dt><dd>{{ store.invoice.invoice_no }}</dd></div>
+              <div><dt>Date</dt><dd>{{ store.invoice.invoice_date }}</dd></div>
+            </dl>
           </div>
-          <div class="invoice-no">
-            <strong>{{ store.invoice.invoice_no }}</strong
-            ><span>{{ store.invoice.direction === 'receivable' ? 'Receivable' : 'Payable' }}</span>
-          </div>
-        </header>
-        <div class="party-grid">
-          <div>
-            <span class="muted">{{
-              store.invoice.direction === 'receivable' ? 'Bill to' : 'Pay to'
-            }}</span
-            ><strong>{{ store.invoice.party_company || store.invoice.party_name }}</strong
-            ><span v-if="store.invoice.party_contact">{{ store.invoice.party_contact }}</span
-            ><span v-if="store.invoice.party_address">{{ store.invoice.party_address }}</span
-            ><span v-if="store.invoice.party_phone">{{ store.invoice.party_phone }}</span
-            ><span v-if="store.invoice.party_tax_number"
-              >Tax registration: {{ store.invoice.party_tax_number }}</span
-            >
-          </div>
-          <dl>
-            <div>
-              <dt>Invoice date</dt>
-              <dd>{{ store.invoice.invoice_date }}</dd>
-            </div>
-            <div>
-              <dt>Due date</dt>
-              <dd>{{ store.invoice.due_date || '—' }}</dd>
-            </div>
-            <div>
-              <dt>Category</dt>
-              <dd>{{ store.invoice.category.replaceAll('_', ' ') }}</dd>
-            </div>
-            <div v-if="store.invoice.source">
-              <dt>Source</dt>
-              <dd>
-                <RouterLink :to="`/jobs/${store.invoice.source.id}`">{{
-                  store.invoice.source.code
-                }}</RouterLink>
-              </dd>
-            </div>
-          </dl>
-        </div>
-        <div class="table-wrap">
-          <table v-if="store.invoice.category === 'job'">
+
+          <table class="invoice-table transport-table">
             <thead>
               <tr>
-                <th>Sr</th>
+                <th>SR</th>
                 <th>Details</th>
-                <th>Truck no</th>
+                <th>Truck No</th>
                 <th>Pickup</th>
                 <th>Drop</th>
                 <th>Date</th>
@@ -118,17 +97,52 @@ onMounted(load)
               <tr v-for="(item, index) in store.invoice.items" :key="item.id">
                 <td>{{ index + 1 }}</td>
                 <td>{{ item.description }}</td>
-                <td>{{ item.details?.truck_no || '—' }}</td>
-                <td>{{ item.details?.pickup || '—' }}</td>
-                <td>{{ item.details?.drop || '—' }}</td>
-                <td>{{ item.details?.date || '—' }}</td>
-                <td>{{ item.details?.type || '—' }}</td>
-                <td>{{ item.details?.ton || '—' }}</td>
-                <td>{{ money(item.amount) }}</td>
+                <td>{{ item.details?.truck_no }}</td>
+                <td>{{ item.details?.pickup }}</td>
+                <td>{{ item.details?.drop }}</td>
+                <td>{{ item.details?.date }}</td>
+                <td>{{ item.details?.type }}</td>
+                <td>{{ item.details?.ton }}</td>
+                <td class="amount">{{ money(item.amount) }}</td>
+              </tr>
+              <tr class="total-row">
+                <td colspan="8">total</td>
+                <td class="amount">{{ money(store.invoice.total) }}</td>
               </tr>
             </tbody>
           </table>
-          <table v-else-if="store.invoice.category === 'vehicle_rental'">
+
+          <div class="transport-footer">
+            <div class="bank-details"><strong>Bank Details</strong><span>{{ store.invoice.company_bank_details }}</span></div>
+            <div class="signature"><span></span><strong>Signature</strong></div>
+          </div>
+        </template>
+
+        <template v-else>
+          <header class="tax-header">
+            <div>
+              <h1>SALES TAX INVOICE</h1>
+              <p>STR NO: {{ store.invoice.company_str_no }}</p>
+              <p>NTN NO: {{ store.invoice.company_ntn_no }}</p>
+              <p>STNT NO: {{ store.invoice.company_stnt_no }}</p>
+            </div>
+            <strong class="original">Original</strong>
+          </header>
+
+          <div class="tax-meta">
+            <div>
+              <p><strong>Invoice No</strong><span>{{ store.invoice.invoice_no }}</span></p>
+              <p><strong>Date</strong><span>{{ store.invoice.invoice_date }}</span></p>
+              <p><strong>Client Name</strong><span>{{ store.invoice.party_company || store.invoice.party_name }}</span></p>
+              <p><strong>Address</strong><span>{{ store.invoice.party_address }}</span></p>
+            </div>
+            <div class="client-tax">
+              <p><strong>NTN No</strong><span>{{ store.invoice.party_ntn_no }}</span></p>
+              <p><strong>STR No</strong><span>{{ store.invoice.party_str_no }}</span></p>
+            </div>
+          </div>
+
+          <table class="invoice-table rental-table">
             <thead>
               <tr>
                 <th>Quantity</th>
@@ -139,261 +153,155 @@ onMounted(load)
             </thead>
             <tbody>
               <tr v-for="item in store.invoice.items" :key="item.id">
-                <td>{{ item.quantity }} {{ item.unit || 'Unit' }}</td>
-                <td>
-                  {{ item.description }}
-                  <div class="muted">
-                    {{
-                      [
-                        item.details?.vehicle_make,
-                        item.details?.registration,
-                        item.details?.delivery_date,
-                        item.details?.period,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')
-                    }}
-                  </div>
-                </td>
-                <td>{{ money(item.unit_price) }}</td>
-                <td>{{ money(item.amount) }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <table v-else>
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th>Qty</th>
-                <th>Unit</th>
-                <th>Unit price</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in store.invoice.items" :key="item.id">
-                <td>
-                  {{ item.description }}
-                  <div class="muted" v-if="item.details">
-                    {{
-                      Object.entries(item.details)
-                        .map(([key, value]) => `${key.replaceAll('_', ' ')}: ${value}`)
-                        .join(' · ')
-                    }}
-                  </div>
-                </td>
                 <td>{{ item.quantity }}</td>
-                <td>{{ item.unit || '—' }}</td>
-                <td>{{ money(item.unit_price) }}</td>
-                <td>{{ money(item.amount) }}</td>
+                <td>{{ item.description }}</td>
+                <td class="amount">{{ money(item.unit_price) }}</td>
+                <td class="amount">{{ money(item.amount) }}</td>
               </tr>
             </tbody>
           </table>
-        </div>
-        <div class="total-box">
-          <div>
-            <span>Subtotal</span><strong>{{ money(store.invoice.subtotal) }}</strong>
-          </div>
-          <div v-if="Number(store.invoice.tax_amount)">
-            <span>{{ store.invoice.tax_label || 'Tax' }}</span
-            ><strong>{{ money(store.invoice.tax_amount) }}</strong>
-          </div>
-          <div class="grand">
-            <span>Total</span><strong>{{ money(store.invoice.total) }}</strong>
-          </div>
-        </div>
-        <p v-if="store.invoice.notes" class="invoice-notes">{{ store.invoice.notes }}</p>
+
+          <div class="tax-total"><strong>Total Amount</strong><span>{{ money(store.invoice.total) }}</span></div>
+          <div class="amount-words"><strong>Amount in Word</strong><span>{{ amountInWords(store.invoice.total) }}</span></div>
+          <div class="signature"><span></span><strong>Signature</strong></div>
+        </template>
       </section>
-      <section class="summary-grid">
+
+      <section class="summary-grid no-print">
+        <div class="card"><span>Total</span><strong>{{ money(store.invoice.total) }}</strong></div>
         <div class="card">
-          <span>Total</span><strong>{{ money(store.invoice.total) }}</strong>
+          <span>{{ store.invoice.direction === 'receivable' ? 'Received' : 'Paid' }}</span>
+          <strong>{{ money(store.invoice.paid_amount) }}</strong>
         </div>
-        <div class="card">
-          <span>{{ store.invoice.direction === 'receivable' ? 'Received' : 'Paid' }}</span
-          ><strong>{{ money(store.invoice.paid_amount) }}</strong>
-        </div>
-        <div class="card">
-          <span>Outstanding</span><strong>{{ money(store.invoice.outstanding_amount) }}</strong>
-        </div>
+        <div class="card"><span>Outstanding</span><strong>{{ money(store.invoice.outstanding_amount) }}</strong></div>
         <div class="card"><span>Status</span><FinanceStatus :status="store.invoice.status" /></div>
       </section>
-      <section class="card history">
+
+      <section class="card history no-print">
         <h2>Payment history</h2>
         <p v-if="!store.invoice.payments?.length" class="muted">No payments recorded.</p>
         <div v-for="payment in store.invoice.payments" :key="payment.id" class="payment-row">
           <div>
-            <strong>{{ payment.payment_no }}</strong
-            ><span
-              >{{ payment.payment_date }} · {{ payment.payment_method || 'unspecified method'
-              }}<span v-if="payment.reference"> · {{ payment.reference }}</span></span
-            >
+            <strong>{{ payment.payment_no }}</strong>
+            <span>{{ payment.payment_date }} · {{ payment.payment_method || 'unspecified method' }}<span v-if="payment.reference"> · {{ payment.reference }}</span></span>
           </div>
           <strong>{{ money(payment.amount) }}</strong>
         </div>
       </section>
-      <InvoicePaymentForm :invoice="store.invoice" @saved="load" />
+      <InvoicePaymentForm class="no-print" :invoice="store.invoice" @saved="load" />
     </article>
   </StatePanel>
 </template>
 
 <style scoped>
-.invoice-detail {
-  display: grid;
-  gap: var(--space-4);
-}
-.page-heading,
-.actions,
-.invoice-head,
-.party-grid,
-.payment-row {
+.invoice-detail { display: grid; gap: var(--space-4); }
+.page-heading, .actions, .transport-header, .transport-meta, .transport-footer, .payment-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
 }
-.section-kicker {
-  color: var(--text-muted);
-  display: block;
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-}
+.section-kicker { color: var(--text-muted); display: block; font-size: var(--text-xs); text-transform: uppercase; }
 .invoice-paper {
-  padding: 32px;
+  background: #fff;
+  border: 1px solid #222;
+  color: #111;
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0 auto;
+  max-width: 1100px;
+  padding: 30px 36px;
 }
-.invoice-head {
-  border-bottom: 2px solid var(--text-primary);
-  padding-bottom: var(--space-4);
-}
-.invoice-no {
-  display: grid;
-  text-align: right;
-}
-.party-grid {
-  align-items: flex-start;
-  padding: var(--space-5) 0;
-}
-.party-grid > div {
-  display: grid;
-  gap: var(--space-1);
-  max-width: 55%;
-}
-dl {
-  margin: 0;
-  min-width: 220px;
-}
-dl div,
-.total-box div {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: 5px 0;
-}
-dt,
-.total-box span {
-  color: var(--text-muted);
-}
-dd {
-  margin: 0;
-  text-align: right;
-  text-transform: capitalize;
-}
-.table-wrap {
-  overflow-x: auto;
-}
-table {
-  border-collapse: collapse;
-  width: 100%;
-}
-th,
-td {
-  border-bottom: 1px solid var(--border);
-  padding: 12px 8px;
-  text-align: left;
-  vertical-align: top;
-}
-th {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-}
-.muted {
-  font-size: var(--text-sm);
-}
-.total-box {
-  margin: var(--space-4) 0 0 auto;
-  max-width: 340px;
-}
-.total-box .grand {
-  border-top: 1px solid var(--border-strong);
-  font-size: var(--text-lg);
-  margin-top: var(--space-2);
-  padding-top: var(--space-3);
-}
-.invoice-notes {
-  border-top: 1px solid var(--border);
-  margin-top: var(--space-4);
-  padding-top: var(--space-3);
-  white-space: pre-wrap;
-}
-.summary-grid {
-  display: grid;
-  gap: var(--space-3);
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-.summary-grid .card {
-  display: grid;
-  gap: var(--space-2);
-}
-.summary-grid span {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-}
-.summary-grid strong {
-  font-size: var(--text-lg);
-}
-.history {
-  display: grid;
-  gap: var(--space-3);
-}
-.payment-row {
-  border-bottom: 1px solid var(--border);
-  padding: 10px 0;
-}
-.payment-row div {
-  display: grid;
-  gap: 3px;
-}
-.payment-row span {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-}
+.invoice-paper p { margin: 0; }
+.transport-header { border-bottom: 1px solid #222; justify-content: center; min-height: 90px; padding-bottom: 14px; text-align: center; }
+.company-heading h1 { font-size: 25px; letter-spacing: 1px; margin: 0 0 6px; }
+.company-heading p { font-size: 12px; margin-top: 3px; }
+.company-logo { max-height: 76px; max-width: 110px; object-fit: contain; }
+.transport-meta { align-items: flex-start; margin: 22px 0; }
+.client-details { display: grid; gap: 8px; }
+.client-details p, .tax-meta p { display: grid; gap: 4px; }
+.transport-meta dl { margin: 0; min-width: 180px; }
+.transport-meta dl div { display: flex; gap: 18px; justify-content: space-between; padding: 3px 0; }
+.transport-meta dt { font-weight: 700; }
+.transport-meta dd { margin: 0; }
+.invoice-table { border-collapse: collapse; color: #111; table-layout: fixed; width: 100%; }
+.invoice-table th, .invoice-table td { border: 1px solid #222; padding: 7px 5px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.invoice-table th { font-weight: 700; text-align: center; }
+.transport-table { font-size: 10px; }
+.transport-table th:nth-child(1) { width: 5%; }
+.transport-table th:nth-child(2) { width: 21%; }
+.transport-table th:nth-child(3) { width: 11%; }
+.transport-table th:nth-child(4), .transport-table th:nth-child(5) { width: 12%; }
+.transport-table th:nth-child(6) { width: 10%; }
+.transport-table th:nth-child(7) { width: 9%; }
+.transport-table th:nth-child(8) { width: 7%; }
+.transport-table th:nth-child(9) { width: 13%; }
+.amount { text-align: right !important; white-space: nowrap; }
+.total-row td { font-weight: 700; }
+.total-row td:first-child { text-align: right; text-transform: lowercase; }
+.transport-footer { align-items: flex-end; margin-top: 34px; }
+.bank-details { display: grid; gap: 5px; max-width: 65%; white-space: pre-line; }
+.signature { display: grid; gap: 7px; justify-items: center; margin: 50px 10px 0 auto; min-width: 150px; text-align: center; }
+.signature > span { border-top: 1px solid #222; width: 100%; }
+.tax-header { display: flex; justify-content: space-between; }
+.tax-header h1 { font-size: 21px; margin: 0 0 13px; }
+.tax-header p { font-size: 12px; margin-top: 4px; }
+.original { border: 1px solid #222; font-size: 12px; height: fit-content; padding: 4px 12px; }
+.tax-meta { display: grid; gap: 20px; grid-template-columns: 2fr 1fr; margin: 24px 0; }
+.tax-meta > div { display: grid; gap: 10px; }
+.tax-meta p { grid-template-columns: 110px 1fr; }
+.client-tax { align-content: start; }
+.rental-table th:first-child { width: 16%; }
+.rental-table th:nth-child(2) { width: 46%; }
+.rental-table th:nth-child(3), .rental-table th:nth-child(4) { width: 19%; }
+.rental-table td { height: 31px; }
+.tax-total, .amount-words { display: flex; gap: 16px; margin-top: 14px; }
+.tax-total { justify-content: flex-end; }
+.amount-words { border-bottom: 1px solid #222; padding-bottom: 9px; }
+.amount-words span { text-transform: capitalize; }
+.summary-grid { display: grid; gap: var(--space-3); grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.summary-grid .card { display: grid; gap: var(--space-2); }
+.summary-grid span, .muted, .payment-row span { color: var(--text-muted); font-size: var(--text-sm); }
+.summary-grid strong { font-size: var(--text-lg); }
+.history { display: grid; gap: var(--space-3); }
+.payment-row { border-bottom: 1px solid var(--border); padding: 10px 0; }
+.payment-row div { display: grid; gap: 3px; }
+
+@page { size: A4 portrait; margin: 12mm; }
 @media print {
-  :global(body) {
-    background: white;
+  :global(html), :global(body), :global(#app) { background: #fff !important; height: 0 !important; margin: 0 !important; min-height: 0 !important; }
+  :global(body *) { visibility: hidden !important; }
+  :global(.app), :global(.content), :global(.app-content), .invoice-detail {
+    display: block !important;
+    flex: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    padding: 0 !important;
   }
-  .no-print {
-    display: none !important;
-  }
-  .invoice-detail {
-    display: block;
-  }
-  .invoice-detail > * {
-    margin-bottom: 16px;
-  }
+  .invoice-paper, .invoice-paper * { visibility: visible !important; }
   .invoice-paper {
     border: 0;
     box-shadow: none;
+    left: 0;
+    margin: 0;
+    max-width: none;
     padding: 0;
+    position: absolute;
+    top: 0;
+    width: 100%;
   }
+  .transport-table { font-size: 8px; }
+  .transport-table th, .transport-table td { padding: 5px 3px; }
+  .invoice-table thead { display: table-header-group; }
+  .transport-footer, .tax-total, .amount-words, .signature { break-inside: avoid; }
+  .invoice-table tr { break-inside: avoid; }
 }
 @media (max-width: 700px) {
-  .party-grid {
-    flex-direction: column;
-  }
-  .party-grid > div {
-    max-width: none;
-  }
-  .summary-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  .invoice-paper { overflow-x: auto; padding: 18px; }
+  .transport-meta { flex-direction: column; }
+  .transport-table { min-width: 720px; }
+  .summary-grid { grid-template-columns: repeat(2, 1fr); }
+  .tax-meta { grid-template-columns: 1fr; }
 }
 </style>

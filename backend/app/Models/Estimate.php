@@ -17,6 +17,7 @@ class Estimate extends Model
         'pickup',
         'destination',
         'service_type',
+        'tonnage',
         'estimated_cost',
         'estimated_sell',
         'estimated_profit',
@@ -27,6 +28,7 @@ class Estimate extends Model
     protected $casts = [
         'estimate_date' => 'date',
         'valid_until' => 'date',
+        'tonnage' => 'decimal:3',
     ];
 
     public function customer()

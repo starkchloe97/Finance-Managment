@@ -76,25 +76,7 @@ class InvoiceService
     {
         return DB::transaction(function () use ($data, $userId) {
             $customer = ! empty($data['customer_id']) ? Customer::findOrFail($data['customer_id']) : null;
-            $subtotal = 0.0;
-            $lines = [];
-            foreach ($data['items'] as $item) {
-                $amount = round((float) $item['quantity'] * (float) $item['unit_price'], 2);
-                $subtotal = round($subtotal + $amount, 2);
-                $lines[] = $item + ['amount' => $amount];
-            }
-            $tax = round((float) ($data['tax_amount'] ?? 0), 2);
-            $total = round($subtotal + $tax, 2);
-            if ($total <= 0) {
-                throw ValidationException::withMessages([
-                    'items' => 'Invoice total must be greater than zero.',
-                ]);
-            }
-            if ($total > 9999999999999.99 || collect($lines)->contains(fn ($line) => $line['amount'] > 9999999999999.99)) {
-                throw ValidationException::withMessages([
-                    'items' => 'Invoice amounts exceed the maximum supported value.',
-                ]);
-            }
+            [$subtotal, $tax, $total, $lines] = $this->calculateTotals($data);
 
             $invoice = Invoice::create([
                 'invoice_no' => NumberGenerator::generate(
@@ -109,11 +91,18 @@ class InvoiceService
                 'party_contact' => $data['party_contact'] ?? null,
                 'party_phone' => $customer?->phone ?? ($data['party_phone'] ?? null),
                 'party_address' => $customer?->address ?? ($data['party_address'] ?? null),
-                'party_tax_number' => $data['party_tax_number'] ?? null,
-                'company_name' => $data['company_name'] ?? null,
-                'company_phone' => $data['company_phone'] ?? null,
-                'company_address' => $data['company_address'] ?? null,
-                'company_tax_number' => $data['company_tax_number'] ?? null,
+                'party_tax_number' => $data['party_tax_number'] ?? ($data['party_ntn_no'] ?? null),
+                'party_ntn_no' => $data['party_ntn_no'] ?? ($data['party_tax_number'] ?? null),
+                'party_str_no' => $data['party_str_no'] ?? null,
+                'company_name' => $data['company_name'] ?? config('invoice.company_name'),
+                'company_phone' => $data['company_phone'] ?? config('invoice.company_phone'),
+                'company_address' => $data['company_address'] ?? config('invoice.company_address'),
+                'company_tax_number' => $data['company_tax_number'] ?? ($data['company_ntn_no'] ?? config('invoice.company_ntn_no')),
+                'company_str_no' => $data['company_str_no'] ?? config('invoice.company_str_no'),
+                'company_ntn_no' => $data['company_ntn_no'] ?? ($data['company_tax_number'] ?? config('invoice.company_ntn_no')),
+                'company_stnt_no' => $data['company_stnt_no'] ?? config('invoice.company_stnt_no'),
+                'company_bank_details' => $data['company_bank_details'] ?? config('invoice.company_bank_details'),
+                'company_logo_url' => $data['company_logo_url'] ?? config('invoice.company_logo_url'),
                 'invoice_date' => $data['invoice_date'],
                 'due_date' => $data['due_date'] ?? null,
                 'subtotal' => $subtotal,
@@ -140,10 +129,74 @@ class InvoiceService
         });
     }
 
+    public function update(Invoice $invoice, array $data): Invoice
+    {
+        return DB::transaction(function () use ($invoice, $data) {
+            $invoice = Invoice::query()->lockForUpdate()->findOrFail($invoice->id);
+            if ($invoice->transport_job_id || $invoice->allocations()->exists()) {
+                throw ValidationException::withMessages([
+                    'invoice' => 'Invoices linked to a job or with payment history cannot be edited.',
+                ]);
+            }
+            if (
+                $data['direction'] !== $invoice->direction->value ||
+                $data['category'] !== $invoice->category
+            ) {
+                throw ValidationException::withMessages([
+                    'category' => 'Invoice direction and category cannot be changed.',
+                ]);
+            }
+
+            $customer = ! empty($data['customer_id']) ? Customer::findOrFail($data['customer_id']) : null;
+            [$subtotal, $tax, $total, $lines] = $this->calculateTotals($data);
+            $invoice->update([
+                'customer_id' => $customer?->id,
+                'party_name' => $customer?->name ?? $data['party_name'],
+                'party_company' => $customer?->company ?? ($data['party_company'] ?? null),
+                'party_contact' => $data['party_contact'] ?? null,
+                'party_phone' => $customer?->phone ?? ($data['party_phone'] ?? null),
+                'party_address' => $customer?->address ?? ($data['party_address'] ?? null),
+                'party_tax_number' => $data['party_tax_number'] ?? ($data['party_ntn_no'] ?? null),
+                'party_ntn_no' => $data['party_ntn_no'] ?? ($data['party_tax_number'] ?? null),
+                'party_str_no' => $data['party_str_no'] ?? null,
+                'company_name' => $data['company_name'] ?? config('invoice.company_name'),
+                'company_phone' => $data['company_phone'] ?? config('invoice.company_phone'),
+                'company_address' => $data['company_address'] ?? config('invoice.company_address'),
+                'company_tax_number' => $data['company_tax_number'] ?? ($data['company_ntn_no'] ?? config('invoice.company_ntn_no')),
+                'company_str_no' => $data['company_str_no'] ?? config('invoice.company_str_no'),
+                'company_ntn_no' => $data['company_ntn_no'] ?? ($data['company_tax_number'] ?? config('invoice.company_ntn_no')),
+                'company_stnt_no' => $data['company_stnt_no'] ?? config('invoice.company_stnt_no'),
+                'company_bank_details' => $data['company_bank_details'] ?? config('invoice.company_bank_details'),
+                'company_logo_url' => $data['company_logo_url'] ?? config('invoice.company_logo_url'),
+                'invoice_date' => $data['invoice_date'],
+                'due_date' => $data['due_date'] ?? null,
+                'subtotal' => $subtotal,
+                'tax_amount' => $tax,
+                'tax_label' => $data['tax_label'] ?? null,
+                'tax_number' => $data['tax_number'] ?? null,
+                'total' => $total,
+                'notes' => $data['notes'] ?? null,
+            ]);
+            $invoice->items()->delete();
+            foreach ($lines as $line) {
+                $invoice->items()->create([
+                    'description' => $line['description'],
+                    'quantity' => $line['quantity'],
+                    'unit' => $line['unit'] ?? null,
+                    'unit_price' => $line['unit_price'],
+                    'amount' => $line['amount'],
+                    'details' => $line['details'] ?? null,
+                ]);
+            }
+
+            return $this->loadInvoice($invoice);
+        });
+    }
+
     public function createForJob(TransportJob $job, int $userId): Invoice
     {
         return DB::transaction(function () use ($job, $userId) {
-            $job = TransportJob::query()->with(['customer', 'estimate'])->lockForUpdate()->findOrFail($job->id);
+            $job = TransportJob::query()->with(['customer', 'estimate.items.vehicles.asset'])->lockForUpdate()->findOrFail($job->id);
             if ($job->status->value !== 'completed') {
                 throw ValidationException::withMessages([
                     'job' => 'An invoice can only be generated for a completed job.',
@@ -160,6 +213,13 @@ class InvoiceService
                 ]);
             }
             $customer = $job->customer;
+            $estimate = $job->estimate;
+            $truckNumbers = $estimate?->items
+                ->flatMap(fn ($item) => $item->vehicles)
+                ->map(fn ($vehicle) => $vehicle->registration_number ?? $vehicle->asset?->registration_number)
+                ->filter()
+                ->unique()
+                ->implode(', ');
             $invoice = Invoice::create([
                 'invoice_no' => NumberGenerator::generate('SI', Invoice::class),
                 'direction' => InvoiceDirection::Receivable,
@@ -168,8 +228,18 @@ class InvoiceService
                 'transport_job_id' => $job->id,
                 'party_name' => $customer?->name ?? 'Customer',
                 'party_company' => $customer?->company,
+                'party_contact' => $customer?->company ? $customer->name : null,
                 'party_phone' => $customer?->phone,
                 'party_address' => $customer?->address,
+                'company_name' => config('invoice.company_name'),
+                'company_phone' => config('invoice.company_phone'),
+                'company_address' => config('invoice.company_address'),
+                'company_tax_number' => config('invoice.company_ntn_no'),
+                'company_str_no' => config('invoice.company_str_no'),
+                'company_ntn_no' => config('invoice.company_ntn_no'),
+                'company_stnt_no' => config('invoice.company_stnt_no'),
+                'company_bank_details' => config('invoice.company_bank_details'),
+                'company_logo_url' => config('invoice.company_logo_url'),
                 'invoice_date' => today(),
                 'subtotal' => $job->sell_price,
                 'tax_amount' => 0,
@@ -184,8 +254,12 @@ class InvoiceService
                 'amount' => $job->sell_price,
                 'details' => [
                     'job_code' => $job->code,
-                    'pickup' => $job->estimate?->pickup,
-                    'drop' => $job->estimate?->destination,
+                    'truck_no' => $truckNumbers ?: null,
+                    'pickup' => $estimate?->pickup,
+                    'drop' => $estimate?->destination,
+                    'date' => $job->job_date?->toDateString(),
+                    'type' => $estimate?->service_type,
+                    'ton' => $estimate?->tonnage,
                 ],
             ]);
 
@@ -299,5 +373,31 @@ class InvoiceService
             'customer', 'transportJob', 'items',
             'allocations.payment', 'allocations.invoice',
         ])->loadSum('allocations as paid_amount_sum', 'amount');
+    }
+
+    private function calculateTotals(array $data): array
+    {
+        $subtotal = 0.0;
+        $lines = [];
+        foreach ($data['items'] as $item) {
+            $amount = round((float) $item['quantity'] * (float) $item['unit_price'], 2);
+            $subtotal = round($subtotal + $amount, 2);
+            $item['amount'] = $amount;
+            $lines[] = $item;
+        }
+        $tax = round((float) ($data['tax_amount'] ?? 0), 2);
+        $total = round($subtotal + $tax, 2);
+        if ($total <= 0) {
+            throw ValidationException::withMessages([
+                'items' => 'Invoice total must be greater than zero.',
+            ]);
+        }
+        if ($total > 9999999999999.99 || collect($lines)->contains(fn ($line) => $line['amount'] > 9999999999999.99)) {
+            throw ValidationException::withMessages([
+                'items' => 'Invoice amounts exceed the maximum supported value.',
+            ]);
+        }
+
+        return [$subtotal, $tax, $total, $lines];
     }
 }

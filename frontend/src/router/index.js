@@ -16,6 +16,7 @@ const routes = [
       { path: '', name: 'dashboard', component: Dashboard, meta: secure('Dashboard') },
       { path: 'invoices', name: 'invoices.index', component: () => import('@/pages/invoices/Invoices.vue'), meta: secure('Finance / Invoices') },
       { path: 'invoices/create', name: 'invoices.create', component: () => import('@/pages/invoices/InvoiceCreate.vue'), meta: secure('Finance / Invoices / Create') },
+      { path: 'invoices/:id/edit', name: 'invoices.edit', component: () => import('@/pages/invoices/InvoiceCreate.vue'), meta: secure('Finance / Invoices / Edit') },
       { path: 'invoices/:id', name: 'invoices.show', component: () => import('@/pages/invoices/InvoiceShow.vue'), meta: secure('Finance / Invoices / Details') },
       { path: 'receivables', name: 'receivables.index', component: () => import('@/pages/invoices/Invoices.vue'), meta: secure('Finance / Receivables') },
       { path: 'payables', name: 'payables.index', component: () => import('@/pages/invoices/Invoices.vue'), meta: secure('Finance / Payables') },
