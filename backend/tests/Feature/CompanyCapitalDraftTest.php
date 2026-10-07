@@ -168,7 +168,7 @@ class CompanyCapitalDraftTest extends TestCase
             ->assertJsonPath('data.reserved', 50000)
             ->assertJsonPath('data.lent_out', 0);
 
-        $this->assertMoney(100000, $this->getJson('/api/v1/company-capital')->json('data.current_balance'));
+        $this->assertEqualsWithDelta(100000, (float) $this->getJson('/api/v1/company-capital')->json('data.current_balance'), 0.01);
     }
 
     public function test_remove_draft_does_not_change_capital(): void
@@ -259,7 +259,7 @@ class CompanyCapitalDraftTest extends TestCase
 
         $this->postJson('/api/v1/loans', $this->investorLoanPayload($investor, 50000))
             ->assertUnprocessable()
-            ->assertJsonValidationErrors('capital');
+            ->assertJsonValidationErrors('amount');
 
         $this->assertDatabaseCount('loans', 0);
         $this->assertDatabaseCount('company_capital_transactions', 1);

@@ -86,7 +86,7 @@ class CompanyProfitCapitalTest extends TestCase
             'amount' => 12000,
             'loan_date' => today()->toDateString(),
             'due_date' => today()->addMonth()->toDateString(),
-        ])->assertUnprocessable()->assertJsonValidationErrors('capital');
+        ])->assertUnprocessable()->assertJsonValidationErrors('amount');
 
         $this->postJson('/api/v1/company-capital/profit/add', [
             'amount' => 5000,

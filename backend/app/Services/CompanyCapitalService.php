@@ -325,6 +325,7 @@ class CompanyCapitalService
     {
         return CompanyCapitalDraftActivity::with('draft')
             ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->limit(50)
             ->get()
             ->map(fn ($activity) => [

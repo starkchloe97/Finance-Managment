@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   getJob,
   updateJobStatus,
@@ -21,8 +21,12 @@ import JobExpenses from '@/components/jobs/JobExpenses.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import InfoTip from '@/components/ui/InfoTip.vue'
 import { avatarStyle, initialOf } from '@/utils/avatar'
+import { useInvoiceStore } from '@/stores/invoiceStore'
 
 const route = useRoute()
+const router = useRouter()
+const invoiceStore = useInvoiceStore()
+const invoiceCreating = ref(false)
 
 const job = ref(null)
 const loading = ref(true)
@@ -145,6 +149,21 @@ const moveStatus = async () => {
   }
 }
 
+const createInvoice = async () => {
+  if (invoiceCreating.value) return
+  invoiceCreating.value = true
+  actionError.value = ''
+  try {
+    const invoice = await invoiceStore.generateJobInvoice(job.value.id)
+    await load()
+    await router.push(`/invoices/${invoice.id}`)
+  } catch (e) {
+    fail(e, 'Could not generate invoice')
+  } finally {
+    invoiceCreating.value = false
+  }
+}
+
 const saveNotes = async () => {
   notesSaved.value = false
   actionError.value = ''
@@ -229,6 +248,12 @@ onMounted(load)
             </button>
             <span v-else class="hero-done">Completed — no stages left</span>
             <button type="button" class="btn-light" @click="goToExpenses">+ Add Expense</button>
+            <RouterLink v-if="job.invoices?.length" class="btn-light" :to="`/invoices/${job.invoices[0].id}`">
+              {{ job.invoices[0].invoice_no }} · View invoice
+            </RouterLink>
+            <button v-else-if="job.status === 'completed'" type="button" class="btn-light" :disabled="invoiceCreating" @click="createInvoice">
+              {{ invoiceCreating ? 'Generating…' : 'Generate invoice' }}
+            </button>
           </div>
         </div>
 

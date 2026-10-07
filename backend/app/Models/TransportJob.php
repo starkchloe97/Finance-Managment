@@ -79,6 +79,11 @@ class TransportJob extends Model
         return $this->hasMany(FinancialAdjustment::class, 'transport_job_id');
     }
 
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
     public function investors(): BelongsToMany
     {
         return $this->belongsToMany(Investor::class, 'investment_allocations', 'transport_job_id', 'investment_id')

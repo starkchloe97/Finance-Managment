@@ -69,6 +69,7 @@ const marginSpark = () =>
 
 const kpis = computed(() => {
   const data = dashboard.value?.kpis || {}
+  const accounting = data.accounting || {}
   const plannedCost = data.planned_cost || data.cost
   const actualCost = data.actual_cost || plannedCost
   const profit = data.profit
@@ -142,6 +143,20 @@ const kpis = computed(() => {
           trendLabel: 'active job change versus previous period',
           variant: 'jobs',
         },
+    ...[
+      ['Total receivables', accounting.receivables, 'All open customer invoices'],
+      ['Total payables', accounting.payables, 'All open supplier and expense bills'],
+      ['Overdue receivables', accounting.overdue_receivables, 'Customer invoices past due'],
+      ['Overdue payables', accounting.overdue_payables, 'Bills past due'],
+      ['Commission receivable', accounting.commission_receivable, 'Commission earned but not received'],
+    ].map(([title, value, subtitle]) => ({
+      title,
+      value: money(value),
+      subtitle,
+      icon: 'cost',
+      variant: 'cost',
+      tip: subtitle,
+    })),
   ]
 })
 

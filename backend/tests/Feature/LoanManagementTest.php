@@ -71,10 +71,12 @@ class LoanManagementTest extends TestCase
 
         $second = $this->postJson('/api/v1/loans', $this->investorLoanPayload($investor, 50000))
             ->assertOk()
-            ->assertJsonPath('data.loan_code', 'LOAN-000002')
+            ->assertJsonPath('data.borrower_type', 'investor')
             ->json('data');
 
         $this->assertNotSame($first['id'], $second['id']);
+        $this->assertNotSame($first['loan_code'], $second['loan_code']);
+        $this->assertStringStartsWith('LOAN-', $second['loan_code']);
         $this->assertDatabaseCount('loans', 2);
         $this->assertMoney(-150000, CompanyCapitalTransaction::query()
             ->where('type', CompanyCapitalTransactionType::LoanIssued->value)

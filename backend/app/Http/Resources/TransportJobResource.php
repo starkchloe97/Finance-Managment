@@ -34,6 +34,13 @@ class TransportJobResource extends JsonResource
             'financial_adjustments' => FinancialAdjustmentResource::collection(
                 $this->whenLoaded('financialAdjustments')
             ),
+            'invoices' => $this->whenLoaded('invoices', fn () => $this->invoices->map(fn ($invoice) => [
+                'id' => $invoice->id,
+                'invoice_no' => $invoice->invoice_no,
+                'status' => $invoice->status,
+                'total' => $invoice->total,
+                'outstanding_amount' => $invoice->outstanding_amount,
+            ])->values()),
         ];
     }
 }

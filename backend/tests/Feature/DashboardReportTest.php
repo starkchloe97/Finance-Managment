@@ -26,11 +26,11 @@ class DashboardReportTest extends TestCase
             ->assertJsonPath('meta.period', 'this_month')
             ->assertJsonPath('meta.scopes.kpis', 'selected_period')
             ->assertJsonPath('meta.scopes.current_pipeline', 'all_jobs')
-            ->assertJsonPath('kpis.cost.value', 600)
-            ->assertJsonPath('kpis.planned_cost.value', 600)
-            ->assertJsonPath('kpis.actual_cost.value', 650)
-            ->assertJsonPath('kpis.extra_costs.value', 50)
-            ->assertJsonPath('kpis.profit.value', 350)
+            ->assertJsonPath('kpis.cost.value', '600.00')
+            ->assertJsonPath('kpis.planned_cost.value', '600.00')
+            ->assertJsonPath('kpis.actual_cost.value', '650.00')
+            ->assertJsonPath('kpis.extra_costs.value', '50.00')
+            ->assertJsonPath('kpis.profit.value', '350.00')
             ->assertJsonPath('kpis.profit_margin.value', 35)
             ->assertJsonPath('kpis.available_profit.value', 350)
             ->assertJsonPath('current_pipeline.confirmed', 1);
@@ -48,7 +48,7 @@ class DashboardReportTest extends TestCase
             ->assertJsonPath('meta.period', 'custom')
             ->assertJsonPath('meta.from', $from->toDateString())
             ->assertJsonPath('meta.to', $to->toDateString())
-            ->assertJsonPath('kpis.revenue.value', 2000);
+            ->assertJsonPath('kpis.revenue.value', '2000.00');
     }
 
     public function test_dashboard_rejects_an_invalid_custom_range(): void

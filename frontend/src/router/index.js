@@ -14,6 +14,13 @@ const routes = [
     meta: secure('Dashboard'),
     children: [
       { path: '', name: 'dashboard', component: Dashboard, meta: secure('Dashboard') },
+      { path: 'invoices', name: 'invoices.index', component: () => import('@/pages/invoices/Invoices.vue'), meta: secure('Finance / Invoices') },
+      { path: 'invoices/create', name: 'invoices.create', component: () => import('@/pages/invoices/InvoiceCreate.vue'), meta: secure('Finance / Invoices / Create') },
+      { path: 'invoices/:id', name: 'invoices.show', component: () => import('@/pages/invoices/InvoiceShow.vue'), meta: secure('Finance / Invoices / Details') },
+      { path: 'receivables', name: 'receivables.index', component: () => import('@/pages/invoices/Invoices.vue'), meta: secure('Finance / Receivables') },
+      { path: 'payables', name: 'payables.index', component: () => import('@/pages/invoices/Invoices.vue'), meta: secure('Finance / Payables') },
+      { path: 'commission-receivables', name: 'commission-receivables.index', component: () => import('@/pages/invoices/Invoices.vue'), meta: secure('Finance / Commission Receivable') },
+      { path: 'payments', name: 'payments.index', component: () => import('@/pages/invoices/Payments.vue'), meta: secure('Finance / Payments') },
       {
         path: 'customers',
         component: () => import('@/pages/customers/CustomersList.vue'),

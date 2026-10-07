@@ -79,6 +79,11 @@ const navigation = [
         to: { name: 'loans.index' },
         icon: '<path d="M7 7h10v10H7z"/><path d="M4 10V5a1 1 0 0 1 1-1h5"/><path d="M20 14v5a1 1 0 0 1-1 1h-5"/>',
       },
+      { label: 'Invoices', to: { name: 'invoices.index' }, icon: '<path d="M7 3h10l4 4v14H3V3z"/><path d="M7 12h10M7 16h10"/>' },
+      { label: 'Receivables', to: { name: 'receivables.index' }, icon: '<path d="M12 3v18m-7-7 7 7 7-7"/>' },
+      { label: 'Payables', to: { name: 'payables.index' }, icon: '<path d="M12 21V3m-7 7 7-7 7 7"/>' },
+      { label: 'Payments', to: { name: 'payments.index' }, icon: '<rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/>' },
+      { label: 'Commission Receivable', to: { name: 'commission-receivables.index' }, icon: '<path d="M12 3v18"/><path d="M17 7H9.5a3.5 3.5 0 0 0 0 7H14a3 3 0 0 1 0 6H6"/>' },
     ],
   },
 ]

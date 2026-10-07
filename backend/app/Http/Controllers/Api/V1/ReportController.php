@@ -8,12 +8,16 @@ use App\Models\Customer;
 use App\Models\Estimate;
 use App\Models\TransportJob;
 use App\Services\CompanyProfitCapitalService;
+use App\Services\InvoiceService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 
 class ReportController extends Controller
 {
-    public function __construct(private CompanyProfitCapitalService $profitCapital) {}
+    public function __construct(
+        private CompanyProfitCapitalService $profitCapital,
+        private InvoiceService $invoiceService
+    ) {}
 
     public function dashboard(DashboardRequest $request): JsonResponse
     {
@@ -87,6 +91,7 @@ class ReportController extends Controller
                     'value' => (clone $jobs)->whereNotIn('status', ['completed'])->count(),
                     'previous' => (clone $previousJobs)->whereNotIn('status', ['completed'])->count(),
                 ],
+                'accounting' => $this->invoiceService->dashboardSummary(),
             ],
             'financial_overview' => $this->financialOverview($jobs, $from, $to),
             'job_status' => (clone $jobs)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),

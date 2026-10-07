@@ -52,7 +52,7 @@ class InvestmentReturnConfigurationTest extends TestCase
         ]);
 
         $response
-            ->assertOk()
+            ->assertCreated()
             ->assertJsonPath('data.investment_category', 'pool')
             ->assertJsonPath('data.return_type', 'percentage')
             ->assertJsonPath('data.return_percentage', '10.00')
@@ -92,7 +92,7 @@ class InvestmentReturnConfigurationTest extends TestCase
         ]);
 
         $response
-            ->assertOk()
+            ->assertCreated()
             ->assertJsonPath('data.return_type', 'fixed')
             ->assertJsonPath('data.return_percentage', null)
             ->assertJsonPath('data.fixed_return_amount', '50000.00')
@@ -115,7 +115,7 @@ class InvestmentReturnConfigurationTest extends TestCase
             'period_months' => 6,
         ])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['return_type', 'fixed_return_amount']);
+            ->assertJsonValidationErrors(['return_type', 'return_percentage']);
     }
 
     public function test_pool_investment_cannot_be_allocated_to_a_job(): void
@@ -252,7 +252,7 @@ class InvestmentReturnConfigurationTest extends TestCase
         $this->postJson("/api/v1/jobs/{$job->id}/profit-distributions", [
             'investment_id' => $investment->id,
         ])
-            ->assertOk()
+            ->assertCreated()
             ->assertJsonPath('data.profit_basis', '20000.00')
             ->assertJsonPath('data.profit_share_value', '10.0000')
             ->assertJsonPath('data.profit_amount', '50000.00');

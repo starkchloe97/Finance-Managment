@@ -35,6 +35,8 @@ const TIPS = {
 const CLASSES = {
   active: 'status-success',
   paid: 'status-success',
+  partially_paid: 'status-warning',
+  unpaid: 'status-draft',
   closed: 'status-success',
   settled: 'status-success',
   matured: 'status-warning',
