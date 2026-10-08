@@ -22,17 +22,19 @@ use Illuminate\Validation\ValidationException;
 class TransportJobExpenseService
 {
     public function __construct(
-        private ActivityService $activity
+        private ActivityService $activity,
+        private InvoiceService $invoices
     ) {}
 
-    public function add(TransportJob $job, array $data): TransportJobExpense
+    public function add(TransportJob $job, array $data, ?int $userId = null): TransportJobExpense
     {
-        return DB::transaction(function () use ($job, $data) {
+        return DB::transaction(function () use ($job, $data, $userId) {
 
             $job = TransportJob::query()->lockForUpdate()->findOrFail($job->id);
             $this->ensureUnlocked($job);
 
             $expense = $job->expenses()->create($data);
+            $this->invoices->createForJobExpense($expense, $userId);
 
             $job->recalculate();
 
@@ -61,6 +63,7 @@ class TransportJobExpenseService
             $before = $this->snapshot($expense);
 
             $expense->update($data);
+            $this->invoices->syncJobExpensePayable($expense);
 
             $job->recalculate();
 
@@ -88,6 +91,7 @@ class TransportJobExpenseService
             $snapshot = $this->snapshot($expense);
             $description = "Unexpected cost removed: {$expense->title} ({$this->amount($expense)})";
 
+            $this->invoices->removeJobExpensePayable($expense);
             $expense->delete();
 
             $job->recalculate();

@@ -25,12 +25,11 @@ class InvoiceResource extends JsonResource
             'company_phone' => $this->company_phone,
             'company_address' => $this->company_address,
             'company_tax_number' => $this->company_tax_number,
-            'source' => $this->whenLoaded('transportJob', fn () => $this->transportJob ? [
-                'type' => 'transport_job',
-                'id' => $this->transportJob->id,
-                'code' => $this->transportJob->code,
-            ] : null),
+            'source' => $this->sourceData(),
             'transport_job_id' => $this->transport_job_id,
+            'job_expense_id' => $this->job_expense_id,
+            'vehicle_contract_id' => $this->vehicle_contract_id,
+            'billing_period' => $this->billing_period?->toDateString(),
             'invoice_date' => $this->invoice_date?->toDateString(),
             'due_date' => $this->due_date?->toDateString(),
             'subtotal' => $this->subtotal,
@@ -55,5 +54,37 @@ class InvoiceResource extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
+    }
+
+    private function sourceData(): ?array
+    {
+        if ($this->relationLoaded('transportJob') && $this->transportJob) {
+            return [
+                'type' => 'transport_job',
+                'id' => $this->transportJob->id,
+                'code' => $this->transportJob->code,
+            ];
+        }
+
+        if ($this->relationLoaded('jobExpense') && $this->jobExpense) {
+            return [
+                'type' => 'job_expense',
+                'id' => $this->jobExpense->id,
+                'title' => $this->jobExpense->title,
+                'job_id' => $this->jobExpense->transportJob?->id,
+                'job_code' => $this->jobExpense->transportJob?->code,
+            ];
+        }
+
+        if ($this->relationLoaded('vehicleContract') && $this->vehicleContract) {
+            return [
+                'type' => 'vehicle_contract',
+                'id' => $this->vehicleContract->id,
+                'contract_number' => $this->vehicleContract->contract_number,
+                'billing_period' => $this->billing_period?->format('Y-m'),
+            ];
+        }
+
+        return null;
     }
 }

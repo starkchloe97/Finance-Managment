@@ -31,7 +31,8 @@ class VehicleContractController extends Controller
     public function store(VehicleContractRequest $request)
     {
         $contract = $this->service->create(
-            $request->validated()
+            $request->validated(),
+            (int) $request->user()->id
         );
 
         return new VehicleContractResource(
@@ -55,7 +56,8 @@ class VehicleContractController extends Controller
         return new VehicleContractResource(
             $this->service->update(
                 $vehicleContract,
-                $request->validated()
+                $request->validated(),
+                (int) $request->user()->id
             )
         );
     }

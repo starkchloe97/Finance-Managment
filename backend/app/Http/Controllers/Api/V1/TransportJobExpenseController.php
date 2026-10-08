@@ -23,7 +23,7 @@ class TransportJobExpenseController extends Controller
 
     public function store(ExpenseRequest $request, TransportJob $job)
     {
-        $this->service->add($job, $request->validated());
+        $this->service->add($job, $request->validated(), (int) $request->user()->id);
 
         return $this->job($job);
     }
