@@ -8,6 +8,7 @@ use App\Models\Estimate;
 use App\Models\Invoice;
 use App\Models\TransportJob;
 use App\Models\User;
+use App\Models\VehicleContract;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -249,6 +250,106 @@ class InvoiceAccountingTest extends TestCase
         $this->assertSame('TRUCK-123', $response->json('data.items.0.details.truck_no'));
         $this->postJson("/api/v1/jobs/{$job->id}/invoice")->assertUnprocessable();
         $this->assertSame(50000.0, (float) $job->fresh()->final_profit);
+    }
+
+    public function test_job_expense_creates_a_linked_payable_and_keeps_it_in_sync(): void
+    {
+        $customer = Customer::create(['code' => 'CUS-JOB-EXP-PAY', 'name' => 'Job expense customer']);
+        $estimate = Estimate::create([
+            'code' => 'EST-JOB-EXP-PAY',
+            'customer_id' => $customer->id,
+            'estimate_date' => today(),
+            'pickup' => 'KHI',
+            'destination' => 'LHR',
+            'service_type' => 'goods',
+            'status' => 'accepted',
+            'estimated_sell' => 170000,
+        ]);
+        $job = TransportJob::create([
+            'code' => 'JOB-EXP-PAY',
+            'estimate_id' => $estimate->id,
+            'customer_id' => $customer->id,
+            'job_date' => today(),
+            'status' => JobStatus::Completed,
+            'sell_price' => 170000,
+            'cost_price' => 120000,
+            'base_profit' => 50000,
+            'extra_costs' => 0,
+            'final_profit' => 50000,
+        ]);
+        $payload = [
+            'title' => 'Emergency truck repair',
+            'category' => 'repair',
+            'amount' => 12500,
+            'expense_date' => today()->toDateString(),
+        ];
+
+        $this->postJson("/api/v1/jobs/{$job->id}/expenses", $payload)->assertOk();
+        $invoice = Invoice::sole();
+        $this->assertSame('payable', $invoice->direction->value);
+        $this->assertSame('supplier', $invoice->category);
+        $this->assertSame('12500.00', $invoice->total);
+        $this->assertSame($job->id, $invoice->jobExpense->transportJob->id);
+
+        $this->getJson("/api/v1/invoices/{$invoice->id}")
+            ->assertOk()
+            ->assertJsonPath('data.source.type', 'job_expense')
+            ->assertJsonPath('data.source.title', 'Emergency truck repair')
+            ->assertJsonPath('data.source.job_code', $job->code);
+
+        $expense = $invoice->jobExpense;
+        $this->patchJson(
+            "/api/v1/jobs/{$job->id}/expenses/{$expense->id}",
+            array_merge($payload, ['title' => 'Repair and parts', 'amount' => 15000])
+        )->assertOk();
+
+        $this->assertSame('15000.00', $invoice->fresh()->total);
+        $this->assertSame('15000.00', $invoice->items()->sole()->amount);
+
+        $this->deleteJson("/api/v1/jobs/{$job->id}/expenses/{$expense->id}")->assertOk();
+        $this->assertDatabaseCount('invoices', 0);
+    }
+
+    public function test_active_vehicle_contracts_create_one_payable_per_current_month(): void
+    {
+        $contract = VehicleContract::factory()->make([
+            'agreement_date' => today()->copy()->startOfMonth()->toDateString(),
+            'end_date' => today()->copy()->addMonths(2)->toDateString(),
+            'status' => 'active',
+            'total_vehicles' => 2,
+            'monthly_rental_per_vehicle' => 40000,
+            'total_monthly_rental' => 80000,
+        ])->toArray();
+        $contract['vehicles'] = [['vehicle_number' => 'AUTO-PAY-001'], ['vehicle_number' => 'AUTO-PAY-002']];
+
+        $this->postJson('/api/v1/vehicle-contracts', $contract)->assertCreated();
+        $invoice = Invoice::sole();
+        $this->assertSame('payable', $invoice->direction->value);
+        $this->assertSame('vehicle_rental', $invoice->category);
+        $this->assertSame('80000.00', $invoice->total);
+        $this->assertSame(today()->copy()->startOfMonth()->toDateString(), $invoice->billing_period->toDateString());
+
+        $this->getJson("/api/v1/invoices/{$invoice->id}")
+            ->assertOk()
+            ->assertJsonPath('data.source.type', 'vehicle_contract')
+            ->assertJsonPath('data.source.contract_number', $invoice->vehicleContract->contract_number);
+
+        $this->deleteJson("/api/v1/vehicle-contracts/{$invoice->vehicle_contract_id}")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('contract');
+
+        $this->artisan('payables:generate-vehicle-rentals')->assertExitCode(0);
+        $this->assertDatabaseCount('invoices', 1);
+
+        $this->travelTo(today()->copy()->addMonth()->startOfMonth()->addDay());
+        $this->artisan('payables:generate-vehicle-rentals')->assertExitCode(0);
+        $this->artisan('payables:generate-vehicle-rentals')->assertExitCode(0);
+        $this->assertDatabaseCount('invoices', 2);
+        $this->assertDatabaseHas('invoices', [
+            'vehicle_contract_id' => $invoice->vehicle_contract_id,
+            'billing_period' => today()->copy()->startOfMonth()->toDateString(),
+            'total' => 80000,
+        ]);
     }
 
     public function test_commission_receivable_does_not_add_company_capital(): void
