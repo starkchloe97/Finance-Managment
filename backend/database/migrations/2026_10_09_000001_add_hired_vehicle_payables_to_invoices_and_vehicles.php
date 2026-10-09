@@ -16,9 +16,9 @@ return new class extends Migration
             $table->foreignId('estimate_item_vehicle_id')
                 ->nullable()
                 ->after('vehicle_contract_id')
+                ->unique()
                 ->constrained('estimate_item_vehicles')
-                ->nullOnDelete()
-                ->unique();
+                ->nullOnDelete();
         });
     }
 
