@@ -189,6 +189,14 @@ const display = (value) => {
             v-if="vehicle.source === 'hired'"
             class="vehicle-detail"
           >
+            <span>Supplier / owner</span>
+            <strong>{{ display(vehicle.supplier_name) }}</strong>
+          </div>
+
+          <div
+            v-if="vehicle.source === 'hired'"
+            class="vehicle-detail"
+          >
             <span>VIN</span>
             <strong>{{ display(vehicle.vin) }}</strong>
           </div>
