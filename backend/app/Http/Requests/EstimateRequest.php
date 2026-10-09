@@ -56,6 +56,7 @@ class EstimateRequest extends FormRequest
             ],
 
             'items.*.vehicles.*.vehicle_name' => 'nullable|string|max:255',
+            'items.*.vehicles.*.supplier_name' => 'nullable|string|max:255',
             'items.*.vehicles.*.make' => 'nullable|string|max:255',
             'items.*.vehicles.*.model' => 'nullable|string|max:255',
             'items.*.vehicles.*.model_year' => 'nullable|integer|min:1900|max:2100',
