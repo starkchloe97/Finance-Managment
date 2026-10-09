@@ -368,7 +368,7 @@ class InvoiceAccountingTest extends TestCase
         app(InvoiceService::class)->createForJobHiredVehicles($job);
 
         $this->assertDatabaseCount('invoices', 1);
-        $this->assertSame('1000.00', $invoice->fresh()->paid_amount === 1000.0 ? '1000.00' : 'unexpected');
+        $this->assertSame(1000.0, (float) $invoice->fresh()->paid_amount);
         $this->assertSame(6500.0, $invoice->fresh()->outstanding_amount);
     }
 
