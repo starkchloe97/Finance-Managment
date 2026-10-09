@@ -5,9 +5,12 @@ namespace App\Services;
 use App\Helpers\NumberGenerator;
 use App\Models\VehicleContract;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class VehicleContractService
 {
+    public function __construct(private InvoiceService $invoices) {}
+
     public function paginate(array $filters = [])
     {
         $query = VehicleContract::query();
@@ -59,9 +62,9 @@ class VehicleContractService
             );
     }
 
-    public function create(array $data): VehicleContract
+    public function create(array $data, ?int $userId = null): VehicleContract
     {
-        return DB::transaction(function () use ($data) {
+        return DB::transaction(function () use ($data, $userId) {
 
             $data['contract_number'] = NumberGenerator::generate(
                 'CON',
@@ -84,6 +87,7 @@ class VehicleContractService
                 $contract,
                 $data
             );
+            $this->invoices->createForVehicleContractMonth($contract, $userId);
 
             return $contract->load('vehicles');
         });
@@ -128,7 +132,8 @@ class VehicleContractService
 
     public function update(
         VehicleContract $contract,
-        array $data
+        array $data,
+        ?int $userId = null
     ): VehicleContract {
         $totalVehicles = max(
             (int) ($data['total_vehicles'] ?? $contract->total_vehicles ?? count($data['vehicles'] ?? [])),
@@ -141,12 +146,24 @@ class VehicleContractService
             * (float) ($data['monthly_rental_per_vehicle'] ?? $contract->monthly_rental_per_vehicle ?? 0);
 
         $contract->update($data);
+        $this->invoices->createForVehicleContractMonth($contract, $userId);
 
         return $contract->refresh();
     }
 
+    public function generateCurrentMonthPayables(): int
+    {
+        return $this->invoices->generateCurrentMonthVehicleContractPayables();
+    }
+
     public function delete(VehicleContract $contract): void
     {
+        if ($contract->invoices()->exists()) {
+            throw ValidationException::withMessages([
+                'contract' => 'A vehicle contract with linked payable invoices cannot be deleted.',
+            ]);
+        }
+
         $contract->delete();
     }
 }

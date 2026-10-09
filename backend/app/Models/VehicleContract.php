@@ -109,4 +109,9 @@ class VehicleContract extends Model
             'vehicle_contract_id'
         );
     }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
 }

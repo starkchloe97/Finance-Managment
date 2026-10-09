@@ -10,6 +10,8 @@ use App\Models\Invoice;
 use App\Models\InvoicePayment;
 use App\Models\Payment;
 use App\Models\TransportJob;
+use App\Models\TransportJobExpense;
+use App\Models\VehicleContract;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -19,7 +21,7 @@ class InvoiceService
     public function list(array $filters, ?string $direction = null): LengthAwarePaginator
     {
         $query = Invoice::query()
-            ->with(['customer', 'transportJob'])
+            ->with(['customer', 'transportJob', 'jobExpense.transportJob', 'vehicleContract'])
             ->withSum('allocations as paid_amount_sum', 'amount');
 
         if ($direction) {
@@ -193,6 +195,183 @@ class InvoiceService
         });
     }
 
+    public function createForJobExpense(TransportJobExpense $expense, ?int $userId = null): Invoice
+    {
+        return DB::transaction(function () use ($expense, $userId) {
+            $expense = TransportJobExpense::query()
+                ->with('transportJob')
+                ->lockForUpdate()
+                ->findOrFail($expense->id);
+
+            $existing = Invoice::query()->where('job_expense_id', $expense->id)->first();
+            if ($existing) {
+                return $this->loadInvoice($existing);
+            }
+
+            $amount = round((float) $expense->amount, 2);
+            $invoice = Invoice::create([
+                'invoice_no' => NumberGenerator::generate('PI', Invoice::class),
+                'direction' => InvoiceDirection::Payable,
+                'category' => 'supplier',
+                'job_expense_id' => $expense->id,
+                'party_name' => 'Job expense',
+                'invoice_date' => $expense->expense_date,
+                'subtotal' => $amount,
+                'tax_amount' => 0,
+                'total' => $amount,
+                'notes' => "Payable created from job {$expense->transportJob->code}.",
+                'created_by' => $userId,
+            ]);
+            $invoice->items()->create([
+                'description' => $expense->title,
+                'quantity' => 1,
+                'unit_price' => $amount,
+                'amount' => $amount,
+                'details' => [
+                    'job_id' => $expense->transportJob->id,
+                    'job_code' => $expense->transportJob->code,
+                    'expense_id' => $expense->id,
+                    'category' => $expense->category->value,
+                ],
+            ]);
+
+            return $this->loadInvoice($invoice);
+        });
+    }
+
+    public function syncJobExpensePayable(TransportJobExpense $expense): void
+    {
+        $invoice = Invoice::query()
+            ->where('job_expense_id', $expense->id)
+            ->lockForUpdate()
+            ->first();
+        if (! $invoice) {
+            return;
+        }
+
+        $amount = round((float) $expense->amount, 2);
+        if ($amount < (float) $invoice->allocations()->sum('amount')) {
+            throw ValidationException::withMessages([
+                'amount' => 'Expense amount cannot be less than the amount already paid.',
+            ]);
+        }
+
+        $invoice->update([
+            'invoice_date' => $expense->expense_date,
+            'subtotal' => $amount,
+            'total' => $amount,
+        ]);
+        $invoice->items()->firstOrFail()->update([
+            'description' => $expense->title,
+            'unit_price' => $amount,
+            'amount' => $amount,
+            'details' => [
+                'job_id' => $expense->transportJob->id,
+                'job_code' => $expense->transportJob->code,
+                'expense_id' => $expense->id,
+                'category' => $expense->category->value,
+            ],
+        ]);
+    }
+
+    public function removeJobExpensePayable(TransportJobExpense $expense): void
+    {
+        $invoice = Invoice::query()
+            ->where('job_expense_id', $expense->id)
+            ->lockForUpdate()
+            ->first();
+        if (! $invoice) {
+            return;
+        }
+
+        if ($invoice->allocations()->exists()) {
+            throw ValidationException::withMessages([
+                'expense' => 'An expense with recorded payable payments cannot be deleted.',
+            ]);
+        }
+
+        $invoice->delete();
+    }
+
+    public function createForVehicleContractMonth(VehicleContract $contract, ?int $userId = null): ?Invoice
+    {
+        return DB::transaction(function () use ($contract, $userId) {
+            $contract = VehicleContract::query()->lockForUpdate()->findOrFail($contract->id);
+            $today = today();
+            if (
+                $contract->status !== 'active'
+                || $contract->agreement_date->isAfter($today)
+                || $contract->end_date->isBefore($today)
+                || (float) $contract->total_monthly_rental <= 0
+            ) {
+                return null;
+            }
+
+            $billingPeriod = $today->copy()->startOfMonth();
+            $existing = Invoice::query()
+                ->where('vehicle_contract_id', $contract->id)
+                ->whereDate('billing_period', $billingPeriod)
+                ->exists();
+            if ($existing) {
+                return null;
+            }
+
+            $invoiceDate = $contract->agreement_date->greaterThan($billingPeriod)
+                ? $contract->agreement_date
+                : $billingPeriod;
+            $amount = round((float) $contract->total_monthly_rental, 2);
+            $invoice = Invoice::create([
+                'invoice_no' => NumberGenerator::generate('PI', Invoice::class),
+                'direction' => InvoiceDirection::Payable,
+                'category' => 'vehicle_rental',
+                'vehicle_contract_id' => $contract->id,
+                'billing_period' => $billingPeriod,
+                'party_name' => $contract->vendor_name,
+                'party_address' => $contract->vendor_address,
+                'invoice_date' => $invoiceDate,
+                'due_date' => $billingPeriod->copy()->endOfMonth(),
+                'subtotal' => $amount,
+                'tax_amount' => 0,
+                'total' => $amount,
+                'notes' => "Vehicle rental for {$billingPeriod->format('Y-m')} under contract {$contract->contract_number}.",
+                'created_by' => $userId,
+            ]);
+            $invoice->items()->create([
+                'description' => "Vehicle rental for {$billingPeriod->format('F Y')}",
+                'quantity' => 1,
+                'unit' => 'month',
+                'unit_price' => $amount,
+                'amount' => $amount,
+                'details' => [
+                    'contract_id' => $contract->id,
+                    'contract_number' => $contract->contract_number,
+                    'billing_period' => $billingPeriod->toDateString(),
+                ],
+            ]);
+
+            return $this->loadInvoice($invoice);
+        });
+    }
+
+    public function generateCurrentMonthVehicleContractPayables(?int $userId = null): int
+    {
+        $contracts = VehicleContract::query()
+            ->where('status', 'active')
+            ->whereDate('agreement_date', '<=', today())
+            ->whereDate('end_date', '>=', today())
+            ->where('total_monthly_rental', '>', 0)
+            ->get();
+        $created = 0;
+
+        foreach ($contracts as $contract) {
+            if ($this->createForVehicleContractMonth($contract, $userId)) {
+                $created++;
+            }
+        }
+
+        return $created;
+    }
+
     public function show(Invoice $invoice): Invoice
     {
         return $this->loadInvoice($invoice);
@@ -297,6 +476,7 @@ class InvoiceService
     {
         return $invoice->load([
             'customer', 'transportJob', 'items',
+            'jobExpense.transportJob', 'vehicleContract',
             'allocations.payment', 'allocations.invoice',
         ])->loadSum('allocations as paid_amount_sum', 'amount');
     }

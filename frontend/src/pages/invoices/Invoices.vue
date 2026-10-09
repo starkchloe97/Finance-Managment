@@ -79,6 +79,7 @@ onMounted(load)
             <tr>
               <th>Invoice</th>
               <th>Party</th>
+              <th>Source</th>
               <th>Date</th>
               <th>Due</th>
               <th>Total</th>
@@ -94,6 +95,21 @@ onMounted(load)
                 <RouterLink :to="`/invoices/${invoice.id}`">{{ invoice.invoice_no }}</RouterLink>
               </td>
               <td>{{ invoice.party_company || invoice.party_name }}</td>
+              <td>
+                <RouterLink
+                  v-if="invoice.source?.type === 'transport_job'"
+                  :to="`/jobs/${invoice.source.id}`"
+                >{{ invoice.source.code }}</RouterLink>
+                <RouterLink
+                  v-else-if="invoice.source?.type === 'job_expense' && invoice.source.job_id"
+                  :to="`/jobs/${invoice.source.job_id}`"
+                >{{ invoice.source.job_code }} · {{ invoice.source.title }}</RouterLink>
+                <RouterLink
+                  v-else-if="invoice.source?.type === 'vehicle_contract'"
+                  :to="`/vehicle-contracts/${invoice.source.id}`"
+                >{{ invoice.source.contract_number }} · {{ invoice.source.billing_period }}</RouterLink>
+                <span v-else>—</span>
+              </td>
               <td>{{ invoice.invoice_date }}</td>
               <td>{{ invoice.due_date || '—' }}</td>
               <td>{{ money(invoice.total) }}</td>
@@ -143,7 +159,7 @@ onMounted(load)
 }
 table {
   width: 100%;
-  min-width: 850px;
+  min-width: 950px;
   font-size: var(--text-sm);
 }
 th,

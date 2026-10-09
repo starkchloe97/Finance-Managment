@@ -11,6 +11,7 @@ class Invoice extends Model
 {
     protected $fillable = [
         'invoice_no', 'direction', 'category', 'customer_id', 'transport_job_id',
+        'job_expense_id', 'vehicle_contract_id', 'billing_period',
         'party_name', 'party_company', 'party_contact', 'party_phone', 'party_address', 'party_tax_number',
         'company_name', 'company_phone', 'company_address', 'company_tax_number',
         'invoice_date', 'due_date', 'subtotal', 'tax_amount', 'tax_label', 'tax_number',
@@ -21,6 +22,7 @@ class Invoice extends Model
         'direction' => InvoiceDirection::class,
         'invoice_date' => 'date',
         'due_date' => 'date',
+        'billing_period' => 'date',
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'total' => 'decimal:2',
@@ -34,6 +36,16 @@ class Invoice extends Model
     public function transportJob(): BelongsTo
     {
         return $this->belongsTo(TransportJob::class);
+    }
+
+    public function jobExpense(): BelongsTo
+    {
+        return $this->belongsTo(TransportJobExpense::class);
+    }
+
+    public function vehicleContract(): BelongsTo
+    {
+        return $this->belongsTo(VehicleContract::class);
     }
 
     public function items(): HasMany
