@@ -290,6 +290,7 @@ class InvoiceService
                 'job_expense_id' => $expense->id,
                 'party_name' => 'Job expense',
                 'invoice_date' => $expense->expense_date,
+                'due_date' => $expense->expense_date,
                 'subtotal' => $amount,
                 'tax_amount' => 0,
                 'total' => $amount,
@@ -332,6 +333,7 @@ class InvoiceService
 
         $invoice->update([
             'invoice_date' => $expense->expense_date,
+            'due_date' => $expense->expense_date,
             'subtotal' => $amount,
             'total' => $amount,
         ]);
