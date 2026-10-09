@@ -79,6 +79,11 @@ onMounted(() => {
           <input id="estimate-destination" v-model="form.destination" placeholder="Lahore" />
         </div>
       </div>
+
+      <div class="field">
+        <label for="estimate-tonnage">Ton</label>
+        <input id="estimate-tonnage" v-model="form.tonnage" type="number" min="0" step="0.001" />
+      </div>
     </div>
   </div>
 </template>

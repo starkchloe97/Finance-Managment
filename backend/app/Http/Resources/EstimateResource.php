@@ -26,6 +26,7 @@ class EstimateResource extends JsonResource
             'pickup' => $this->pickup,
             'destination' => $this->destination,
             'service_type' => $this->service_type,
+            'tonnage' => $this->tonnage,
 
             'estimated_cost' => $this->estimated_cost,
             'estimated_sell' => $this->estimated_sell,

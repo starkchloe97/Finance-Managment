@@ -13,7 +13,9 @@ class Invoice extends Model
         'invoice_no', 'direction', 'category', 'customer_id', 'transport_job_id',
         'job_expense_id', 'vehicle_contract_id', 'billing_period',
         'party_name', 'party_company', 'party_contact', 'party_phone', 'party_address', 'party_tax_number',
+        'party_ntn_no', 'party_str_no',
         'company_name', 'company_phone', 'company_address', 'company_tax_number',
+        'company_str_no', 'company_ntn_no', 'company_stnt_no', 'company_bank_details', 'company_logo_url',
         'invoice_date', 'due_date', 'subtotal', 'tax_amount', 'tax_label', 'tax_number',
         'total', 'notes', 'created_by',
     ];

@@ -42,6 +42,7 @@ const form = reactive({
   pickup: '',
   destination: '',
   service_type: 'goods',
+  tonnage: '',
   status: 'draft',
   remarks: '',
   items: [line()],
@@ -65,6 +66,7 @@ onMounted(async () => {
       pickup: estimate.pickup || '',
       destination: estimate.destination || '',
       service_type: estimate.service_type || 'goods',
+      tonnage: estimate.tonnage || '',
       status: estimate.status || 'draft',
       remarks: estimate.remarks || '',
       items: estimate.items?.length

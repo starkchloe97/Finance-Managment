@@ -9,6 +9,7 @@ import {
   getPayments,
   getPayables,
   getReceivables,
+  updateInvoice as updateInvoiceRequest,
 } from '@/services/invoiceService'
 
 export const useInvoiceStore = defineStore('invoices', {
@@ -59,6 +60,10 @@ export const useInvoiceStore = defineStore('invoices', {
     },
     async saveInvoice(payload) {
       const { data } = await createInvoice(payload)
+      return data.data
+    },
+    async updateInvoice(id, payload) {
+      const { data } = await updateInvoiceRequest(id, payload)
       return data.data
     },
     async generateJobInvoice(jobId) {
