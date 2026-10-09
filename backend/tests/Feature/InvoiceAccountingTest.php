@@ -310,6 +310,100 @@ class InvoiceAccountingTest extends TestCase
         $this->assertDatabaseCount('invoices', 0);
     }
 
+    public function test_hired_vehicle_generates_supplier_payable_from_estimate_cost_without_duplicates(): void
+    {
+        $customer = Customer::create(['code' => 'CUS-HIRED-PAY', 'name' => 'Hired vehicle customer']);
+        $estimate = Estimate::create([
+            'code' => 'EST-HIRED-PAY',
+            'customer_id' => $customer->id,
+            'estimate_date' => today(),
+            'pickup' => 'KHI',
+            'destination' => 'LHR',
+            'service_type' => 'vehicle',
+            'status' => 'accepted',
+            'estimated_cost' => 7500,
+            'estimated_sell' => 12000,
+            'estimated_profit' => 4500,
+        ]);
+        $item = $estimate->items()->create([
+            'title' => 'Hired pickup',
+            'category' => 'Vehicle',
+            'quantity' => 1,
+            'cost_price' => 7500,
+            'sell_price' => 12000,
+            'cost_total' => 7500,
+            'sell_total' => 12000,
+            'profit' => 4500,
+        ]);
+        $vehicle = $item->vehicles()->create([
+            'source' => 'hired',
+            'supplier_name' => 'Ali Transport',
+            'vehicle_name' => 'Hired pickup',
+            'registration_number' => 'HIRED-123',
+        ]);
+
+        $job = app(TransportJobService::class)->convert($estimate);
+
+        $this->assertDatabaseCount('invoices', 1);
+        $invoice = Invoice::sole();
+        $this->assertSame('payable', $invoice->direction->value);
+        $this->assertSame('supplier', $invoice->category);
+        $this->assertSame('Ali Transport', $invoice->party_name);
+        $this->assertSame('7500.00', $invoice->total);
+        $this->assertSame($vehicle->id, $invoice->estimate_item_vehicle_id);
+
+        $this->getJson("/api/v1/invoices/{$invoice->id}")
+            ->assertOk()
+            ->assertJsonPath('data.source.type', 'hired_vehicle')
+            ->assertJsonPath('data.source.supplier_name', 'Ali Transport')
+            ->assertJsonPath('data.source.job_code', $job->code)
+            ->assertJsonPath('data.items.0.details.registration_number', 'HIRED-123');
+
+        // Re-running the generation path must not duplicate the payable.
+        app(InvoiceService::class)->createForJobHiredVehicles($job);
+        $this->assertDatabaseCount('invoices', 1);
+
+        // Existing allocations remain intact when generation is retried.
+        $this->recordPayment('paid', $invoice->id, 1000)->assertCreated();
+        app(InvoiceService::class)->createForJobHiredVehicles($job);
+
+        $this->assertDatabaseCount('invoices', 1);
+        $this->assertSame('1000.00', $invoice->fresh()->paid_amount === 1000.0 ? '1000.00' : 'unexpected');
+        $this->assertSame(6500.0, $invoice->fresh()->outstanding_amount);
+    }
+
+    public function test_company_owned_vehicle_does_not_generate_a_supplier_payable(): void
+    {
+        $customer = Customer::create(['code' => 'CUS-COMPANY-VEH', 'name' => 'Company vehicle customer']);
+        $estimate = Estimate::create([
+            'code' => 'EST-COMPANY-VEH',
+            'customer_id' => $customer->id,
+            'estimate_date' => today(),
+            'pickup' => 'KHI',
+            'destination' => 'LHR',
+            'service_type' => 'vehicle',
+            'status' => 'accepted',
+            'estimated_cost' => 5000,
+            'estimated_sell' => 9000,
+            'estimated_profit' => 4000,
+        ]);
+        $item = $estimate->items()->create([
+            'title' => 'Company vehicle',
+            'category' => 'Vehicle',
+            'quantity' => 1,
+            'cost_price' => 5000,
+            'sell_price' => 9000,
+            'cost_total' => 5000,
+            'sell_total' => 9000,
+            'profit' => 4000,
+        ]);
+        $item->vehicles()->create(['source' => 'company']);
+
+        app(TransportJobService::class)->convert($estimate);
+
+        $this->assertDatabaseCount('invoices', 0);
+    }
+
     public function test_active_vehicle_contracts_create_one_payable_per_current_month(): void
     {
         $contract = VehicleContract::factory()->make([
