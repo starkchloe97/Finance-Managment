@@ -75,11 +75,6 @@ const navigation = [
         icon: '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
       },
       {
-        label: 'Loans',
-        to: { name: 'loans.index' },
-        icon: '<path d="M7 7h10v10H7z"/><path d="M4 10V5a1 1 0 0 1 1-1h5"/><path d="M20 14v5a1 1 0 0 1-1 1h-5"/>',
-      },
-      {
         label: 'Invoices',
         to: { name: 'invoices.index' },
         icon: '<path d="M7 3h10l4 4v14H3V3z"/><path d="M7 12h10M7 16h10"/>',
@@ -90,6 +85,12 @@ const navigation = [
          // { label: 'Commission Receivable', to: { name: 'commission-receivables.index' }, icon: '<path d="M12 3v18"/><path d="M17 7H9.5a3.5 3.5 0 0 0 0 7H14a3 3 0 0 1 0 6H6"/>' },
         ],
       },
+      {
+        label: 'Loans',
+        to: { name: 'loans.index' },
+        icon: '<path d="M7 7h10v10H7z"/><path d="M4 10V5a1 1 0 0 1 1-1h5"/><path d="M20 14v5a1 1 0 0 1-1 1h-5"/>',
+      },
+      
     ],
   },
 ]
