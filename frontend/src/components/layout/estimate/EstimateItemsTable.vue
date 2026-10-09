@@ -287,7 +287,7 @@ onMounted(() => {
       syncVehicleRequirements(item)
 
       const hasData = (item.vehicles || []).some(
-        (v) => v.asset_id || v.vehicle_name
+        (v) => v.asset_id || v.vehicle_name || v.supplier_name
       )
 
       if (hasData) {
