@@ -12,6 +12,7 @@ class EstimateItemVehicle extends Model
         'source',
         'asset_id',
         'vehicle_name',
+        'supplier_name',
         'make',
         'model',
         'model_year',
