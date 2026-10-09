@@ -63,6 +63,7 @@ class EstimateResource extends JsonResource
                                 'asset_id' => $vehicle->asset_id,
 
                                 'vehicle_name' => $vehicle->vehicle_name,
+                                'supplier_name' => $vehicle->supplier_name,
                                 'make' => $vehicle->make,
                                 'model' => $vehicle->model,
                                 'model_year' => $vehicle->model_year,
