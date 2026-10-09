@@ -64,11 +64,11 @@ onMounted(load)
         <option value="other">Other</option>
       </select>
       <label class="date-filter">
-        <input v-model="filters.from" type="date" aria-label="Date from" @change="load" />
+        <input v-model="filters.from" type="date" aria-label="Date from" required @change="load" />
         <span v-if="!filters.from" class="date-placeholder">Date from</span>
       </label>
       <label class="date-filter">
-        <input v-model="filters.to" type="date" aria-label="Date to" @change="load" />
+        <input v-model="filters.to" type="date" aria-label="Date to" required @change="load" />
         <span v-if="!filters.to" class="date-placeholder">Date to</span>
       </label>
     </section>
@@ -171,6 +171,12 @@ onMounted(load)
 }
 .date-filter input {
   width: 100%;
+}
+.date-filter input:required:invalid {
+  color: transparent;
+}
+.date-filter input:required:invalid::-webkit-datetime-edit {
+  color: transparent;
 }
 .date-placeholder {
   position: absolute;
