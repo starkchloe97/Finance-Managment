@@ -42,9 +42,9 @@ class TransportJobService
         'completed' => [],
     ];
 
-    public function convert(Estimate $estimate)
+    public function convert(Estimate $estimate, ?int $userId = null)
     {
-        return DB::transaction(function () use ($estimate) {
+        return DB::transaction(function () use ($estimate, $userId) {
 
             // A refused conversion is a business rule, not a server fault, so it
             // answers 422 like every other rejected write rather than 500.
@@ -69,7 +69,7 @@ class TransportJobService
                 'status' => 'draft',
             ]);
 
-            $this->invoices->createForJobHiredVehicles($job);
+            $this->invoices->createForJobHiredVehicles($job, $userId);
 
             $this->activity->log(
                 $job,
