@@ -1,10 +1,10 @@
-# Copilot instructions for Finance Management
+﻿# Copilot instructions for Finance Management
 
-This repo is a Laravel 13 + Vue 3 financial management app for transport operations, with a backend API and a Vue + Pinia frontend. The app manages customers, estimates, transport jobs, vehicle contracts, investments, loans, company capital, and dashboard reporting.
+This repo is a Laravel 13 + Vue 3 financial management app for transport operations. The backend exposes a versioned API for customers, estimates, jobs, investments, loans, company capital, and dashboard reporting; the frontend is a Pinia-driven Vue SPA that consumes that API.
 
-## Build, test, and lint commands
+## Build, test, and lint
 
-Backend:
+Backend setup and validation:
 
 ```bash
 cd backend
@@ -16,74 +16,75 @@ php artisan test tests/Feature/LoanManagementTest.php
 php artisan pint
 ```
 
-Frontend:
+Frontend setup and validation:
 
 ```bash
 cd frontend
 npm install
-npm run dev
 npm run build
 npx prettier --check "src/**/*.{js,vue}"
 ```
 
-Typical local setup from repo root:
+Typical local development flow from the repo root:
 
 ```bash
 cd backend && composer install && php artisan migrate:fresh --seed
 cd ../frontend && npm install
 ```
 
-Run the app together in development:
+Run the app together:
 
 ```bash
 cd backend && composer run dev
 # or separate terminals:
-# Terminal 1: cd backend && php artisan serve
-# Terminal 2: cd frontend && npm run dev
+# terminal 1: cd backend && php artisan serve
+# terminal 2: cd frontend && npm run dev
 ```
 
 ## High-level architecture
 
 ### Backend
 
-- `backend/app/Http/Controllers/Api/V1/` contains the API surface for customers, estimates, jobs, investors, investments, loans, company capital, and reports.
-- `backend/app/Services/` contains business logic; prefer adding or updating service classes instead of embedding calculations in controllers.
-- Models in `backend/app/Models/` map directly to accounting and operations domains (customers, estimates, jobs, investments, investors, loan borrowings, vehicles/contracts, company capital drafts).
-- `backend/database/migrations/` defines the schema and includes domain-specific lifecycle changes, enums, and soft-delete-safe patterns.
-- `backend/routes/api_v1.php` and `backend/routes/api/*.php` register the versioned API endpoints. The app is organized by feature rather than by a single monolithic controller.
-- Financial flows depend on enum-driven status handling and resource serialization (`app/Http/Resources/`), so keep API payload keys and enum names consistent with the frontend.
+- `backend/app/Services/` holds the accounting and workflow logic; keep business rules here instead of in controllers.
+- `backend/app/Http/Controllers/Api/V1/` contains the HTTP API surface, usually one feature area per controller set.
+- `backend/app/Models/` defines the main domain models and soft-delete behavior.
+- `backend/app/Enums/` holds status enums used across the finance lifecycle (`InvestmentStatus`, `JobStatus`, `LoanStatus`, etc.).
+- `backend/routes/api_v1.php` and `backend/routes/api/*.php` register the API endpoints. The project is organized by feature domain, not by a single monolithic controller.
+- `backend/app/Http/Resources/` serializes API responses, so keep payload shape and enum values consistent with the frontend.
 
 ### Frontend
 
-- `frontend/src/pages/` holds the route pages; most domain pages live under feature folders such as `customers/`, `estimates/`, `jobs/`, `investments/`, `loans/`, and `assets/`.
-- `frontend/src/stores/` is the source of truth for most data access and mutation state; each store owns one business domain (`authStore`, `customerStore`, `investmentStore`, `loanStore`, etc.).
-- `frontend/src/services/` wraps axios access for each API resource.
-- `frontend/src/router/index.js` defines authenticated routes with `requiresAuth` and route-specific breadcrumbs. The application expects a logged-in user to access protected pages.
-- `frontend/src/components/` contains reusable UI plus domain forms, tables, and status panels used across pages.
+- `frontend/src/stores/` is the main data layer; most feature state and mutations live here (auth, customer, investment, loan, dashboard, etc.).
+- `frontend/src/services/` wraps Axios calls for each resource and must match the backend API names.
+- `frontend/src/pages/` contains route-level pages; `src/router/index.js` defines protected routes and auth guards.
+- `frontend/src/components/` contains shared UI and domain-specific widgets reused across pages.
+
+### Core workflow
+
+- Customers → Estimates → Transport jobs
+- Investments → allocations → settlements/distributions
+- Loans → repayments / outstanding balance tracking
+- Company capital → drafts / transactions / availability checks
 
 ## Key repository conventions
 
-- Use the existing domain split: backend business logic in `app/Services`, API endpoints in `app/Http/Controllers/Api/V1`, responses in `app/Http/Resources`, and frontend state in `src/stores`.
-- Preserve Laravel conventions: the API is versioned under `v1`, uses Sanctum auth, and expects `Authorization: Bearer <token>` on protected routes.
-- Treat financial data as money-aware: decimals are stored with 2-place precision and calculated through domain services instead of ad hoc arithmetic in views or controllers.
-- Soft deletes are part of the data model. Do not bypass model-level query behavior by writing raw SQL for normal record access.
-- Keep status enums and UI labels aligned between backend and frontend. The repo is heavily enum-driven (`InvestmentStatus`, `JobStatus`, `LoanStatus`, `AssetStatus`, etc.).
-- Follow the app’s workflow model:
-  - Customers → Estimates → Transport jobs
-  - Investments → allocations → settlements/distributions
-  - Loans → repayments / outstanding balance tracking
-  - Company capital → drafts / transactions / availability checks
-- Prefer updating matching service/store files when a feature is touched; the frontend relies on Pinia stores and the backend relies on service classes to keep calculations centralized.
-- For tests, use the existing Laravel feature tests under `backend/tests/Feature/` and filter to a single test case when validating a focused change.
+- Keep business logic in the service layer; controllers should orchestrate requests and delegate to services/models.
+- Financial data is money-aware: amounts are stored as decimals with 2-place precision and computed through domain logic rather than ad hoc arithmetic in views or controllers.
+- Preserve the versioned API (`v1`) and Sanctum header pattern: `Authorization: Bearer <token>` on protected routes.
+- Follow the model convention: use Eloquent queries and model relationships rather than bypassing soft-delete behavior with raw SQL in normal access paths.
+- Status values and label names must stay aligned across backend enums, API resources, and frontend store logic.
+- When editing a feature, update the corresponding backend service/model/controller and frontend store/service in sync; do not patch just one side.
+- Use the existing Laravel feature tests under `backend/tests/Feature/` and filter to a single test when validating a focused fix.
 
-## Practical guidance for edits
+## Practical edit guidance
 
-- Before changing a business rule, inspect the relevant service and model together; do not patch just the API controller.
-- When adding or updating an endpoint, keep route registration, request validation, controller logic, and frontend service/store usage in sync.
-- When changing a financial calculation, trace the matching `Services/*.php` code path and the relevant tests before editing.
-- For frontend work, prefer existing stores, page patterns, and shared UI components over ad hoc local state.
+- Before changing a financial rule, inspect the matching service and model together; do not patch only the controller response.
+- When adding or changing an API endpoint, keep route registration, request validation, controller, resource, and frontend client/store usage consistent.
+- For frontend changes, prefer existing stores and shared components over ad hoc local state.
+- Keep calculations deterministic and auditable, especially for investments, settlements, loans, and profit allocation flows.
 
-## Security and framework notes
+## Local repo-specific notes
 
-- Authenticated routes use the sessionless Sanctum pattern; do not separate the frontend from the backend in a way that drops auth tokens.
-- Keep company-finance and lending calculations deterministic and auditable; this project is not a generic CRUD app, it includes lifecycle-driven accounting flows.
+- The project uses Laravel 13 with Sanctum, not a separate auth service.
+- The repo is domain-heavy and status-driven; changes in enum values, API payload keys, or resource shapes will usually require frontend alignment.
+- `php artisan migrate:fresh --seed` is the expected reset path during local setup.
