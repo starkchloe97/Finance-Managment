@@ -153,7 +153,10 @@ onMounted(load)
   grid-template-columns: 2fr 1.2fr 1fr 1fr 1fr 1fr;
   gap: var(--space-3);
   align-items: center;
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-4) var(--space-4);
+}
+.date-filter{
+  margin-bottom: 0;
 }
 .filters input,
 .filters select {
