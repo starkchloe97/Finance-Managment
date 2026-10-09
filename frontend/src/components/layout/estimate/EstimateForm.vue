@@ -84,6 +84,7 @@ onMounted(async () => {
             source: v.source || 'company',
             asset_id: v.asset_id || null,
             vehicle_name: v.vehicle_name || '',
+            supplier_name: v.supplier_name || '',
             make: v.make || '',
             model: v.model || '',
             model_year: v.model_year || '',

@@ -60,6 +60,7 @@ const createVehicleRequirement = () => ({
 
   // Used only for hired vehicles
   vehicle_name: '',
+  supplier_name: '',
   make: '',
   model: '',
   model_year: '',
@@ -286,7 +287,7 @@ onMounted(() => {
       syncVehicleRequirements(item)
 
       const hasData = (item.vehicles || []).some(
-        (v) => v.asset_id || v.vehicle_name
+        (v) => v.asset_id || v.vehicle_name || v.supplier_name
       )
 
       if (hasData) {
@@ -715,6 +716,16 @@ onMounted(() => {
                         v-model="vehicle.vehicle_name"
                         class="cell-input"
                         placeholder="e.g. Hired truck"
+                      />
+                    </label>
+
+                    <label class="field">
+                      <span class="field-label">Supplier / owner name *</span>
+                      <input
+                        v-model="vehicle.supplier_name"
+                        class="cell-input"
+                        placeholder="Vehicle owner or supplier"
+                        required
                       />
                     </label>
 
