@@ -21,7 +21,7 @@ class InvoiceService
     public function list(array $filters, ?string $direction = null): LengthAwarePaginator
     {
         $query = Invoice::query()
-            ->with(['customer', 'transportJob', 'jobExpense.transportJob', 'vehicleContract'])
+            ->with(['customer', 'transportJob', 'jobExpense.transportJob', 'vehicleContract', 'hiredVehicle.estimateItem.estimate.transportJob'])
             ->withSum('allocations as paid_amount_sum', 'amount');
 
         if ($direction) {
@@ -369,6 +369,104 @@ class InvoiceService
         $invoice->delete();
     }
 
+    /**
+     * Create one payable for each hired vehicle on a newly converted job.
+     *
+     * The estimate item cost_total is distributed across the vehicle
+     * requirements on that line. Company-owned vehicles consume their share
+     * but never produce a supplier payable. The unique invoice source key and
+     * the existence check make this safe to retry without duplicating invoices.
+     */
+    public function createForJobHiredVehicles(TransportJob $job, ?int $userId = null): void
+    {
+        DB::transaction(function () use ($job, $userId) {
+            $job = TransportJob::query()
+                ->with(['estimate.items.vehicles'])
+                ->lockForUpdate()
+                ->findOrFail($job->id);
+
+            foreach ($job->estimate?->items ?? collect() as $item) {
+                $vehicles = $item->vehicles;
+                $vehicleCount = $vehicles->count();
+
+                if ($vehicleCount === 0) {
+                    continue;
+                }
+
+                $lineTotal = round((float) $item->cost_total, 2);
+                $allocated = 0.0;
+
+                foreach ($vehicles->values() as $index => $vehicle) {
+                    // Assign rounding remainder to the final vehicle so the
+                    // allocated shares always add up to the estimate line total.
+                    $amount = $index === $vehicleCount - 1
+                        ? round($lineTotal - $allocated, 2)
+                        : round($lineTotal / $vehicleCount, 2);
+                    $allocated = round($allocated + $amount, 2);
+
+                    if ($vehicle->source !== 'hired' || $amount <= 0) {
+                        continue;
+                    }
+
+                    if (blank($vehicle->supplier_name)) {
+                        throw ValidationException::withMessages([
+                            'supplier_name' => 'A supplier name is required for every hired vehicle before the job can be created.',
+                        ]);
+                    }
+
+                    $existing = Invoice::query()
+                        ->where('estimate_item_vehicle_id', $vehicle->id)
+                        ->first();
+
+                    if ($existing) {
+                        continue;
+                    }
+
+                    $vehicleLabel = collect([
+                        $vehicle->vehicle_name,
+                        trim(($vehicle->make ?? '').' '.($vehicle->model ?? '')),
+                        $vehicle->registration_number,
+                    ])->filter()->first() ?: 'Hired vehicle';
+
+                    $invoiceDate = $job->job_date?->toDateString() ?? today()->toDateString();
+
+                    $invoice = Invoice::create([
+                        'invoice_no' => NumberGenerator::generate('PI', Invoice::class),
+                        'direction' => InvoiceDirection::Payable,
+                        'category' => 'supplier',
+                        'estimate_item_vehicle_id' => $vehicle->id,
+                        'party_name' => $vehicle->supplier_name,
+                        'invoice_date' => $invoiceDate,
+                        'due_date' => $invoiceDate,
+                        'subtotal' => $amount,
+                        'tax_amount' => 0,
+                        'total' => $amount,
+                        'notes' => "Hired vehicle payable for job {$job->code}.",
+                        'created_by' => $userId,
+                    ]);
+
+                    $invoice->items()->create([
+                        'description' => "Vehicle hire — {$vehicleLabel}",
+                        'quantity' => 1,
+                        'unit' => 'vehicle',
+                        'unit_price' => $amount,
+                        'amount' => $amount,
+                        'details' => [
+                            'job_id' => $job->id,
+                            'job_code' => $job->code,
+                            'estimate_id' => $job->estimate_id,
+                            'estimate_item_id' => $item->id,
+                            'estimate_item_vehicle_id' => $vehicle->id,
+                            'supplier_name' => $vehicle->supplier_name,
+                            'vehicle_name' => $vehicle->vehicle_name,
+                            'registration_number' => $vehicle->registration_number,
+                        ],
+                    ]);
+                }
+            }
+        });
+    }
+
     public function createForVehicleContractMonth(VehicleContract $contract, ?int $userId = null): ?Invoice
     {
         return DB::transaction(function () use ($contract, $userId) {
@@ -553,6 +651,7 @@ class InvoiceService
         return $invoice->load([
             'customer', 'transportJob', 'items',
             'jobExpense.transportJob', 'vehicleContract',
+            'hiredVehicle.estimateItem.estimate.transportJob',
             'allocations.payment', 'allocations.invoice',
         ])->loadSum('allocations as paid_amount_sum', 'amount');
     }
