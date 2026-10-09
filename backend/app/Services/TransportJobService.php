@@ -20,7 +20,8 @@ use Illuminate\Validation\ValidationException;
 class TransportJobService
 {
     public function __construct(
-        private ActivityService $activity
+        private ActivityService $activity,
+        private InvoiceService $invoices
     ) {}
 
     /**
@@ -67,6 +68,8 @@ class TransportJobService
                 'final_profit' => $estimate->estimated_profit,
                 'status' => 'draft',
             ]);
+
+            $this->invoices->createForJobHiredVehicles($job);
 
             $this->activity->log(
                 $job,
