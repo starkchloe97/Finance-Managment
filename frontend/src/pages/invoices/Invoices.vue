@@ -63,8 +63,8 @@ onMounted(load)
         <option value="marketing">Marketing</option>
         <option value="other">Other</option>
       </select>
-      <label>Date from<input v-model="filters.from" type="date" @change="load" /></label>
-      <label>Date to<input v-model="filters.to" type="date" @change="load" /></label>
+      <label><input v-model="filters.from" placeholder="Date from" type="date" @change="load" /></label>
+      <label><input v-model="filters.to" placeholder="Date to" type="date" @change="load" /></label>
     </section>
     <StatePanel
       :loading="store.loading"
@@ -146,12 +146,15 @@ onMounted(load)
   display: grid;
   grid-template-columns: 2fr 1.2fr 1fr 1fr 1fr 1fr;
   gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
 }
 .filters input,
 .filters select {
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   padding: 10px;
+  height: 15px;
 }
 .table-wrap {
   overflow-x: auto;
