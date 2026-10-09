@@ -116,9 +116,16 @@ class EstimateService
              *
              * It deliberately has NO asset_id.
              */
+            if (blank($vehicle['supplier_name'] ?? null)) {
+                throw ValidationException::withMessages([
+                    'items' => 'Enter the supplier name for every hired vehicle so its payable can be recorded.',
+                ]);
+            }
+
             $estimateItem->vehicles()->create([
                 'source' => 'hired',
                 'asset_id' => null,
+                'supplier_name' => $vehicle['supplier_name'] ?? null,
 
                 'vehicle_name' => $vehicle['vehicle_name'] ?? null,
                 'make' => $vehicle['make'] ?? null,
