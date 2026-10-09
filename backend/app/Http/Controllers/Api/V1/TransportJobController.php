@@ -51,10 +51,10 @@ class TransportJobController extends Controller
     /**
      * The customer accepted the quote, so turn it into a job to work on.
      */
-    public function convert(Estimate $estimate, TransportJobService $service)
+    public function convert(Request $request, Estimate $estimate, TransportJobService $service)
     {
         return new TransportJobResource(
-            $service->convert($estimate)
+            $service->convert($estimate, $request->user()?->id)
         );
     }
 
