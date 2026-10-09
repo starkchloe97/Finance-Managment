@@ -36,6 +36,7 @@ class InvoiceResource extends JsonResource
             'transport_job_id' => $this->transport_job_id,
             'job_expense_id' => $this->job_expense_id,
             'vehicle_contract_id' => $this->vehicle_contract_id,
+            'estimate_item_vehicle_id' => $this->estimate_item_vehicle_id,
             'billing_period' => $this->billing_period?->toDateString(),
             'invoice_date' => $this->invoice_date?->toDateString(),
             'due_date' => $this->due_date?->toDateString(),
@@ -80,6 +81,23 @@ class InvoiceResource extends JsonResource
                 'title' => $this->jobExpense->title,
                 'job_id' => $this->jobExpense->transportJob?->id,
                 'job_code' => $this->jobExpense->transportJob?->code,
+            ];
+        }
+
+        if ($this->relationLoaded('hiredVehicle') && $this->hiredVehicle) {
+            $vehicle = $this->hiredVehicle;
+            $item = $vehicle->estimateItem;
+            $job = $item?->estimate?->transportJob;
+
+            return [
+                'type' => 'hired_vehicle',
+                'id' => $vehicle->id,
+                'supplier_name' => $vehicle->supplier_name,
+                'vehicle_name' => $vehicle->vehicle_name,
+                'registration_number' => $vehicle->registration_number,
+                'estimate_item_id' => $item?->id,
+                'job_id' => $job?->id,
+                'job_code' => $job?->code,
             ];
         }
 
