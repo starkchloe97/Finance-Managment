@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -79,11 +79,17 @@ const navigation = [
         to: { name: 'loans.index' },
         icon: '<path d="M7 7h10v10H7z"/><path d="M4 10V5a1 1 0 0 1 1-1h5"/><path d="M20 14v5a1 1 0 0 1-1 1h-5"/>',
       },
-      { label: 'Invoices', to: { name: 'invoices.index' }, icon: '<path d="M7 3h10l4 4v14H3V3z"/><path d="M7 12h10M7 16h10"/>' },
-      { label: 'Receivables', to: { name: 'receivables.index' }, icon: '<path d="M12 3v18m-7-7 7 7 7-7"/>' },
-      { label: 'Payables', to: { name: 'payables.index' }, icon: '<path d="M12 21V3m-7 7 7-7 7 7"/>' },
-      { label: 'Payments', to: { name: 'payments.index' }, icon: '<rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/>' },
-      { label: 'Commission Receivable', to: { name: 'commission-receivables.index' }, icon: '<path d="M12 3v18"/><path d="M17 7H9.5a3.5 3.5 0 0 0 0 7H14a3 3 0 0 1 0 6H6"/>' },
+      {
+        label: 'Invoices',
+        to: { name: 'invoices.index' },
+        icon: '<path d="M7 3h10l4 4v14H3V3z"/><path d="M7 12h10M7 16h10"/>',
+        children: [
+          { label: 'Receivables', to: { name: 'receivables.index' }, icon: '<path d="M12 3v18m-7-7 7 7 7-7"/>' },
+          { label: 'Payables', to: { name: 'payables.index' }, icon: '<path d="M12 21V3m-7 7 7-7 7 7"/>' },
+          { label: 'Payments', to: { name: 'payments.index' }, icon: '<rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/>' },
+          { label: 'Commission Receivable', to: { name: 'commission-receivables.index' }, icon: '<path d="M12 3v18"/><path d="M17 7H9.5a3.5 3.5 0 0 0 0 7H14a3 3 0 0 1 0 6H6"/>' },
+        ],
+      },
     ],
   },
 ]
@@ -102,6 +108,25 @@ const badgeFor = (link) => {
   if (!count) return null
   return count > 99 ? '99+' : String(count)
 }
+
+const invoiceMenuOpen = ref(
+  ['invoices.', 'receivables.', 'payables.', 'payments.', 'commission-receivables.'].some((prefix) =>
+    String(route.name || '').startsWith(prefix),
+  ),
+)
+const hasActiveChild = (link) => Boolean(link.children?.some((child) => isActive(child)))
+const toggleInvoiceMenu = () => {
+  invoiceMenuOpen.value = !invoiceMenuOpen.value
+}
+
+watch(
+  () => route.name,
+  (name) => {
+    if (['receivables.', 'payables.', 'payments.', 'commission-receivables.'].some((prefix) => String(name || '').startsWith(prefix))) {
+      invoiceMenuOpen.value = true
+    }
+  },
+)
 
 const userInitial = computed(() => (auth.user?.name || 'U').charAt(0).toUpperCase())
 const userSubtitle = computed(() => auth.user?.email || auth.user?.role || 'Signed in')
@@ -173,31 +198,63 @@ onUnmounted(() => {
     <nav class="sidebar-nav" aria-label="Main navigation">
       <section v-for="group in navigation" :key="group.label" class="nav-group">
         <p class="nav-group-label">{{ group.label }}</p>
-        <RouterLink
-          v-for="link in group.links"
-          :key="link.label"
-          :to="link.to"
-          class="nav-item"
-          :class="{ 'is-active': isActive(link) }"
-          :data-tooltip="link.label"
-          :title="collapsed ? link.label : undefined"
-          :aria-current="isActive(link) ? 'page' : undefined"
-          @click="close"
-        >
-          <svg
-            class="nav-item-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-            v-html="link.icon"
-          />
-          <span class="nav-label">{{ link.label }}</span>
-          <span v-if="badgeFor(link)" class="nav-badge">{{ badgeFor(link) }}</span>
-        </RouterLink>
+        <template v-for="link in group.links" :key="link.label">
+          <div v-if="link.children" class="nav-parent-wrap">
+            <div class="nav-parent-row">
+              <RouterLink
+                :to="link.to"
+                class="nav-item nav-parent-link"
+                :class="{ 'is-active': isActive(link) || hasActiveChild(link) }"
+                :data-tooltip="link.label"
+                :title="collapsed ? link.label : undefined"
+                :aria-current="isActive(link) ? 'page' : undefined"
+                @click="close"
+              >
+                <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" v-html="link.icon" />
+                <span class="nav-label">{{ link.label }}</span>
+              </RouterLink>
+              <button
+                v-if="!collapsed"
+                type="button"
+                class="nav-dropdown-toggle"
+                :aria-label="invoiceMenuOpen ? 'Collapse invoice menu' : 'Expand invoice menu'"
+                :aria-expanded="invoiceMenuOpen"
+                @click="toggleInvoiceMenu"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </button>
+            </div>
+            <div v-if="invoiceMenuOpen && !collapsed" class="nav-submenu">
+              <RouterLink
+                v-for="child in link.children"
+                :key="child.label"
+                :to="child.to"
+                class="nav-item nav-subitem"
+                :class="{ 'is-active': isActive(child) }"
+                @click="close"
+              >
+                <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" v-html="child.icon" />
+                <span class="nav-label">{{ child.label }}</span>
+              </RouterLink>
+            </div>
+          </div>
+          <RouterLink
+            v-else
+            :to="link.to"
+            class="nav-item"
+            :class="{ 'is-active': isActive(link) }"
+            :data-tooltip="link.label"
+            :title="collapsed ? link.label : undefined"
+            :aria-current="isActive(link) ? 'page' : undefined"
+            @click="close"
+          >
+            <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" v-html="link.icon" />
+            <span class="nav-label">{{ link.label }}</span>
+            <span v-if="badgeFor(link)" class="nav-badge">{{ badgeFor(link) }}</span>
+          </RouterLink>
+        </template>
       </section>
     </nav>
 
@@ -427,6 +484,74 @@ onUnmounted(() => {
   flex: 0 0 20px;
   height: 20px;
   width: 20px;
+}
+
+.nav-parent-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-parent-row {
+  align-items: center;
+  display: flex;
+  gap: 2px;
+}
+
+.nav-parent-link {
+  flex: 1;
+  min-width: 0;
+}
+
+.nav-dropdown-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  color: var(--sb-ink);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 30px;
+  height: 30px;
+  justify-content: center;
+  margin-right: 3px;
+  padding: 0;
+  width: 30px;
+}
+
+.nav-dropdown-toggle:hover {
+  background: var(--sb-hover-bg);
+  color: var(--sb-ink-strong);
+}
+
+.nav-dropdown-toggle svg {
+  height: 15px;
+  width: 15px;
+  transition: transform 0.18s ease;
+}
+
+.nav-dropdown-toggle[aria-expanded="true"] svg {
+  transform: rotate(90deg);
+}
+
+.nav-submenu {
+  border-left: 1px solid var(--sb-line);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-left: 19px;
+  padding-left: 8px;
+}
+
+.nav-subitem {
+  font-size: 13px;
+  height: 36px;
+  padding-left: 8px;
+}
+
+.nav-subitem .nav-item-icon {
+  height: 17px;
+  width: 17px;
 }
 
 .nav-label {
