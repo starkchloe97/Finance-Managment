@@ -933,7 +933,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-left: auto;
+  margin-right: auto;
 }
 
 .expand-toggle {
