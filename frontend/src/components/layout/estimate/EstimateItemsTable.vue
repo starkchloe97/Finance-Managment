@@ -60,6 +60,7 @@ const createVehicleRequirement = () => ({
 
   // Used only for hired vehicles
   vehicle_name: '',
+  supplier_name: '',
   make: '',
   model: '',
   model_year: '',
@@ -715,6 +716,16 @@ onMounted(() => {
                         v-model="vehicle.vehicle_name"
                         class="cell-input"
                         placeholder="e.g. Hired truck"
+                      />
+                    </label>
+
+                    <label class="field">
+                      <span class="field-label">Supplier / owner name *</span>
+                      <input
+                        v-model="vehicle.supplier_name"
+                        class="cell-input"
+                        placeholder="Vehicle owner or supplier"
+                        required
                       />
                     </label>
 
