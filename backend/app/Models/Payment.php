@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Payment extends Model
 {
-    protected $fillable = ['payment_no', 'direction', 'payment_date', 'amount', 'payment_method', 'reference', 'notes', 'created_by'];
+    protected $fillable = ['payment_no', 'bank_account_id', 'direction', 'payment_date', 'amount', 'payment_method', 'reference', 'notes', 'created_by'];
 
     protected $casts = [
         'direction' => PaymentDirection::class,
@@ -20,6 +20,11 @@ class Payment extends Model
     public function allocations(): HasMany
     {
         return $this->hasMany(InvoicePayment::class);
+    }
+
+    public function bankAccount(): BelongsTo
+    {
+        return $this->belongsTo(BankAccount::class);
     }
 
     public function creator(): BelongsTo

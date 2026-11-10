@@ -116,7 +116,7 @@ const kpis = computed(() => {
       title: 'Available profit',
       value: money(data.available_profit?.value),
       subtitle: 'Undistributed',
-      icon: 'profit',
+      icon: 'wallet',
       variant: 'profit',
       tip: 'Company profit that has not been transferred to capital. This is an all-time figure, independent of the selected period.',
     },
@@ -131,7 +131,7 @@ const kpis = computed(() => {
           trendLabel: 'margin change versus previous period',
           variant: 'margin',
           spark: marginSpark(),
-          tip: `Jobs open during this period — from draft all the way to delivered.${prevNote(data.active_jobs, (v) => v)}`,
+          tip: `Final profit as a share of revenue.${prevNote(margin, (value) => `${Number(value).toFixed(1)}%`)}`,
         }
       : {
           title: 'Active jobs',
@@ -144,16 +144,26 @@ const kpis = computed(() => {
           variant: 'jobs',
         },
     ...[
-      ['Total receivables', accounting.receivables, 'All open customer invoices'],
-      ['Total payables', accounting.payables, 'All open supplier and expense bills'],
-      ['Overdue receivables', accounting.overdue_receivables, 'Customer invoices past due'],
-      ['Overdue payables', accounting.overdue_payables, 'Bills past due'],
-      ['Commission receivable', accounting.commission_receivable, 'Commission earned but not received'],
-    ].map(([title, value, subtitle]) => ({
+      ['Total receivables', accounting.receivables, 'All open customer invoices', 'receivables'],
+      ['Total payables', accounting.payables, 'All open supplier and expense bills', 'payables'],
+      [
+        'Overdue receivables',
+        accounting.overdue_receivables,
+        'Customer invoices past due',
+        'overdueReceivables',
+      ],
+      ['Overdue payables', accounting.overdue_payables, 'Bills past due', 'overduePayables'],
+      [
+        'Commission receivable',
+        accounting.commission_receivable,
+        'Commission earned but not received',
+        'commission',
+      ],
+    ].map(([title, value, subtitle, icon]) => ({
       title,
       value: money(value),
       subtitle,
-      icon: 'cost',
+      icon,
       variant: 'cost',
       tip: subtitle,
     })),

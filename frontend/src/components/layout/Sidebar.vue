@@ -24,6 +24,11 @@ const navigation = [
         to: '/',
         icon: '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
       },
+      {
+        label: 'Activity',
+        to: { name: 'activities.index' },
+        icon: '<path d="M3 12h4l3-9 4 18 3-9h4"/><circle cx="12" cy="12" r="10"/>',
+      },
     ],
   },
   {
@@ -73,6 +78,11 @@ const navigation = [
         label: 'Investments',
         to: { name: 'investments.index' },
         icon: '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+      },
+      {
+        label: 'Bank accounts',
+        to: { name: 'bank-accounts.index' },
+        icon: '<rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/>',
       },
       {
         label: 'Invoices',

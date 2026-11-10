@@ -14,6 +14,7 @@ const routes = [
     meta: secure('Dashboard'),
     children: [
       { path: '', name: 'dashboard', component: Dashboard, meta: secure('Dashboard') },
+      { path: 'activities', name: 'activities.index', component: () => import('@/pages/Activity.vue'), meta: secure('Activity') },
       { path: 'invoices', name: 'invoices.index', component: () => import('@/pages/invoices/Invoices.vue'), meta: secure('Finance / Invoices') },
       { path: 'invoices/create', name: 'invoices.create', component: () => import('@/pages/invoices/InvoiceCreate.vue'), meta: secure('Finance / Invoices / Create') },
       { path: 'invoices/:id/edit', name: 'invoices.edit', component: () => import('@/pages/invoices/InvoiceCreate.vue'), meta: secure('Finance / Invoices / Edit') },
@@ -22,6 +23,7 @@ const routes = [
       { path: 'payables', name: 'payables.index', component: () => import('@/pages/invoices/Invoices.vue'), meta: secure('Finance / Payables') },
       { path: 'commission-receivables', name: 'commission-receivables.index', component: () => import('@/pages/invoices/Invoices.vue'), meta: secure('Finance / Commission Receivable') },
       { path: 'payments', name: 'payments.index', component: () => import('@/pages/invoices/Payments.vue'), meta: secure('Finance / Payments') },
+      { path: 'bank-accounts', name: 'bank-accounts.index', component: () => import('@/pages/BankAccounts.vue'), meta: secure('Finance / Bank accounts') },
       {
         path: 'customers',
         component: () => import('@/pages/customers/CustomersList.vue'),

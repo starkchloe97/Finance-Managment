@@ -17,6 +17,8 @@ class InvoiceAccountingTest extends TestCase
 {
     use RefreshDatabase;
 
+    private ?int $bankAccountId = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -159,6 +161,7 @@ class InvoiceAccountingTest extends TestCase
         $b = $this->createInvoice(['items' => [['description' => 'Two', 'quantity' => 1, 'unit_price' => 300]]]);
         $this->postJson('/api/v1/payments', [
             'direction' => 'received',
+            'bank_account_id' => $this->bankAccountId(),
             'payment_date' => today()->toDateString(),
             'amount' => 500,
             'allocations' => [
@@ -174,6 +177,7 @@ class InvoiceAccountingTest extends TestCase
 
         $this->postJson('/api/v1/payments', [
             'direction' => 'received',
+            'bank_account_id' => $this->bankAccountId(),
             'payment_date' => today()->toDateString(),
             'amount' => 1,
             'allocations' => [['invoice_id' => $a['id'], 'amount' => 1]],
@@ -453,9 +457,10 @@ class InvoiceAccountingTest extends TestCase
             'items' => [['description' => 'Commission earned', 'quantity' => 1, 'unit_price' => 50000]],
         ]);
         $this->recordPayment('received', $invoice['id'], 20000)->assertCreated();
+        $this->recordPayment('received', $invoice['id'], 10000)->assertCreated();
         $this->getJson('/api/v1/dashboard')
             ->assertOk()
-            ->assertJsonPath('kpis.accounting.commission_receivable', 30000);
+            ->assertJsonPath('kpis.accounting.commission_receivable', 20000);
         $this->assertDatabaseCount('company_capital_transactions', 0);
     }
 
@@ -486,9 +491,22 @@ class InvoiceAccountingTest extends TestCase
     {
         return $this->postJson('/api/v1/payments', [
             'direction' => $direction,
+            'bank_account_id' => $this->bankAccountId(),
             'payment_date' => today()->toDateString(),
             'amount' => $amount,
             'allocations' => [['invoice_id' => $invoiceId, 'amount' => $amount]],
         ]);
+    }
+
+    private function bankAccountId(): int
+    {
+        if ($this->bankAccountId === null) {
+            $this->bankAccountId = $this->postJson('/api/v1/bank-accounts', [
+                'name' => 'Test operating account',
+                'opening_balance' => 1000000,
+            ])->assertCreated()->json('data.id');
+        }
+
+        return $this->bankAccountId;
     }
 }

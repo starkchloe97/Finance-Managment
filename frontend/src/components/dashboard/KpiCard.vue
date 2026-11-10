@@ -21,16 +21,21 @@ const icons = {
   profit: '<path d="M22 7l-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/>',
   margin: '<path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
   jobs: '<rect x="2" y="7" width="20" height="13" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>',
+  wallet:
+    '<rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 9h18"/><path d="M16 14h2"/>',
+  receivables: '<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 19h14"/>',
+  payables: '<path d="M12 21V9"/><path d="m17 14-5-5-5 5"/><path d="M5 5h14"/>',
+  overdueReceivables: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  overduePayables:
+    '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/><path d="m9 15 2 2 4-4"/>',
+  commission:
+    '<path d="M12 3 14.8 8.7 21 9.6l-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9L12 3Z"/>',
 }
 const icon = computed(() => icons[props.icon] || icons.revenue)
 
-// Rich tooltip: title + explanation + subtitle (auto), composed here so the
-// parent never has to format it.
+// Avoid repeating the subtitle when it is already included in the explanation.
 const tooltipLines = computed(() => {
-  const lines = []
-  if (props.tip) lines.push(props.tip)
-  if (props.subtitle) lines.push(props.subtitle)
-  return lines
+  return [...new Set([props.tip, props.subtitle].filter(Boolean))]
 })
 const hasTooltip = computed(() => tooltipLines.value.length > 0)
 
@@ -87,7 +92,6 @@ const areaPath = computed(() => (linePath.value ? `${linePath.value} L100 32 L0 
         v-if="trend"
         class="kpi-trend"
         :class="`trend-${trendDirection}`"
-        :title="trendLabel || undefined"
       >
         <svg v-if="trendDirection === 'up'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
         <svg v-else-if="trendDirection === 'down'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg>
@@ -144,7 +148,7 @@ const areaPath = computed(() => (linePath.value ? `${linePath.value} L100 32 L0 
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 5px;
   min-height: 30px;
 }
 
@@ -220,13 +224,14 @@ const areaPath = computed(() => (linePath.value ? `${linePath.value} L100 32 L0 
   font-size: 12px;
   font-weight: 400;
   gap: 3px;
-  left: 0;
+  left: auto;
   line-height: 1.5;
   max-width: 260px;
   opacity: 0;
   padding: 9px 12px;
   pointer-events: none;
   position: absolute;
+  right: 0;
   top: calc(100% + 8px);
   transform: translateY(-3px);
   transition: opacity 0.15s ease, transform 0.15s ease;

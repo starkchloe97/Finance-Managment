@@ -178,9 +178,9 @@ backend/
 │   ├── factories/          # Model factories for seeding
 │   └── seeders/            # Database seed data
 ├── routes/
-│   ├── api.php             # Auth routes
-│   ├── api_v1.php          # v1 API routes (customers, jobs, investments, etc.)
-│   └── api/                # Versioned endpoint files
+│   ├── api.php             # All versioned API routes
+│   ├── web.php             # Web routes
+│   └── console.php         # Console routes
 ├── tests/                  # Feature & Unit tests
 ├── artisan                 # Artisan CLI tool
 └── composer.json           # PHP dependencies & scripts
@@ -236,7 +236,7 @@ frontend/
 ## Development Tips for Agents
 
 1. **Before modifying a model**: Check `app/Models/` to understand relationships and attributes
-2. **Before adding an API endpoint**: Check `routes/api_v1.php` and `app/Http/Controllers/` for similar patterns
+2. **Before adding an API endpoint**: Check `routes/api.php` and `app/Http/Controllers/` for similar patterns
 3. **When adding a feature**: Create Service first, then Controller, then Frontend Store, then Pages/Components
 4. **For financial calculations**: Always use services, never in controllers; test with PHPUnit
 5. **For UI state**: Use Pinia stores, not local Vue state

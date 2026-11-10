@@ -173,7 +173,7 @@ class EstimateService
                 'remarks' => $data['remarks'] ?? null,
             ]);
 
-            $estimate->items()->delete();
+            $estimate->items()->get()->each(fn ($item) => $item->delete());
 
             foreach ($data['items'] as $index => $itemData) {
                 $line = $estimate->items()->create($lines[$index]);

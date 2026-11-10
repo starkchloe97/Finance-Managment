@@ -13,19 +13,19 @@ const isEditing = computed(() => route.name === 'invoices.edit')
 const detailFields = computed(() =>
   form.category === 'job'
     ? [
-        ['truck_no', 'Truck no'],
-        ['pickup', 'Pickup'],
-        ['drop', 'Drop'],
-        ['date', 'Service date'],
-        ['type', 'Type'],
-        ['ton', 'Ton'],
+        ['truck_no', 'Truck number', 'text', 'Enter the truck or vehicle registration number'],
+        ['pickup', 'Pickup location', 'text', 'Enter the pickup address or location'],
+        ['drop', 'Drop location', 'text', 'Enter the delivery address or location'],
+        ['date', 'Service date', 'date'],
+        ['type', 'Vehicle type', 'text', 'e.g. Truck, trailer, or van'],
+        ['ton', 'Ton', 'number'],
       ]
     : form.category === 'vehicle_rental'
       ? [
-          ['vehicle_make', 'Vehicle'],
-          ['registration', 'Registration'],
-          ['delivery_date', 'Delivery date'],
-          ['period', 'Rental period'],
+          ['vehicle_make', 'Vehicle', 'text', 'Enter the vehicle make or model'],
+          ['registration', 'Registration number', 'text', 'Vehicle plate number, e.g. ABC-123'],
+          ['delivery_date', 'Delivery date', 'date'],
+          ['period', 'Rental period', 'text', 'e.g. 1 month or 15 days'],
         ]
       : [],
 )
@@ -113,7 +113,9 @@ const save = async () => {
         <span class="section-kicker">Finance / Invoices</span>
         <h1>{{ isEditing ? 'Edit invoice' : 'Create invoice' }}</h1>
       </div>
-      <RouterLink class="btn-light" :to="isEditing ? `/invoices/${route.params.id}` : '/invoices'">Cancel</RouterLink>
+      <RouterLink class="btn-light" :to="isEditing ? `/invoices/${route.params.id}` : '/invoices'"
+        >Cancel</RouterLink
+      >
     </header>
     <div v-if="error" class="form-error" role="alert">{{ error }}</div>
     <section class="card form-grid">
@@ -136,26 +138,90 @@ const save = async () => {
           <option value="other">Other</option>
         </select></label
       >
-      <label>Party name<input v-model="form.party_name" required maxlength="255" /></label>
-      <label>Company<input v-model="form.party_company" maxlength="255" /></label>
-      <label>Contact person<input v-model="form.party_contact" maxlength="255" /></label>
-      <label>Phone<input v-model="form.party_phone" maxlength="40" /></label>
+      <label
+        >Party name<input
+          v-model="form.party_name"
+          :placeholder="
+            form.direction === 'receivable' ? 'Customer or client name' : 'Supplier or payee name'
+          "
+          required
+          maxlength="255"
+      /></label>
+      <label
+        >Company<input
+          v-model="form.party_company"
+          placeholder="Party's company name"
+          maxlength="255"
+      /></label>
+      <label
+        >Contact person<input
+          v-model="form.party_contact"
+          placeholder="Name of the person to contact"
+          maxlength="255"
+      /></label>
+      <label
+        >Phone<input v-model="form.party_phone" placeholder="e.g. +92 300 1234567" maxlength="40"
+      /></label>
       <label>Invoice date<input v-model="form.invoice_date" type="date" required /></label>
       <label>Due date<input v-model="form.due_date" type="date" /></label>
       <label class="wide"
-        >Party address<textarea v-model="form.party_address" rows="2"></textarea>
+        >Party address<textarea
+          v-model="form.party_address"
+          placeholder="Street, city, and other address details"
+          rows="2"
+        ></textarea>
       </label>
-      <label>Client NTN No<input v-model="form.party_ntn_no" /></label>
-      <label>Client STR No<input v-model="form.party_str_no" /></label>
-      <label>Issuer/company name<input v-model="form.company_name" maxlength="255" /></label>
-      <label>Issuer phone<input v-model="form.company_phone" maxlength="40" /></label>
+      <label
+        >Client NTN (tax ID)<input
+          v-model="form.party_ntn_no"
+          placeholder="Client's National Tax Number"
+      /></label>
+      <label
+        >Client STR (sales tax registration)<input
+          v-model="form.party_str_no"
+          placeholder="Client's Sales Tax Registration number"
+      /></label>
+      <label
+        >Issuer/company name<input
+          v-model="form.company_name"
+          placeholder="Your business's registered or trading name"
+          maxlength="255"
+      /></label>
+      <label
+        >Issuer phone<input
+          v-model="form.company_phone"
+          placeholder="Business phone number"
+          maxlength="40"
+      /></label>
       <label class="wide"
-        >Issuer address<textarea v-model="form.company_address" rows="2"></textarea>
+        >Issuer address<textarea
+          v-model="form.company_address"
+          placeholder="Your business address shown on the invoice"
+          rows="2"
+        ></textarea>
       </label>
-      <label>Issuer STR No<input v-model="form.company_str_no" /></label>
-      <label>Issuer NTN No<input v-model="form.company_ntn_no" /></label>
-      <label>Issuer STNT No<input v-model="form.company_stnt_no" /></label>
-      <label class="wide">Bank details<textarea v-model="form.company_bank_details" rows="2"></textarea></label>
+      <label
+        >Issuer STR (sales tax registration)<input
+          v-model="form.company_str_no"
+          placeholder="Your business's Sales Tax Registration number"
+      /></label>
+      <label
+        >Issuer NTN (tax ID)<input
+          v-model="form.company_ntn_no"
+          placeholder="Your business's National Tax Number"
+      /></label>
+      <label
+        >Issuer STNT No<input
+          v-model="form.company_stnt_no"
+          placeholder="Your business's sales tax number, if applicable"
+      /></label>
+      <label class="wide"
+        >Bank details<textarea
+          v-model="form.company_bank_details"
+          placeholder="Bank name, account title, and account number shown for payment"
+          rows="2"
+        ></textarea>
+      </label>
     </section>
     <section class="card">
       <div class="section-header">
@@ -163,21 +229,31 @@ const save = async () => {
         <button class="btn-light" type="button" @click="addLine">Add line</button>
       </div>
       <div v-for="(item, index) in form.items" :key="index" class="item-grid">
-        <label class="wide">Description<input v-model="item.description" required /></label>
-        <label
-          >Qty<input v-model.number="item.quantity" type="number" min="0.001" step="0.001" required
+        <label class="wide"
+          >Description<input v-model="item.description" placeholder="What is being billed" required
         /></label>
-        <label>Unit<input v-model="item.unit" placeholder="job, vehicle, month…" /></label>
+        <label
+          >Quantity<input
+            v-model.number="item.quantity"
+            type="number"
+            min="0.001"
+            step="0.001"
+            placeholder="e.g. 1"
+            required
+        /></label>
+        <label>Unit<input v-model="item.unit" placeholder="e.g. job, vehicle, month" /></label>
         <label
           >Unit price<input
             v-model.number="item.unit_price"
             type="number"
             min="0"
             step="0.01"
+            placeholder="e.g. 2500.00"
             required
         /></label>
-        <label v-for="[key, label] in detailFields" :key="key"
-          >{{ label }}<input v-model="item.details[key]"
+        <label v-for="[key, label, type, placeholder] in detailFields" :key="key"
+          >{{ label
+          }}<input v-model="item.details[key]" :type="type || 'text'" :placeholder="placeholder"
         /></label>
         <button
           v-if="form.items.length > 1"
@@ -196,10 +272,21 @@ const save = async () => {
           type="number"
           min="0"
           step="0.01"
+          placeholder="e.g. 0.00"
       /></label>
-      <label>Tax label<input v-model="form.tax_label" placeholder="Sales tax / STR / NTN" /></label>
-      <label>Tax number<input v-model="form.tax_number" /></label>
-      <label class="wide">Notes<textarea v-model="form.notes" rows="2"></textarea></label>
+      <label>Tax label<input v-model="form.tax_label" placeholder="e.g. Sales tax or VAT" /></label>
+      <label
+        >Tax registration number<input
+          v-model="form.tax_number"
+          placeholder="Registration number for the tax above"
+      /></label>
+      <label class="wide"
+        >Notes<textarea
+          v-model="form.notes"
+          placeholder="Optional payment terms or other invoice notes"
+          rows="2"
+        ></textarea>
+      </label>
     </section>
     <button class="btn" type="submit" :disabled="saving">
       {{ saving ? 'Saving…' : isEditing ? 'Save invoice' : 'Create invoice' }}

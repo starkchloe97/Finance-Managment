@@ -33,6 +33,7 @@ onMounted(load)
               <th>Date</th>
               <th>Direction</th>
               <th>Amount</th>
+              <th>Bank account</th>
               <th>Method</th>
               <th>Reference</th>
               <th>Invoices</th>
@@ -44,6 +45,7 @@ onMounted(load)
               <td>{{ payment.payment_date }}</td>
               <td>{{ payment.direction === 'received' ? 'Received' : 'Paid' }}</td>
               <td>{{ money(payment.amount) }}</td>
+              <td>{{ payment.bank_account_name || '—' }}</td>
               <td>{{ payment.payment_method || '—' }}</td>
               <td>{{ payment.reference || '—' }}</td>
               <td>

@@ -17,6 +17,7 @@ class PaymentRequest extends FormRequest
             'direction' => ['required', 'in:received,paid'],
             'payment_date' => ['required', 'date'],
             'amount' => ['required', 'numeric', 'decimal:0,2', 'gt:0', 'max:9999999999999.99'],
+            'bank_account_id' => ['required', 'integer', 'exists:bank_accounts,id'],
             'payment_method' => ['nullable', 'string', 'max:40'],
             'reference' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],

@@ -183,7 +183,7 @@ onMounted(load)
         <div v-for="payment in store.invoice.payments" :key="payment.id" class="payment-row">
           <div>
             <strong>{{ payment.payment_no }}</strong>
-            <span>{{ payment.payment_date }} · {{ payment.payment_method || 'unspecified method' }}<span v-if="payment.reference"> · {{ payment.reference }}</span></span>
+            <span>{{ payment.payment_date }} · {{ payment.payment_method || 'unspecified method' }}<span v-if="payment.bank_account_name"> · {{ payment.bank_account_name }}</span><span v-if="payment.reference"> · {{ payment.reference }}</span></span>
           </div>
           <strong>{{ money(payment.amount) }}</strong>
         </div>

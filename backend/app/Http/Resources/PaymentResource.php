@@ -15,6 +15,8 @@ class PaymentResource extends JsonResource
             'direction' => $this->direction->value,
             'payment_date' => $this->payment_date?->toDateString(),
             'amount' => $this->amount,
+            'bank_account_id' => $this->bank_account_id,
+            'bank_account_name' => $this->bankAccount?->name,
             'payment_method' => $this->payment_method,
             'reference' => $this->reference,
             'notes' => $this->notes,

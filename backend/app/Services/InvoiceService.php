@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\InvoiceDirection;
 use App\Enums\PaymentDirection;
 use App\Helpers\NumberGenerator;
+use App\Models\BankAccount;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\InvoicePayment;
@@ -179,7 +180,7 @@ class InvoiceService
                 'total' => $total,
                 'notes' => $data['notes'] ?? null,
             ]);
-            $invoice->items()->delete();
+            $invoice->items()->get()->each(fn ($item) => $item->delete());
             foreach ($lines as $line) {
                 $invoice->items()->create([
                     'description' => $line['description'],
@@ -563,6 +564,10 @@ class InvoiceService
                 ]);
             }
 
+            $bankAccount = BankAccount::query()
+                ->lockForUpdate()
+                ->findOrFail($data['bank_account_id']);
+
             $invoices = Invoice::query()
                 ->whereIn('id', $allocations->pluck('invoice_id'))
                 ->orderBy('id')
@@ -592,8 +597,24 @@ class InvoiceService
                 }
             }
 
+            $currentBalance = round((float) $bankAccount->current_balance, 2);
+            $balanceAfter = $data['direction'] === PaymentDirection::Received->value
+                ? round($currentBalance + $paymentAmount, 2)
+                : round($currentBalance - $paymentAmount, 2);
+            if ($balanceAfter < 0) {
+                throw ValidationException::withMessages([
+                    'bank_account_id' => 'This bank account does not have enough funds for the payment.',
+                ]);
+            }
+            if ($balanceAfter > 9999999999999.99) {
+                throw ValidationException::withMessages([
+                    'bank_account_id' => 'This transaction would exceed the maximum bank account balance.',
+                ]);
+            }
+
             $payment = Payment::create([
                 'payment_no' => NumberGenerator::generate('PAY', Payment::class),
+                'bank_account_id' => $bankAccount->id,
                 'direction' => $data['direction'],
                 'payment_date' => $data['payment_date'],
                 'amount' => $paymentAmount,
@@ -611,21 +632,37 @@ class InvoiceService
                 ]);
             }
 
-            return $payment->load('allocations.invoice');
+            $bankAccount->update(['current_balance' => $balanceAfter]);
+            $bankAccount->transactions()->create([
+                'payment_id' => $payment->id,
+                'type' => $data['direction'] === PaymentDirection::Received->value ? 'receipt' : 'payment',
+                'amount' => $paymentAmount,
+                'balance_after' => $balanceAfter,
+                'description' => $payment->payment_no,
+                'transaction_date' => $data['payment_date'],
+            ]);
+
+            return $payment->load(['bankAccount', 'allocations.invoice']);
         });
     }
 
     public function paymentList(): LengthAwarePaginator
     {
-        return Payment::with('allocations.invoice')->latest('payment_date')->paginate(20);
+        return Payment::with(['bankAccount', 'allocations.invoice'])->latest('payment_date')->paginate(20);
     }
 
     public function dashboardSummary(): array
     {
+        $paymentTotals = DB::table('invoice_payments')
+            ->select('invoice_id')
+            ->selectRaw('coalesce(sum(amount), 0) as paid')
+            ->groupBy('invoice_id');
+
         $balances = DB::table('invoices')
-            ->leftJoin('invoice_payments', 'invoice_payments.invoice_id', '=', 'invoices.id')
-            ->selectRaw('invoices.direction, invoices.category, invoices.due_date, invoices.total, coalesce(sum(invoice_payments.amount), 0) as paid')
-            ->groupBy('invoices.id');
+            ->leftJoinSub($paymentTotals, 'payment_totals', function ($join) {
+                $join->on('payment_totals.invoice_id', '=', 'invoices.id');
+            })
+            ->selectRaw('invoices.direction, invoices.category, invoices.due_date, invoices.total, coalesce(payment_totals.paid, 0) as paid');
 
         $rows = DB::query()->fromSub($balances, 'invoice_balances')
             ->selectRaw("
@@ -652,7 +689,7 @@ class InvoiceService
             'customer', 'transportJob', 'items',
             'jobExpense.transportJob', 'vehicleContract',
             'hiredVehicle.estimateItem.estimate.transportJob',
-            'allocations.payment', 'allocations.invoice',
+            'allocations.payment.bankAccount', 'allocations.invoice',
         ])->loadSum('allocations as paid_amount_sum', 'amount');
     }
 

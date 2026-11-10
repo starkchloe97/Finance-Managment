@@ -242,7 +242,10 @@ class LoanService
         Loan::query()
             ->where('status', LoanStatus::Overdue->value)
             ->whereDate('due_date', '>=', today())
-            ->update(['status' => LoanStatus::Active->value]);
+            ->orderBy('id')
+            ->chunkById(100, fn ($loans) => $loans->each(
+                fn (Loan $loan) => $loan->update(['status' => LoanStatus::Active])
+            ));
 
         Loan::query()
             ->where('status', LoanStatus::Active)

@@ -58,6 +58,8 @@ class InvoiceResource extends JsonResource
                 'amount' => $allocation->amount,
                 'payment_method' => $allocation->payment->payment_method,
                 'reference' => $allocation->payment->reference,
+                'bank_account_id' => $allocation->payment->bank_account_id,
+                'bank_account_name' => $allocation->payment->bankAccount?->name,
             ])->values()),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

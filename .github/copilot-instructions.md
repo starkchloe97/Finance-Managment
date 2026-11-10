@@ -49,7 +49,7 @@ cd backend && composer run dev
 - `backend/app/Http/Controllers/Api/V1/` contains the HTTP API surface, usually one feature area per controller set.
 - `backend/app/Models/` defines the main domain models and soft-delete behavior.
 - `backend/app/Enums/` holds status enums used across the finance lifecycle (`InvestmentStatus`, `JobStatus`, `LoanStatus`, etc.).
-- `backend/routes/api_v1.php` and `backend/routes/api/*.php` register the API endpoints. The project is organized by feature domain, not by a single monolithic controller.
+- `backend/routes/api.php` registers all versioned API endpoints under `/api/v1`.
 - `backend/app/Http/Resources/` serializes API responses, so keep payload shape and enum values consistent with the frontend.
 
 ### Frontend
