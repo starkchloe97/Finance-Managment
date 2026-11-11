@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Api\V1\AssetController;
 use App\Http\Controllers\Api\V1\ActivityLogController;
+use App\Http\Controllers\Api\V1\AssetController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BankAccountController;
 use App\Http\Controllers\Api\V1\CompanyCapitalController;
@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\InvestorProfitDistributionController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\LoanBorrowerController;
 use App\Http\Controllers\Api\V1\LoanController;
+use App\Http\Controllers\Api\V1\QueryController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\TransportJobActivityController;
 use App\Http\Controllers\Api\V1\TransportJobController;
@@ -42,6 +43,8 @@ Route::prefix('v1')->group(function () {
         Route::get('bank-accounts/{bankAccount}/transactions', [BankAccountController::class, 'transactions']);
 
         Route::apiResource('customers', CustomerController::class);
+        Route::apiResource('queries', QueryController::class)
+            ->only(['index', 'store', 'show', 'update', 'destroy']);
 
         // Estimates are customer-facing: they hold the quote, not the job's
         // internal cost/profit tracking. Editing (and showing) is available

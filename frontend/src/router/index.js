@@ -15,6 +15,9 @@ const routes = [
     children: [
       { path: '', name: 'dashboard', component: Dashboard, meta: secure('Dashboard') },
       { path: 'activities', name: 'activities.index', component: () => import('@/pages/Activity.vue'), meta: secure('Activity') },
+      { path: 'queries', name: 'queries.index', component: () => import('@/pages/queries/QueriesList.vue'), meta: secure('Operations / Queries') },
+      { path: 'queries/create', name: 'queries.create', component: () => import('@/pages/queries/QueryCreate.vue'), meta: secure('Operations / Queries / New query') },
+      { path: 'queries/:id', name: 'queries.show', component: () => import('@/pages/queries/QueryShow.vue'), meta: secure('Operations / Queries / Details') },
       { path: 'invoices', name: 'invoices.index', component: () => import('@/pages/invoices/Invoices.vue'), meta: secure('Finance / Invoices') },
       { path: 'invoices/create', name: 'invoices.create', component: () => import('@/pages/invoices/InvoiceCreate.vue'), meta: secure('Finance / Invoices / Create') },
       { path: 'invoices/:id/edit', name: 'invoices.edit', component: () => import('@/pages/invoices/InvoiceCreate.vue'), meta: secure('Finance / Invoices / Edit') },
