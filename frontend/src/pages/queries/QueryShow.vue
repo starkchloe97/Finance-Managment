@@ -207,11 +207,6 @@ textarea {
   padding-top: var(--space-5);
 }
 
-.btn-danger {
-  background: var(--danger);
-  border-color: var(--danger);
-}
-
 .btn-secondary {
   background: var(--surface);
   border: 1px solid var(--border);

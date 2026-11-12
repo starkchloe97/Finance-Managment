@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Query;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -41,6 +42,25 @@ class QueryManagementTest extends TestCase
             'name' => 'Morgan Lee',
             'status' => 'new',
         ]);
+    }
+
+    public function test_queries_index_fetches_records_from_the_queries_table(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        $id = DB::table('queries')->insertGetId([
+            'name' => 'Existing inquiry',
+            'phone' => '03001112222',
+            'service' => 'Vehicle transport',
+            'status' => 'new',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->getJson('/api/v1/queries')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $id)
+            ->assertJsonPath('data.0.name', 'Existing inquiry');
     }
 
     public function test_queries_can_be_searched_filtered_and_viewed(): void
