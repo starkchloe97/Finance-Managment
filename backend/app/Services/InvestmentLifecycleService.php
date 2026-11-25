@@ -9,7 +9,10 @@ use Illuminate\Validation\ValidationException;
 
 class InvestmentLifecycleService
 {
-    public function __construct(private InvestmentSettlementService $settlements) {}
+    public function __construct(
+        private InvestmentSettlementService $settlements,
+        private InvestmentMonthlyReturnService $monthlyReturns
+    ) {}
 
     public function mature(Investment $investment): Investment
     {
@@ -30,12 +33,16 @@ class InvestmentLifecycleService
 
     public function withdraw(Investment $investment): Investment
     {
-        return $this->transition(
+        $investment = $this->transition(
             $investment,
             InvestmentStatus::Withdrawn,
             [InvestmentStatus::Active],
             'withdrawn_at'
         );
+
+        $this->monthlyReturns->cancelPendingReturns($investment);
+
+        return $investment;
     }
 
     public function settle(Investment $investment): Investment
@@ -54,12 +61,16 @@ class InvestmentLifecycleService
 
     public function cancel(Investment $investment): Investment
     {
-        return $this->transition(
+        $investment = $this->transition(
             $investment,
             InvestmentStatus::Cancelled,
             [InvestmentStatus::Active],
             'cancelled_at'
         );
+
+        $this->monthlyReturns->cancelPendingReturns($investment);
+
+        return $investment;
     }
 
     private function transition(

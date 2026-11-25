@@ -48,7 +48,8 @@ const returnPreview = computed(() => {
 })
 
 const deductionNum = computed(() => Number(form.deduction_amount || 0))
-const settlementPreview = computed(() => principalNum.value + returnPreview.value - deductionNum.value)
+const totalReturnPreview = computed(() => returnPreview.value * Number(form.period_months || 0))
+const settlementPreview = computed(() => principalNum.value - deductionNum.value)
 
 const maturityPreview = computed(() => {
   if (!form.investment_date || !form.period_months) return ''
@@ -222,8 +223,8 @@ const submit = () => {
 
             <div class="field">
               <label for="return_policy_days">
-                Return policy
-                <InfoTip label="How many days after the term ends before the return is paid out." />
+                Payment policy
+                <InfoTip label="Optional internal policy setting, in days, for handling monthly return payments." />
               </label>
               <div class="input-with-suffix">
                 <input
@@ -244,21 +245,21 @@ const submit = () => {
           <fieldset class="field">
             <legend>
               Return type
-              <InfoTip label="Percentage returns share in job profit. Fixed returns pay a set amount, regardless of profit." />
+              <InfoTip label="Percentage returns pay a percentage of the invested amount each month. Fixed returns pay the same set amount each month." />
             </legend>
             <div class="choice-group">
               <label v-if="form.investment_category === 'normal'" class="choice-option">
                 <input v-model="form.return_type" type="radio" value="fixed" />
                 <span>
                   <b>Fixed</b>
-                  <small>A set amount</small>
+                  <small>A set monthly amount</small>
                 </span>
               </label>
               <label class="choice-option">
                 <input v-model="form.return_type" type="radio" value="percentage" />
                 <span>
                   <b>Percentage</b>
-                  <small>A share of profit</small>
+                  <small>A monthly rate on the invested amount</small>
                 </span>
               </label>
             </div>
@@ -268,7 +269,7 @@ const submit = () => {
           </fieldset>
 
           <div v-if="form.investment_category === 'normal' && form.return_type === 'fixed'" class="field">
-            <label for="fixed_return_amount">Fixed return amount</label>
+            <label for="fixed_return_amount">Monthly fixed return amount</label>
             <input
               id="fixed_return_amount"
               v-model="form.fixed_return_amount"
@@ -309,8 +310,8 @@ const submit = () => {
 
             <div class="field">
               <label for="calculated_return_amount">
-                Expected return
-                <InfoTip label="Calculated live from the amount and percentage — what the investment is expected to earn." />
+                Monthly return
+                <InfoTip label="Calculated from the investment amount and percentage. This amount is due each month during the term." />
               </label>
               <input
                 id="calculated_return_amount"
@@ -367,19 +368,23 @@ const submit = () => {
           </div>
           <div class="panel-row">
             <span>
-              Return
+              Monthly return
               <InfoTip :label="form.return_type === 'fixed'
-                ? 'The fixed amount you entered.'
-                : 'Amount × percentage.'" />
+                ? 'The fixed amount due each month.'
+                : 'Investment amount × monthly percentage.'" />
             </span>
             <strong>{{ money(returnPreview) }}</strong>
+          </div>
+          <div class="panel-row">
+            <span>Total scheduled returns</span>
+            <strong>{{ money(totalReturnPreview) }}</strong>
           </div>
           <div class="panel-row">
             <span>Deduction</span>
             <strong>− {{ money(deductionNum) }}</strong>
           </div>
           <div class="panel-row panel-grand">
-            <span>Settlement</span>
+            <span>Final principal payout</span>
             <strong :class="settlementPreview < 0 ? 'money-loss' : 'money-profit'">
               {{ money(settlementPreview) }}
             </strong>

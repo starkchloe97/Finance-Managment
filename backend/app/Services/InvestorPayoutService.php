@@ -15,6 +15,10 @@ class InvestorPayoutService
     public function calculateDistribution(TransportJob $job, Investment $investment, ?string $notes = null): InvestorProfitDistribution
     {
         return DB::transaction(function () use ($job, $investment, $notes) {
+            if ($investment->monthlyReturns()->exists()) {
+                $this->reject('investment', 'This investment pays scheduled monthly returns, not job profit distributions.');
+            }
+
             $job = TransportJob::query()->lockForUpdate()->findOrFail($job->id);
             if ($job->financially_locked_at) {
                 $this->reject('job', 'This job is financially locked.');

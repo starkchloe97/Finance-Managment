@@ -17,6 +17,7 @@ class Asset extends Model
         'asset_code',
         'asset_type',
         'name',
+        'description',
         'make',
         'model',
         'model_year',
@@ -25,11 +26,14 @@ class Asset extends Model
         'engine_number',
         'vehicle_type',
         'color',
+        'assigned_to',
+        'location',
         'purchase_date',
         'purchase_price',
         'current_value',
         'status',
         'notes',
+        'remarks',
         'created_by',
     ];
 

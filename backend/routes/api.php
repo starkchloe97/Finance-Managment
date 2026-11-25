@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\EstimateController;
 use App\Http\Controllers\Api\V1\FinancialAdjustmentController;
 use App\Http\Controllers\Api\V1\InvestmentAllocationController;
 use App\Http\Controllers\Api\V1\InvestmentController;
+use App\Http\Controllers\Api\V1\InvestmentMonthlyReturnController;
 use App\Http\Controllers\Api\V1\InvestorController;
 use App\Http\Controllers\Api\V1\InvestorProfitDistributionController;
 use App\Http\Controllers\Api\V1\InvoiceController;
@@ -46,6 +47,8 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('queries', QueryController::class)
             ->only(['index', 'store', 'show', 'update', 'destroy']);
 
+        Route::get('estimates/next-number', [EstimateController::class, 'nextNumber']);
+
         // Estimates are customer-facing: they hold the quote, not the job's
         // internal cost/profit tracking. Editing (and showing) is available
         // for quotes that have not been converted yet.
@@ -75,6 +78,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/investments/{investment}/withdraw', [InvestmentController::class, 'withdraw']);
         Route::post('/investments/{investment}/settle', [InvestmentController::class, 'settle']);
         Route::post('/investments/{investment}/cancel', [InvestmentController::class, 'cancel']);
+        Route::get('investments/{investment}/monthly-returns', [InvestmentMonthlyReturnController::class, 'index']);
+        Route::post('investments/{investment}/monthly-returns/{monthlyReturn}/pay', [InvestmentMonthlyReturnController::class, 'pay']);
 
         Route::get('investments/{investment}/allocations', [InvestmentAllocationController::class, 'index']);
         Route::post('investments/{investment}/allocations', [InvestmentAllocationController::class, 'store']);

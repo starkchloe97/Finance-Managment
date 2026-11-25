@@ -16,14 +16,17 @@ const { investment, loading, error } = storeToRefs(investmentStore)
 
 const allocations = ref([])
 const distributions = ref([])
+const monthlyReturns = ref([])
 const financeLoading = ref(false)
 const financeError = ref('')
 const actionError = ref('')
 const pendingAction = ref(null)
 const releasing = ref(null)
+const payingReturn = ref(null)
 
 // ---- Derived ----
 const isPool = computed(() => investment.value?.investment_category === 'pool')
+const isMonthlyPayout = computed(() => Boolean(investment.value?.has_monthly_return_schedule))
 
 const canMature = computed(() => {
   if (!investment.value?.maturity_date) return false
@@ -33,15 +36,17 @@ const canMature = computed(() => {
 
 const returnTerms = computed(() => {
   if (investment.value?.return_type === 'percentage') {
-    return `${investment.value.return_percentage || 0}% of profit`
+    return `${investment.value.return_percentage || 0}% per month`
   }
-  return `${money(investment.value?.fixed_return_amount)} fixed`
+  return `${money(investment.value?.fixed_return_amount)} per month`
 })
 
 const principal = computed(() => Number(investment.value?.amount || 0))
 const expectedReturn = computed(() => Number(investment.value?.calculated_return_amount || 0))
 const deduction = computed(() => Number(investment.value?.deduction_amount || 0))
 const settlement = computed(() => Number(investment.value?.expected_settlement_amount || 0))
+const totalScheduledReturns = computed(() => Number(investment.value?.total_scheduled_return_amount || 0))
+const totalPaidMonthlyReturns = computed(() => Number(investment.value?.total_paid_monthly_return_amount || 0))
 
 const allocated = computed(() => Number(investment.value?.allocated_amount || 0))
 const remaining = computed(() => Number(investment.value?.remaining_capital || 0))
@@ -101,12 +106,14 @@ const loadFinance = async () => {
   financeLoading.value = true
   financeError.value = ''
   try {
-    const [allocationResponse, distributionResponse] = await Promise.all([
+    const [allocationResponse, distributionResponse, monthlyReturnResponse] = await Promise.all([
       getAllocations(route.params.id),
       getInvestmentDistributions(route.params.id),
+      getMonthlyReturns(route.params.id),
     ])
     allocations.value = allocationResponse.data.data
     distributions.value = distributionResponse.data.data
+    monthlyReturns.value = monthlyReturnResponse.data.data
   } catch (requestError) {
     financeError.value =
       requestError.response?.data?.message || 'Could not load allocation and return records.'
@@ -161,6 +168,25 @@ const allocationCreated = async () => {
   await loadFinance()
 }
 
+const isReturnDue = (monthlyReturn) =>
+  monthlyReturn.status === 'pending' && monthlyReturn.due_date <= new Date().toISOString().slice(0, 10)
+
+const payReturn = async (monthlyReturn) => {
+  if (payingReturn.value) return
+
+  payingReturn.value = monthlyReturn.id
+  financeError.value = ''
+  try {
+    await payMonthlyReturn(investment.value.id, monthlyReturn.id)
+    await investmentStore.fetchInvestment(route.params.id)
+    await loadFinance()
+  } catch (requestError) {
+    financeError.value = requestError.response?.data?.message || 'Could not record the monthly return payment.'
+  } finally {
+    payingReturn.value = null
+  }
+}
+
 onMounted(() => {
   load().catch(() => {})
 })
@@ -169,6 +195,8 @@ onMounted(() => {
 import {
   getAllocations,
   getInvestmentDistributions,
+  getMonthlyReturns,
+  payMonthlyReturn,
   releaseAllocation,
 } from '@/services/investmentFinanceService'
 </script>
@@ -250,8 +278,8 @@ import {
           </div>
           <div class="hero-stat">
             <span>
-              Expected return
-              <InfoTip :label="`How the investment earns: ${returnTerms}.`" />
+              Monthly return
+              <InfoTip :label="`Amount due each month: ${returnTerms}.`" />
             </span>
             <strong>{{ money(expectedReturn) }}</strong>
           </div>
@@ -264,8 +292,8 @@ import {
           </div>
           <div class="hero-stat">
             <span>
-              Expected settlement
-              <InfoTip label="What the investor should receive at the end: principal + return − deduction." />
+              Final principal payout
+              <InfoTip label="The principal returned at the end of the term, less any agreed deduction. Monthly returns are paid separately." />
             </span>
             <strong class="money-profit">{{ money(settlement) }}</strong>
           </div>
@@ -277,7 +305,7 @@ import {
         <header class="flow-head">
           <div>
             <h2>How the payout works</h2>
-            <p class="hint">Follow the math from the capital placed to what comes back.</p>
+            <p class="hint">Monthly returns are paid during the term; principal is returned at the end.</p>
           </div>
         </header>
 
@@ -292,8 +320,8 @@ import {
           <span class="flow-op" aria-hidden="true">+</span>
           <div class="flow-step">
             <span class="flow-label">
-              Return
-              <InfoTip :label="`Earned as ${returnTerms}.`" />
+              Monthly return
+              <InfoTip :label="`Paid each month as ${returnTerms}.`" />
             </span>
             <strong>{{ money(expectedReturn) }}</strong>
           </div>
@@ -301,14 +329,14 @@ import {
           <div class="flow-step">
             <span class="flow-label">
               Deduction
-              <InfoTip label="Held back from the payout, as agreed when the investment was made." />
+                <InfoTip label="Held back from the final principal payout, as agreed when the investment was made." />
             </span>
             <strong>{{ money(deduction) }}</strong>
           </div>
           <span class="flow-op" aria-hidden="true">=</span>
           <div class="flow-step flow-final">
             <span class="flow-label">
-              Settlement
+              Principal payout
               <InfoTip label="What the investor receives when the investment is settled." />
             </span>
             <strong>{{ money(settlement) }}</strong>
@@ -336,7 +364,7 @@ import {
               <li>
                 <span class="fact-label">
                   Return terms
-                  <InfoTip label="Percentage returns share in job profit. Fixed returns pay a set amount." />
+                  <InfoTip label="Percentage returns pay a rate on the investment amount each month. Fixed returns pay a set monthly amount." />
                 </span>
                 <span class="fact-value">{{ returnTerms }}</span>
               </li>
@@ -348,8 +376,8 @@ import {
               </li>
               <li>
                 <span class="fact-label">
-                  Return policy
-                  <InfoTip label="How soon after the term ends the return is paid out." />
+                  Payment policy
+                  <InfoTip label="Internal policy setting, in days, for handling monthly return payments." />
                 </span>
                 <span class="fact-value">
                   {{ investment.return_policy_days ? `${investment.return_policy_days} days` : '—' }}
@@ -523,8 +551,72 @@ import {
             </template>
           </section>
 
-          <!-- ===== Returns block ===== -->
-          <section class="card block-card">
+          <!-- ===== Monthly returns block ===== -->
+          <section v-if="isMonthlyPayout" class="card block-card">
+            <header class="block-head">
+              <div class="block-title">
+                <span class="block-icon icon-success" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 8v8" /><path d="M9 11c0-1.1 1.3-2 3-2s3 .9 3 2-1.3 2-3 2-3 .9-3 2 1.3 2 3 2 3-.9 3-2" /><circle cx="12" cy="12" r="9" />
+                  </svg>
+                </span>
+                <div>
+                  <h2>Monthly return schedule</h2>
+                  <p class="block-hint">Record each return when it has been paid to the investor.</p>
+                </div>
+              </div>
+              <span class="count-badge money-profit">{{ money(totalPaidMonthlyReturns) }} paid</span>
+            </header>
+
+            <div class="return-summary">
+              <span>Monthly amount <strong>{{ money(expectedReturn) }}</strong></span>
+              <span>Total scheduled <strong>{{ money(totalScheduledReturns) }}</strong></span>
+            </div>
+
+            <div v-if="financeLoading" class="block-loading"><div class="sk" style="height: 120px"></div></div>
+            <div v-else-if="financeError" class="block-error">
+              <p>{{ financeError }}</p>
+              <button class="btn-light btn-sm" type="button" @click="loadFinance">Try again</button>
+            </div>
+            <div v-else class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Month</th>
+                    <th>Due date</th>
+                    <th class="right">Return</th>
+                    <th>Status</th>
+                    <th>Paid</th>
+                    <th class="right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="monthlyReturn in monthlyReturns" :key="monthlyReturn.id">
+                    <td>Month {{ monthlyReturn.installment_number }}</td>
+                    <td>{{ monthlyReturn.due_date }}</td>
+                    <td class="right money-profit">{{ money(monthlyReturn.amount) }}</td>
+                    <td><span class="status status-info capitalize">{{ monthlyReturn.status }}</span></td>
+                    <td>{{ formatDateTime(monthlyReturn.paid_at) }}</td>
+                    <td class="right">
+                      <button
+                        v-if="isReturnDue(monthlyReturn)"
+                        class="btn-light btn-sm"
+                        type="button"
+                        :disabled="payingReturn === monthlyReturn.id"
+                        @click="payReturn(monthlyReturn)"
+                      >
+                        {{ payingReturn === monthlyReturn.id ? 'Recording…' : 'Mark paid' }}
+                      </button>
+                      <span v-else>—</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- ===== Legacy job-profit returns block ===== -->
+          <section v-if="!isMonthlyPayout" class="card block-card">
             <header class="block-head">
               <div class="block-title">
                 <span class="block-icon icon-success" aria-hidden="true">
@@ -1076,6 +1168,18 @@ import {
   text-align: center;
 }
 .block-empty p { margin: 0; }
+
+.return-summary {
+  background: var(--success-soft);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+}
+.return-summary span { color: var(--text-secondary); font-size: 13px; }
+.return-summary strong { color: var(--success); font-variant-numeric: tabular-nums; }
 
 /* ---------- Error / skeleton / footer ---------- */
 .detail-error {

@@ -11,6 +11,8 @@ use Illuminate\Validation\ValidationException;
 
 class InvestmentService
 {
+    public function __construct(private InvestmentMonthlyReturnService $monthlyReturns) {}
+
     public function paginate(int $perPage = 15): LengthAwarePaginator
     {
         return Investment::query()
@@ -35,6 +37,8 @@ class InvestmentService
 
             $investment = Investment::create($data);
 
+            $this->monthlyReturns->createSchedule($investment);
+
             return $investment->load('investor');
         });
     }
@@ -55,7 +59,31 @@ class InvestmentService
                 ]);
             }
 
-            $investment->update($this->normalizeReturnConfiguration($data));
+            $data = $this->normalizeReturnConfiguration($data);
+            $investment->fill($data);
+
+            $scheduleFields = [
+                'investment_date',
+                'amount',
+                'return_type',
+                'return_percentage',
+                'fixed_return_amount',
+                'period_months',
+            ];
+
+            if ($investment->isDirty($scheduleFields)) {
+                if ($investment->monthlyReturns()->where('status', 'paid')->exists()) {
+                    throw ValidationException::withMessages([
+                        'investment' => ['Return terms cannot change after a monthly return has been paid.'],
+                    ]);
+                }
+
+                $investment->monthlyReturns()->delete();
+                $investment->save();
+                $this->monthlyReturns->createSchedule($investment);
+            } else {
+                $investment->save();
+            }
 
             return $investment
                 ->refresh()

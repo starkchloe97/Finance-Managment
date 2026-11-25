@@ -23,7 +23,7 @@ defineProps({ estimates: { type: Array, default: () => [] } })
           <strong>{{ estimate.customer?.name || 'No customer' }}</strong>
         </div>
         <div class="queue-secondary">
-          <span>{{ money(estimate.estimated_sell) }}</span>
+          <span>{{ money(Number(estimate.grand_total) || Number(estimate.estimated_sell)) }}</span>
           <span v-if="estimate.valid_until">Valid {{ estimate.valid_until }}</span>
           <span class="status" :class="estimateStatusClass(estimate.status)">
             {{ estimateStatusLabel(estimate.status) }}

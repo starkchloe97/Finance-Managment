@@ -7,6 +7,7 @@ import InfoTip from '@/components/ui/InfoTip.vue'
 
 const props = defineProps({
   form: Object,
+  estimateType: { type: String, default: 'transportation' },
 })
 
 const CATEGORIES = [
@@ -16,6 +17,14 @@ const CATEGORIES = [
   'Fuel',
   'Machinery',
   'Agent',
+  'Vehicle Rental',
+  'Driver Food',
+  'Maintenance',
+  'Tyres & Lubricants',
+  'Insurance & Tracker',
+  'Route Permit',
+  'Toll / Parking',
+  'Service Charges',
   'Other',
 ]
 
@@ -302,11 +311,10 @@ onMounted(() => {
   <div class="estimate-items">
 
     <div class="section-heading">
-      <h3>Quoted items</h3>
+      <h3>{{ estimateType === 'rental' ? 'Transportation charges' : 'Cost breakdown' }}</h3>
 
       <p>
-        Each line prices one piece of the job. Line profit updates as you
-        type — the running totals sit in the panel on the right.
+        Add quantities and rates for each charge. The amount and estimate totals update as you type.
       </p>
     </div>
 
@@ -314,7 +322,7 @@ onMounted(() => {
     <!-- Column captions for the compact (wide) layout.
          Hidden on narrow layouts, where each field shows its own label. -->
     <div class="items-header" aria-hidden="true">
-      <span>Title</span>
+      <span>Expense description</span>
       <span>Category</span>
       <span>Qty</span>
 
@@ -324,7 +332,7 @@ onMounted(() => {
       </span>
 
       <span>
-        Sell / unit
+        {{ estimateType === 'rental' ? 'Rate (PKR)' : 'Sell / unit' }}
         <InfoTip label="What the customer pays for one unit." />
       </span>
 
@@ -425,11 +433,11 @@ onMounted(() => {
         <div class="line-grid">
 
           <label class="cell c-title">
-            <span class="cell-label">Title</span>
+            <span class="cell-label">Expense description</span>
             <input
               v-model="item.title"
               class="cell-input"
-              placeholder="Freight"
+              placeholder="Describe the charge"
             />
           </label>
 
@@ -485,7 +493,7 @@ onMounted(() => {
 
           <label class="cell c-sell">
             <span class="cell-label">
-              Sell / unit
+              {{ estimateType === 'rental' ? 'Rate (PKR)' : 'Sell / unit' }}
               <InfoTip label="What the customer pays for one unit." />
             </span>
             <input

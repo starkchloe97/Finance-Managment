@@ -38,6 +38,12 @@ class AssetRequest extends FormRequest
                 'max:255',
             ],
 
+            'description' => [
+                'nullable',
+                'string',
+                'max:5000',
+            ],
+
             /*
              * Vehicle
              */
@@ -96,6 +102,18 @@ class AssetRequest extends FormRequest
                 'max:50',
             ],
 
+            'assigned_to' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'location' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
             /*
              * Financial
              */
@@ -128,6 +146,12 @@ class AssetRequest extends FormRequest
              * Notes
              */
             'notes' => [
+                'nullable',
+                'string',
+                'max:5000',
+            ],
+
+            'remarks' => [
                 'nullable',
                 'string',
                 'max:5000',

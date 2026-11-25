@@ -1,17 +1,15 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { createEstimate, updateEstimate, getEstimate } from '@/services/estimateService'
+import { createEstimate, updateEstimate, getNextEstimateNumber } from '@/services/estimateService'
 import EstimateInformation from './EstimateInformation.vue'
 import EstimateItemsTable from './EstimateItemsTable.vue'
+import RepairEstimateItems from './RepairEstimateItems.vue'
 import InfoTip from '@/components/ui/InfoTip.vue'
 import { money } from '@/utils/money'
 
 const router = useRouter()
 const route = useRoute()
-
-// When editing an existing quote, its id is present; otherwise this is the
-// create form.
 const props = defineProps({
   estimate: { type: Object, default: null },
 })
@@ -20,101 +18,313 @@ const saving = ref(false)
 const loading = ref(false)
 const errors = ref({})
 const notice = ref('')
+const estimateNumber = ref('')
 
-const line = () => ({
-  title: '',
-  category: '',
+const rentalTerms = `Rates are subject to the agreed vehicle type and duty requirements.
+Fuel will be charged as per actual consumption / agreed terms.
+Additional kilometres and overtime will be charged separately.
+Toll tax, parking and government charges are borne by the customer unless included.
+Work outside the agreed scope will be charged separately.
+Quotation validity: 15 days.`
+
+const transportationTerms = `Fuel basis: actual consumption or as included in this estimate.
+Additional kilometres and overtime will be charged at the agreed rates.
+Vehicle replacement is subject to availability.
+Toll tax, parking and government charges are borne by the customer unless included.
+Work outside the agreed scope will be charged separately.
+Quotation validity: 15 days.`
+
+const repairTerms = `This estimate is based on the initial inspection of the vehicle.
+Any additional repair or replacement will be communicated for approval.
+Work will commence after customer approval.
+Additional parts or labour requirements will be charged separately.
+Actual cost may vary depending on the vehicle's condition.
+Estimate validity: 7 days.`
+
+const termsFor = (type) =>
+  type === 'repair' ? repairTerms : type === 'rental' ? rentalTerms : transportationTerms
+
+const defaultValidity = (type, from = new Date()) => {
+  const date = new Date(from)
+  date.setDate(date.getDate() + (type === 'repair' ? 7 : 15))
+  return date.toISOString().slice(0, 10)
+}
+
+const makeDetails = (type) => {
+  if (type === 'rental') {
+    return {
+      customer_company: '',
+      customer_location: '',
+      job_name: '',
+      vehicle_required: '',
+      vehicle_model: '',
+      quantity: 1,
+      service_mode: 'With Driver',
+      route_location: '',
+      duty_hours: '',
+      monthly_daily_km: '',
+      contract_period: '',
+    }
+  }
+
+  if (type === 'transportation') {
+    return {
+      customer_company: '',
+      customer_location: '',
+      job_type: 'goods',
+      vehicle_type: '',
+      vehicle_model: '',
+      vehicle_quantity: 1,
+      route: '',
+      daily_running_km: '',
+      duty_hours: '',
+      working_days: '',
+      contract_period: '',
+    }
+  }
+
+  return {
+    customer_company: '',
+    customer_location: '',
+    vehicle_make: '',
+    vehicle_model: '',
+    registration_number: '',
+    engine_number: '',
+    current_km: '',
+    job_location: '',
+    estimated_completion_days: '',
+    workshop_charges: 0,
+    towing_charges: 0,
+    other_expenses: 0,
+  }
+}
+
+const line = (title = '', category = 'Other') => ({
+  title,
+  category,
   quantity: 1,
   cost_price: 0,
   sell_price: 0,
+  parts_cost: 0,
+  labor_cost: 0,
   cost_total: 0,
   sell_total: 0,
   profit: 0,
   remarks: '',
-
   vehicles: [],
 })
 
+const defaultItems = (type) => {
+  const titles =
+    type === 'rental'
+      ? [
+          ['Vehicle Rental Charges', 'Vehicle Rental'],
+          ['Driver Salary / Charges', 'Labor'],
+          ['Fuel Charges', 'Fuel'],
+          ['Maintenance & Repair', 'Maintenance'],
+          ['Toll Tax / Parking', 'Toll / Parking'],
+          ['Other Expenses', 'Other'],
+        ]
+      : type === 'transportation'
+        ? [
+            ['Vehicle Rental / Depreciation', 'Vehicle Rental'],
+            ['Fuel Expenses', 'Fuel'],
+            ['Driver Salary', 'Labor'],
+            ['Driver Food / Accommodation', 'Driver Food'],
+            ['Vehicle Maintenance', 'Maintenance'],
+            ['Tyres & Lubricants', 'Tyres & Lubricants'],
+            ['Insurance & Tracker', 'Insurance & Tracker'],
+            ['Route Permit / Taxes', 'Route Permit'],
+            ['Toll Tax / Parking', 'Toll / Parking'],
+            ['Other Expenses', 'Other'],
+            ['Profit / Service Charges', 'Service Charges'],
+          ]
+        : [
+            ['Engine / Mechanical Work', 'Repair'],
+            ['Suspension Work', 'Repair'],
+            ['Brake System', 'Repair'],
+            ['AC System', 'Repair'],
+            ['Electrical Work', 'Repair'],
+            ['Tyres / Wheel Alignment', 'Repair'],
+            ['Oil & Filter Replacement', 'Repair'],
+            ['Other Repairs', 'Repair'],
+          ]
+
+  return titles.map(([title, category]) => line(title, category))
+}
+
 const form = reactive({
   customer_id: null,
-  estimate_date: new Date().toISOString().substring(0, 10),
-  valid_until: '',
+  estimate_type: 'rental',
+  estimate_date: new Date().toISOString().slice(0, 10),
+  valid_until: defaultValidity('rental'),
   pickup: '',
   destination: '',
-  service_type: 'goods',
+  service_type: 'vehicle',
   tonnage: '',
+  details: makeDetails('rental'),
+  terms: rentalTerms,
+  payment_terms: '',
+  tax_rate: 0,
+  prepared_by: '',
+  checked_by: '',
+  approved_by: '',
+  customer_approval: '',
   status: 'draft',
   remarks: '',
-  items: [line()],
+  items: defaultItems('rental'),
 })
+
+const isEdit = computed(() => Boolean(props.estimate))
+const additionalCharges = computed(() => {
+  if (form.estimate_type !== 'repair') return 0
+  const details = form.details
+  return ['workshop_charges', 'towing_charges', 'other_expenses'].reduce(
+    (total, field) => total + Number(details[field] || 0),
+    0,
+  )
+})
+const sum = (field) => form.items.reduce((total, item) => total + Number(item[field] || 0), 0)
+const totalCost = computed(() => sum('cost_total') + additionalCharges.value)
+const subtotal = computed(() => sum('sell_total') + additionalCharges.value)
+const taxAmount = computed(() => Math.round(subtotal.value * Number(form.tax_rate || 0)) / 100)
+const grandTotal = computed(() => subtotal.value + taxAmount.value)
+const totalProfit = computed(() => subtotal.value - totalCost.value)
+const margin = computed(() =>
+  subtotal.value > 0 ? ((totalProfit.value / subtotal.value) * 100).toFixed(1) : null,
+)
+const errorMessages = computed(() => Object.values(errors.value).flat())
+
+const hasEnteredData = () =>
+  form.items.some(
+    (item) => Number(item.cost_price || 0) > 0 || Number(item.sell_price || 0) > 0 || item.remarks,
+  ) ||
+  Object.entries(form.details).some(
+    ([key, value]) =>
+      ![
+        'customer_company',
+        'customer_location',
+        'job_type',
+        'service_mode',
+        'quantity',
+        'vehicle_quantity',
+        'workshop_charges',
+        'towing_charges',
+        'other_expenses',
+      ].includes(key) &&
+      value !== '' &&
+      value !== null &&
+      value !== 0,
+  ) ||
+  form.remarks ||
+  form.payment_terms ||
+  form.prepared_by ||
+  form.checked_by ||
+  form.approved_by ||
+  form.customer_approval ||
+  Number(form.tax_rate || 0) > 0 ||
+  form.status !== 'draft' ||
+  form.terms !== termsFor(form.estimate_type) ||
+  form.valid_until !== defaultValidity(form.estimate_type)
+
+const changeType = (type) => {
+  if (type === form.estimate_type) return
+  if (
+    hasEnteredData() &&
+    !window.confirm(
+      'Changing the estimate type replaces its line items and type-specific details. Continue?',
+    )
+  )
+    return
+
+  form.estimate_type = type
+  form.service_type = type === 'rental' || type === 'repair' ? 'vehicle' : 'goods'
+  form.details = {
+    ...makeDetails(type),
+    customer_company: form.details.customer_company || '',
+    customer_location: form.details.customer_location || '',
+  }
+  form.items = defaultItems(type)
+  form.terms = termsFor(type)
+  form.valid_until = defaultValidity(type)
+}
 
 onMounted(async () => {
   if (!props.estimate) {
-    // Pre-fill the customer from the ?customer_id= query param.
-    const customerId = route.query.customer_id
-    if (customerId) form.customer_id = Number(customerId)
+    if (route.query.customer_id) form.customer_id = Number(route.query.customer_id)
+    try {
+      const { data } = await getNextEstimateNumber()
+      estimateNumber.value = data.code
+    } catch (error) {
+      notice.value = error.response?.data?.message || 'Estimate number preview could not be loaded.'
+    }
     return
   }
 
   loading.value = true
   try {
     const estimate = props.estimate
+    estimateNumber.value = estimate.code
     Object.assign(form, {
       customer_id: estimate.customer_id,
+      estimate_type: estimate.estimate_type || 'transportation',
       estimate_date: String(estimate.estimate_date || '').slice(0, 10),
       valid_until: String(estimate.valid_until || '').slice(0, 10) || '',
       pickup: estimate.pickup || '',
       destination: estimate.destination || '',
       service_type: estimate.service_type || 'goods',
       tonnage: estimate.tonnage || '',
+      details: {
+        ...makeDetails(estimate.estimate_type || 'transportation'),
+        ...(estimate.details || {}),
+      },
+      terms: estimate.terms || termsFor(estimate.estimate_type || 'transportation'),
+      payment_terms: estimate.payment_terms || '',
+      tax_rate: Number(estimate.tax_rate || 0),
+      prepared_by: estimate.prepared_by || '',
+      checked_by: estimate.checked_by || '',
+      approved_by: estimate.approved_by || '',
+      customer_approval: estimate.customer_approval || '',
       status: estimate.status || 'draft',
       remarks: estimate.remarks || '',
       items: estimate.items?.length
         ? estimate.items.map((item) => ({
-            title: item.title,
-            category: item.category,
+            ...line(item.title, item.category),
+            ...item,
             quantity: Number(item.quantity),
             cost_price: Number(item.cost_price),
             sell_price: Number(item.sell_price),
             cost_total: Number(item.cost_total),
             sell_total: Number(item.sell_total),
             profit: Number(item.profit),
+            parts_cost: Number(item.parts_cost || 0),
+            labor_cost: Number(item.labor_cost || 0),
             remarks: item.remarks || '',
-            vehicles: item.vehicles?.map((v) => ({
-            source: v.source || 'company',
-            asset_id: v.asset_id || null,
-            vehicle_name: v.vehicle_name || '',
-            supplier_name: v.supplier_name || '',
-            make: v.make || '',
-            model: v.model || '',
-            model_year: v.model_year || '',
-            registration_number: v.registration_number || '',
-            vin: v.vin || '',
-            engine_number: v.engine_number || '',
-            vehicle_type: v.vehicle_type || '',
-            color: v.color || '',
-            notes: v.notes || '',
-            })) || [],
+            vehicles:
+              item.vehicles?.map((vehicle) => ({
+                source: vehicle.source || 'company',
+                asset_id: vehicle.asset_id || null,
+                vehicle_name: vehicle.vehicle_name || '',
+                supplier_name: vehicle.supplier_name || '',
+                make: vehicle.make || '',
+                model: vehicle.model || '',
+                model_year: vehicle.model_year || '',
+                registration_number: vehicle.registration_number || '',
+                vin: vehicle.vin || '',
+                engine_number: vehicle.engine_number || '',
+                vehicle_type: vehicle.vehicle_type || '',
+                color: vehicle.color || '',
+                notes: vehicle.notes || '',
+              })) || [],
           }))
-        : [line()],
+        : defaultItems(estimate.estimate_type || 'transportation'),
     })
-  } catch (e) {
-    notice.value = e.response?.data?.message || 'Could not load estimate.'
+  } catch (error) {
+    notice.value = error.response?.data?.message || 'Could not load estimate.'
   } finally {
     loading.value = false
   }
 })
-
-const sum = (field) => form.items.reduce((total, item) => total + Number(item[field] || 0), 0)
-
-const totalCost = computed(() => sum('cost_total'))
-const totalSell = computed(() => sum('sell_total'))
-const totalProfit = computed(() => totalSell.value - totalCost.value)
-const margin = computed(() =>
-  totalSell.value > 0 ? ((totalProfit.value / totalSell.value) * 100).toFixed(1) : null,
-)
-
-const isEdit = computed(() => Boolean(props.estimate))
 
 const save = async () => {
   saving.value = true
@@ -122,12 +332,16 @@ const save = async () => {
   notice.value = ''
 
   try {
-    if (isEdit.value) {
-      await updateEstimate(props.estimate.id, form)
+    const response = isEdit.value
+      ? await updateEstimate(props.estimate.id, form)
+      : await createEstimate(form)
+    const savedEstimate = response.data.data
+
+    if (savedEstimate.transport_job?.id) {
+      router.push(`/jobs/${savedEstimate.transport_job.id}`)
     } else {
-      await createEstimate(form)
+      router.push('/estimates')
     }
-    router.push('/estimates')
   } catch (error) {
     errors.value = error.response?.data?.errors || {}
     if (!Object.keys(errors.value).length) {
@@ -145,12 +359,18 @@ const save = async () => {
       <div>
         <span class="section-kicker">Operations / Estimates</span>
         <h1>{{ isEdit ? 'Edit estimate' : 'New estimate' }}</h1>
-        <p class="page-sub">Build a customer quote that can become a transport job.</p>
+        <p class="page-sub">Create a transport, rent-a-car, or repair quotation for a customer.</p>
       </div>
     </div>
 
     <form class="estimate-form" @submit.prevent="save">
       <div v-if="notice && !loading" class="form-error" role="alert">{{ notice }}</div>
+      <div v-if="errorMessages.length && !loading" class="form-error" role="alert">
+        <strong>Check the estimate details:</strong>
+        <ul>
+          <li v-for="(message, index) in errorMessages" :key="index">{{ message }}</li>
+        </ul>
+      </div>
 
       <div v-if="loading" class="state-panel state-loading">
         <div class="skeleton-block"></div>
@@ -158,90 +378,174 @@ const save = async () => {
 
       <template v-else>
         <div class="form-layout">
-          <!-- ===== Main column ===== -->
           <div class="form-main">
             <section class="card form-section">
-              <EstimateInformation :form="form" />
+              <EstimateInformation
+                :form="form"
+                :estimate-number="estimateNumber"
+                @change-type="changeType"
+              />
             </section>
 
             <section class="card form-section">
-              <EstimateItemsTable :form="form" />
+              <RepairEstimateItems v-if="form.estimate_type === 'repair'" :form="form" />
+              <EstimateItemsTable v-else :form="form" :estimate-type="form.estimate_type" />
             </section>
 
             <section class="card form-section">
               <div class="section-heading">
-                <h3>Review and send</h3>
-                <p>Set the quote status and add anything the customer should see.</p>
+                <h3>Commercial terms & approval</h3>
+                <p>These terms are stored with the quotation and shown with its totals.</p>
               </div>
 
               <div class="review-grid">
                 <div class="field">
-                  <label for="estimate-status">
-                    Status
-                    <InfoTip label="Draft is private. Sent means the customer has it. Accepted quotes can become jobs." />
-                  </label>
-                  <select id="estimate-status" v-model="form.status">
-                    <option value="draft">Draft — still writing</option>
-                    <option value="sent">Sent — with the customer</option>
-                    <option value="accepted">Accepted — customer said yes</option>
-                    <option value="rejected">Rejected — customer declined</option>
-                    <option value="expired">Expired — valid-until passed</option>
-                  </select>
+                  <label for="estimate-payment-terms">Payment terms</label>
+                  <input
+                    id="estimate-payment-terms"
+                    v-model="form.payment_terms"
+                    placeholder="e.g. Due on completion"
+                  />
                 </div>
-
+                <div class="field">
+                  <label for="estimate-tax-rate">GST / applicable tax (%)</label>
+                  <input
+                    id="estimate-tax-rate"
+                    v-model.number="form.tax_rate"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                  />
+                </div>
+                <div v-if="form.estimate_type === 'repair'" class="field">
+                  <label for="repair-workshop-charges">Workshop charges (PKR)</label>
+                  <input
+                    id="repair-workshop-charges"
+                    v-model.number="form.details.workshop_charges"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div v-if="form.estimate_type === 'repair'" class="field">
+                  <label for="repair-towing-charges">Transportation / towing (PKR)</label>
+                  <input
+                    id="repair-towing-charges"
+                    v-model.number="form.details.towing_charges"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div v-if="form.estimate_type === 'repair'" class="field">
+                  <label for="repair-other-expenses">Other expenses (PKR)</label>
+                  <input
+                    id="repair-other-expenses"
+                    v-model.number="form.details.other_expenses"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div class="field">
+                  <label for="estimate-prepared-by">Prepared by</label>
+                  <input id="estimate-prepared-by" v-model="form.prepared_by" />
+                </div>
+                <div class="field">
+                  <label for="estimate-checked-by">Checked by</label>
+                  <input id="estimate-checked-by" v-model="form.checked_by" />
+                </div>
+                <div class="field">
+                  <label for="estimate-approved-by">Approved by</label>
+                  <input id="estimate-approved-by" v-model="form.approved_by" />
+                </div>
+                <div class="field">
+                  <label for="estimate-customer-approval">Customer approval</label>
+                  <input id="estimate-customer-approval" v-model="form.customer_approval" />
+                </div>
+                <div class="field field-wide">
+                  <label for="estimate-terms">Terms & conditions</label>
+                  <textarea id="estimate-terms" v-model="form.terms" rows="7"></textarea>
+                </div>
                 <div class="field field-wide">
                   <label for="estimate-remarks">
-                    Customer-facing remarks
-                    <InfoTip label="These notes appear on the quote the customer sees. Keep internal notes out of here." />
+                    Additional customer notes
+                    <InfoTip
+                      label="Add quote-specific notes here. Internal notes do not belong on a customer estimate."
+                    />
                   </label>
                   <textarea
                     id="estimate-remarks"
                     v-model="form.remarks"
-                    placeholder="Anything the customer should see on the quote"
+                    placeholder="Additional details for the customer"
                   ></textarea>
+                </div>
+                <div v-if="isEdit" class="field field-wide">
+                  <label for="estimate-status">
+                    Status
+                    <InfoTip
+                      label="Approving an estimate automatically creates and links its transport job."
+                    />
+                  </label>
+                  <select id="estimate-status" v-model="form.status">
+                    <option value="draft">Draft — still writing</option>
+                    <option value="sent">Sent — with the customer</option>
+                    <option value="accepted">Approved — create job</option>
+                    <option value="rejected">Rejected — customer declined</option>
+                    <option value="expired">Expired — validity passed</option>
+                  </select>
                 </div>
               </div>
             </section>
           </div>
 
-          <!-- ===== Sticky totals panel ===== -->
           <aside class="form-aside">
             <div class="card panel-card">
-              <h2 class="panel-title">Live totals</h2>
-              <p class="panel-hint">Updates as you type in the items table.</p>
+              <h2 class="panel-title">Estimate total</h2>
+              <p class="panel-hint">PKR · calculated from the line items above.</p>
 
               <div class="panel-row">
-                <span>
-                  Our cost
-                  <InfoTip label="Internal only — the total of every line's cost. Never shown to the customer." />
-                </span>
+                <span
+                  >Our cost <InfoTip label="Internal cost total, including repair extras."
+                /></span>
                 <strong>{{ money(totalCost) }}</strong>
               </div>
               <div class="panel-row">
-                <span>
-                  Customer pays
-                  <InfoTip label="The total of every line's sell price — the quote amount." />
-                </span>
-                <strong>{{ money(totalSell) }}</strong>
+                <span>Subtotal</span>
+                <strong>{{ money(subtotal) }}</strong>
+              </div>
+              <div class="panel-row">
+                <span>GST / tax ({{ Number(form.tax_rate || 0).toFixed(2) }}%)</span>
+                <strong>{{ money(taxAmount) }}</strong>
               </div>
               <div class="panel-row panel-grand">
-                <span>Profit</span>
+                <span>Grand total</span>
+                <strong>{{ money(grandTotal) }}</strong>
+              </div>
+              <div class="panel-row panel-margin">
+                <span>Estimated profit</span>
                 <strong :class="totalProfit < 0 ? 'money-loss' : 'money-profit'">
                   {{ money(totalProfit) }}
                 </strong>
               </div>
-              <div class="panel-row panel-margin">
-                <span>Margin</span>
-                <strong>{{ margin !== null ? `${margin}%` : '—' }}</strong>
-              </div>
 
               <div class="panel-meta">
                 {{ form.items.length }} {{ form.items.length === 1 ? 'line item' : 'line items' }}
+                <span v-if="form.valid_until">· valid through {{ form.valid_until }}</span>
               </div>
 
               <div class="panel-actions">
                 <button type="submit" :disabled="saving" :aria-busy="saving">
-                  {{ saving ? 'Saving…' : isEdit ? 'Save changes' : 'Save estimate' }}
+                  {{
+                    saving
+                      ? 'Saving…'
+                      : form.status === 'accepted'
+                        ? 'Approve & create job'
+                        : isEdit
+                          ? 'Save changes'
+                          : 'Save estimate'
+                  }}
                 </button>
                 <RouterLink
                   class="btn-light"
@@ -259,16 +563,15 @@ const save = async () => {
 </template>
 
 <style scoped>
-.estimate-form-page { min-width: 0; }
-
+.estimate-form-page,
+.estimate-form {
+  min-width: 0;
+}
 .page-sub {
   color: var(--text-secondary);
   font-size: 14px;
   margin-top: var(--space-2);
 }
-
-.estimate-form { min-width: 0; }
-
 .form-error {
   background: var(--danger-soft);
   border: 1px solid var(--danger);
@@ -277,29 +580,29 @@ const save = async () => {
   margin-bottom: var(--space-4);
   padding: var(--space-3) var(--space-4);
 }
-
+.form-error ul {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}
 .form-layout {
   align-items: start;
   display: grid;
   gap: 20px;
   grid-template-columns: minmax(0, 1fr) 300px;
 }
-
 .form-main {
   display: flex;
   flex-direction: column;
   gap: 20px;
   min-width: 0;
 }
-
-/* The panel column stays with you while the form scrolls */
 .form-aside {
   position: sticky;
   top: 20px;
 }
-
-.panel-card { padding: 18px; }
-
+.panel-card {
+  padding: 18px;
+}
 .panel-title {
   font-size: 15px;
   font-weight: 600;
@@ -310,7 +613,6 @@ const save = async () => {
   font-size: 12px;
   margin: 2px 0 14px;
 }
-
 .panel-row {
   align-items: center;
   border-bottom: 1px solid var(--border);
@@ -319,8 +621,9 @@ const save = async () => {
   justify-content: space-between;
   padding: 9px 0;
 }
-.panel-row:last-of-type { border-bottom: 0; }
-
+.panel-row:last-of-type {
+  border-bottom: 0;
+}
 .panel-row span {
   align-items: center;
   color: var(--text-muted);
@@ -334,22 +637,19 @@ const save = async () => {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
-
 .panel-row.panel-grand strong {
   color: var(--success);
   font-size: 20px;
   font-weight: 700;
 }
-.panel-row.panel-grand strong.money-loss { color: var(--danger); }
-
-.panel-row.panel-margin { padding-top: 4px; }
-
+.panel-row.panel-grand strong.money-loss {
+  color: var(--danger);
+}
 .panel-meta {
   color: var(--text-muted);
   font-size: 12px;
   margin-top: 6px;
 }
-
 .panel-actions {
   border-top: 1px solid var(--border);
   display: flex;
@@ -358,61 +658,69 @@ const save = async () => {
   margin-top: 14px;
   padding-top: 14px;
 }
-
-.section-heading { margin-bottom: var(--space-4); }
-.section-heading h3 { font-size: 15px; font-weight: 600; margin: 0; }
-.section-heading p { color: var(--text-muted); font-size: 13px; margin: 2px 0 0; }
-
+.section-heading {
+  margin-bottom: var(--space-4);
+}
+.section-heading h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+.section-heading p {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 2px 0 0;
+}
 .review-grid {
   display: grid;
   gap: var(--space-4);
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .field label {
   align-items: center;
   display: flex;
   gap: 5px;
 }
-
-/* ---------- Responsive ---------- */
+.field-wide {
+  grid-column: 1 / -1;
+}
 @media (max-width: 1024px) {
-  .form-layout { grid-template-columns: 1fr; }
-
-  /* Panel becomes a sticky bottom bar — Save is always reachable */
+  .form-layout {
+    grid-template-columns: 1fr;
+  }
   .form-aside {
     bottom: 0;
     position: sticky;
     top: auto;
     z-index: 10;
   }
-
   .panel-card {
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     box-shadow: var(--shadow-md);
     padding: 14px 16px;
   }
-
-  .panel-hint { display: none; }
-
+  .panel-hint {
+    display: none;
+  }
   .panel-row {
     border-bottom: 0;
     display: inline-flex;
     font-size: 13px;
     padding: 0;
   }
-
-  .panel-rows {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 18px;
+  .panel-row span {
+    font-size: 11px;
   }
-
-  .panel-row span { font-size: 11px; }
-  .panel-row strong { font-size: 14px; }
-  .panel-row.panel-grand strong { font-size: 15px; }
-  .panel-row.panel-margin { display: none; }
-  .panel-meta { display: none; }
-
+  .panel-row strong {
+    font-size: 14px;
+  }
+  .panel-row.panel-grand strong {
+    font-size: 15px;
+  }
+  .panel-row.panel-margin,
+  .panel-meta {
+    display: none;
+  }
   .panel-actions {
     border-top: 0;
     flex-direction: row;
@@ -420,11 +728,16 @@ const save = async () => {
     padding-top: 0;
   }
   .panel-actions .btn,
-  .panel-actions .btn-light { flex: 1; }
+  .panel-actions .btn-light {
+    flex: 1;
+  }
 }
-
-@media (min-width: 1025px) {
-  /* keep the rows stacked on desktop; wrap for the mobile bar */
-  .panel-rows { display: contents; }
+@media (max-width: 640px) {
+  .review-grid {
+    grid-template-columns: 1fr;
+  }
+  .field-wide {
+    grid-column: auto;
+  }
 }
 </style>

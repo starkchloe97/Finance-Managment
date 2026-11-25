@@ -4,6 +4,7 @@ import { toneFor } from '@/utils/tone'
 
 defineProps({
   items: { type: Array, default: () => [] },
+  estimateType: { type: String, default: 'transportation' },
 })
 </script>
 
@@ -14,6 +15,8 @@ defineProps({
         <tr>
           <th>Description</th>
           <th>Category</th>
+          <th v-if="estimateType === 'repair'" class="right">Parts (PKR)</th>
+          <th v-if="estimateType === 'repair'" class="right">Labour (PKR)</th>
           <th class="right">Qty</th>
           <th class="right">Amount</th>
         </tr>
@@ -30,6 +33,8 @@ defineProps({
             </span>
             <span v-else>—</span>
           </td>
+          <td v-if="estimateType === 'repair'" class="right">{{ money(item.parts_cost) }}</td>
+          <td v-if="estimateType === 'repair'" class="right">{{ money(item.labor_cost) }}</td>
           <td class="right">{{ Number(item.quantity) }}</td>
           <td class="right item-amount">{{ money(item.sell_total ?? item.sell_price) }}</td>
         </tr>

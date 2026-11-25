@@ -71,6 +71,34 @@ const STATUS_OPTIONS = [
       </div>
 
       <div class="field">
+        <label for="asset-assigned-to">Assigned to</label>
+        <input
+          id="asset-assigned-to"
+          v-model="form.assigned_to"
+          type="text"
+          placeholder="e.g. Muhammad Ali"
+          :disabled="submitting"
+          :aria-invalid="Boolean(fieldError('assigned_to'))"
+          @input="clearFieldError('assigned_to')"
+        />
+        <span v-if="fieldError('assigned_to')" class="error">{{ fieldError('assigned_to') }}</span>
+      </div>
+
+      <div class="field">
+        <label for="asset-location">Location</label>
+        <input
+          id="asset-location"
+          v-model="form.location"
+          type="text"
+          placeholder="e.g. Karachi depot"
+          :disabled="submitting"
+          :aria-invalid="Boolean(fieldError('location'))"
+          @input="clearFieldError('location')"
+        />
+        <span v-if="fieldError('location')" class="error">{{ fieldError('location') }}</span>
+      </div>
+
+      <div class="field">
         <label for="asset-make">Make</label>
         <input
           id="asset-make"
@@ -128,6 +156,20 @@ const STATUS_OPTIONS = [
         />
         <span v-if="fieldError('color')" class="error">{{ fieldError('color') }}</span>
       </div>
+    </div>
+
+    <div class="field notes-field">
+      <label for="asset-description">Description</label>
+      <textarea
+        id="asset-description"
+        v-model="form.description"
+        rows="3"
+        placeholder="Briefly describe this vehicle or asset…"
+        :disabled="submitting"
+        :aria-invalid="Boolean(fieldError('description'))"
+        @input="clearFieldError('description')"
+      ></textarea>
+      <span v-if="fieldError('description')" class="error">{{ fieldError('description') }}</span>
     </div>
   </section>
 
@@ -324,6 +366,20 @@ const STATUS_OPTIONS = [
         @input="clearFieldError('notes')"
       ></textarea>
       <span v-if="fieldError('notes')" class="error">{{ fieldError('notes') }}</span>
+    </div>
+
+    <div class="field notes-field">
+      <label for="asset-remarks">Remarks</label>
+      <textarea
+        id="asset-remarks"
+        v-model="form.remarks"
+        rows="4"
+        placeholder="Add any remarks about this vehicle…"
+        :disabled="submitting"
+        :aria-invalid="Boolean(fieldError('remarks'))"
+        @input="clearFieldError('remarks')"
+      ></textarea>
+      <span v-if="fieldError('remarks')" class="error">{{ fieldError('remarks') }}</span>
     </div>
   </section>
 </template>

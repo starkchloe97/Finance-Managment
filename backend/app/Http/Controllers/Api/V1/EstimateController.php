@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\NumberGenerator;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\EstimateRequest;
 use App\Http\Requests\UpdateEstimateRequest;
@@ -12,6 +13,13 @@ use Illuminate\Http\Request;
 
 class EstimateController extends Controller
 {
+    public function nextNumber()
+    {
+        return response()->json([
+            'code' => NumberGenerator::generate('EST', Estimate::class),
+        ]);
+    }
+
     public function index(Request $request)
     {
         $query = Estimate::with('customer', 'transportJob');

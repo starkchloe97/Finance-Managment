@@ -19,6 +19,8 @@ class AssetResource extends JsonResource
 
             'name' => $this->name,
 
+            'description' => $this->description,
+
             'make' => $this->make,
             'model' => $this->model,
             'model_year' => $this->model_year,
@@ -33,6 +35,10 @@ class AssetResource extends JsonResource
 
             'color' => $this->color,
 
+            'assigned_to' => $this->assigned_to,
+
+            'location' => $this->location,
+
             'purchase_date' => $this->purchase_date?->toDateString(),
 
             'purchase_price' => $this->purchase_price,
@@ -44,6 +50,8 @@ class AssetResource extends JsonResource
             'status_label' => $this->status?->label(),
 
             'notes' => $this->notes,
+
+            'remarks' => $this->remarks,
 
             'created_by' => $this->created_by,
 

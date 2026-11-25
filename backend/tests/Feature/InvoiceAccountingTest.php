@@ -9,6 +9,8 @@ use App\Models\Invoice;
 use App\Models\TransportJob;
 use App\Models\User;
 use App\Models\VehicleContract;
+use App\Services\InvoiceService;
+use App\Services\TransportJobService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -214,6 +216,9 @@ class InvoiceAccountingTest extends TestCase
             'tonnage' => 12.5,
             'status' => 'accepted',
             'estimated_sell' => 170000,
+            'tax_rate' => 10,
+            'tax_amount' => 17000,
+            'grand_total' => 187000,
         ]);
         $estimateItem = $estimate->items()->create([
             'title' => 'Goods freight',
@@ -243,7 +248,9 @@ class InvoiceAccountingTest extends TestCase
         ]);
 
         $response = $this->postJson("/api/v1/jobs/{$job->id}/invoice")->assertCreated();
-        $this->assertSame(170000.0, (float) $response->json('data.total'));
+        $this->assertSame(170000.0, (float) $response->json('data.subtotal'));
+        $this->assertSame(17000.0, (float) $response->json('data.tax_amount'));
+        $this->assertSame(187000.0, (float) $response->json('data.total'));
         $this->assertSame('receivable', $response->json('data.direction'));
         $this->assertSame(config('invoice.company_name'), $response->json('data.company_name'));
         $this->assertSame(today()->toDateString(), $response->json('data.items.0.details.date'));

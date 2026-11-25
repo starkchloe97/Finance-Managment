@@ -23,6 +23,7 @@ const assetCode = ref('')
 const form = reactive({
   asset_type: 'vehicle',
   name: '',
+  description: '',
   make: '',
   model: '',
   model_year: '',
@@ -31,11 +32,14 @@ const form = reactive({
   engine_number: '',
   vehicle_type: '',
   color: '',
+  assigned_to: '',
+  location: '',
   purchase_date: '',
   purchase_price: '',
   current_value: '',
   status: 'active',
   notes: '',
+  remarks: '',
 })
 
 const STATUS_PREVIEW = {
@@ -79,6 +83,7 @@ const loadAsset = async () => {
     Object.assign(form, {
       asset_type: asset.asset_type || 'vehicle',
       name: asset.name || '',
+      description: asset.description || '',
       make: asset.make || '',
       model: asset.model || '',
       model_year: asset.model_year || '',
@@ -87,11 +92,14 @@ const loadAsset = async () => {
       engine_number: asset.engine_number || '',
       vehicle_type: asset.vehicle_type || '',
       color: asset.color || '',
+      assigned_to: asset.assigned_to || '',
+      location: asset.location || '',
       purchase_date: asset.purchase_date || '',
       purchase_price: asset.purchase_price || '',
       current_value: asset.current_value || '',
       status: asset.status || 'active',
       notes: asset.notes || '',
+      remarks: asset.remarks || '',
     })
   } catch (error) {
     loadError.value = error.response?.data?.message || 'Unable to load vehicle.'
@@ -125,13 +133,17 @@ const submit = async () => {
 
       make: form.make || null,
       model: form.model || null,
+      description: form.description || null,
       registration_number: form.registration_number || null,
       vin: form.vin || null,
       engine_number: form.engine_number || null,
       vehicle_type: form.vehicle_type || null,
       color: form.color || null,
+      assigned_to: form.assigned_to || null,
+      location: form.location || null,
       purchase_date: form.purchase_date || null,
       notes: form.notes || null,
+      remarks: form.remarks || null,
     }
 
     const asset = await assetStore.updateAsset(route.params.id, payload)

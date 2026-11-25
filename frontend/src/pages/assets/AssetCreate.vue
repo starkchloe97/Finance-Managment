@@ -20,6 +20,7 @@ const form = reactive({
   asset_type: 'vehicle',
 
   name: '',
+  description: '',
   make: '',
   model: '',
   model_year: '',
@@ -30,6 +31,8 @@ const form = reactive({
 
   vehicle_type: '',
   color: '',
+  assigned_to: '',
+  location: '',
 
   purchase_date: '',
   purchase_price: '',
@@ -38,6 +41,7 @@ const form = reactive({
   status: 'active',
 
   notes: '',
+  remarks: '',
 })
 
 const STATUS_PREVIEW = {
@@ -88,13 +92,17 @@ const submit = async () => {
 
       make: form.make || null,
       model: form.model || null,
+      description: form.description || null,
       registration_number: form.registration_number || null,
       vin: form.vin || null,
       engine_number: form.engine_number || null,
       vehicle_type: form.vehicle_type || null,
       color: form.color || null,
+      assigned_to: form.assigned_to || null,
+      location: form.location || null,
       purchase_date: form.purchase_date || null,
       notes: form.notes || null,
+      remarks: form.remarks || null,
     }
 
     const asset = await assetStore.createAsset(payload)

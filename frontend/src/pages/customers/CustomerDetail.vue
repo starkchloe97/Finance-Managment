@@ -211,7 +211,7 @@ const whenTime = (value) => (value ? new Date(value).toLocaleString() : '—')
                       </RouterLink>
                     </td>
                     <td>{{ when(estimate.estimate_date) }}</td>
-                    <td class="right">{{ money(estimate.estimated_sell) }}</td>
+                    <td class="right">{{ money(Number(estimate.grand_total) || Number(estimate.estimated_sell)) }}</td>
                     <td>
                       <span class="status" :class="estimateStatusClass(estimate.status)">
                         {{ estimateStatusLabel(estimate.status) }}

@@ -215,6 +215,14 @@ onMounted(load)
                 <span class="fact-label">Color</span>
                 <span class="fact-value">{{ asset.color || '—' }}</span>
               </li>
+              <li>
+                <span class="fact-label">Assigned to</span>
+                <span class="fact-value">{{ asset.assigned_to || '—' }}</span>
+              </li>
+              <li>
+                <span class="fact-label">Location</span>
+                <span class="fact-value">{{ asset.location || '—' }}</span>
+              </li>
             </ul>
           </section>
 
@@ -251,6 +259,16 @@ onMounted(load)
           <section v-if="asset.notes" class="card side-card">
             <h2 class="side-title">Notes</h2>
             <p class="notes-text">{{ asset.notes }}</p>
+          </section>
+
+          <section v-if="asset.description" class="card side-card">
+            <h2 class="side-title">Description</h2>
+            <p class="notes-text">{{ asset.description }}</p>
+          </section>
+
+          <section v-if="asset.remarks" class="card side-card">
+            <h2 class="side-title">Remarks</h2>
+            <p class="notes-text">{{ asset.remarks }}</p>
           </section>
         </aside>
 

@@ -19,6 +19,7 @@ class EstimateResource extends JsonResource
             'code' => $this->code,
 
             'customer_id' => $this->customer_id,
+            'estimate_type' => $this->estimate_type ?? 'transportation',
 
             'estimate_date' => $this->estimate_date,
             'valid_until' => $this->valid_until,
@@ -27,6 +28,18 @@ class EstimateResource extends JsonResource
             'destination' => $this->destination,
             'service_type' => $this->service_type,
             'tonnage' => $this->tonnage,
+            'details' => $this->details ?? [],
+            'terms' => $this->terms,
+            'payment_terms' => $this->payment_terms,
+            'tax_rate' => $this->tax_rate,
+            'tax_amount' => $this->tax_amount,
+            'grand_total' => (float) $this->grand_total > 0
+                ? $this->grand_total
+                : $this->estimated_sell,
+            'prepared_by' => $this->prepared_by,
+            'checked_by' => $this->checked_by,
+            'approved_by' => $this->approved_by,
+            'customer_approval' => $this->customer_approval,
 
             'estimated_cost' => $this->estimated_cost,
             'estimated_sell' => $this->estimated_sell,
@@ -36,6 +49,13 @@ class EstimateResource extends JsonResource
             'remarks' => $this->remarks,
 
             'customer' => $this->whenLoaded('customer'),
+            'transport_job' => $this->whenLoaded('transportJob', function () {
+                return $this->transportJob ? [
+                    'id' => $this->transportJob->id,
+                    'code' => $this->transportJob->code,
+                    'status' => $this->transportJob->status?->value ?? $this->transportJob->status,
+                ] : null;
+            }),
 
             'items' => $this->whenLoaded('items', function () {
                 return $this->items->map(function ($item) {
@@ -48,6 +68,8 @@ class EstimateResource extends JsonResource
 
                         'cost_price' => $item->cost_price,
                         'sell_price' => $item->sell_price,
+                        'parts_cost' => $item->parts_cost,
+                        'labor_cost' => $item->labor_cost,
 
                         'cost_total' => $item->cost_total,
                         'sell_total' => $item->sell_total,

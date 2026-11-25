@@ -19,24 +19,45 @@ use Illuminate\Validation\ValidationException;
  */
 class EstimateService
 {
+    public function __construct(
+        private TransportJobService $transportJobs
+    ) {}
+
     public function create(array $data)
     {
         return DB::transaction(function () use ($data) {
 
-            $lines = array_map($this->buildLine(...), $data['items']);
+            $estimateType = $data['estimate_type'] ?? 'transportation';
+            $details = $data['details'] ?? [];
+            $lines = array_map(
+                fn (array $item) => $this->buildLine($item, $estimateType),
+                $data['items']
+            );
+            $totals = $this->totals($lines, $estimateType, $details, $data['tax_rate'] ?? 0);
 
             $estimate = Estimate::create([
                 'code' => NumberGenerator::generate('EST', Estimate::class),
                 'customer_id' => $data['customer_id'],
+                'estimate_type' => $estimateType,
                 'estimate_date' => $data['estimate_date'],
                 'valid_until' => $data['valid_until'] ?? null,
-                'pickup' => $data['pickup'],
-                'destination' => $data['destination'],
+                'pickup' => $data['pickup'] ?? ($details['job_location'] ?? ''),
+                'destination' => $data['destination'] ?? ($estimateType === 'repair' ? 'Workshop' : ''),
                 'service_type' => $data['service_type'],
                 'tonnage' => $data['tonnage'] ?? null,
-                'estimated_cost' => array_sum(array_column($lines, 'cost_total')),
-                'estimated_sell' => array_sum(array_column($lines, 'sell_total')),
-                'estimated_profit' => array_sum(array_column($lines, 'profit')),
+                'details' => $details,
+                'terms' => $data['terms'] ?? null,
+                'payment_terms' => $data['payment_terms'] ?? null,
+                'tax_rate' => $totals['tax_rate'],
+                'tax_amount' => $totals['tax_amount'],
+                'grand_total' => $totals['grand_total'],
+                'prepared_by' => $data['prepared_by'] ?? null,
+                'checked_by' => $data['checked_by'] ?? null,
+                'approved_by' => $data['approved_by'] ?? null,
+                'customer_approval' => $data['customer_approval'] ?? null,
+                'estimated_cost' => $totals['cost'],
+                'estimated_sell' => $totals['subtotal'],
+                'estimated_profit' => $totals['profit'],
                 'status' => 'draft',
                 'remarks' => $data['remarks'] ?? null,
             ]);
@@ -57,7 +78,8 @@ class EstimateService
 
             return $estimate->load(
                 'customer',
-                'items.vehicles.asset'
+                'items.vehicles.asset',
+                'transportJob'
             );
         });
     }
@@ -156,21 +178,47 @@ class EstimateService
                 ]);
             }
 
-            $lines = array_map($this->buildLine(...), $data['items']);
+            $estimateType = $data['estimate_type'] ?? $estimate->estimate_type ?? 'transportation';
+            $details = array_key_exists('details', $data)
+                ? ($data['details'] ?? [])
+                : ($estimate->details ?? []);
+            $taxRate = array_key_exists('tax_rate', $data)
+                ? ($data['tax_rate'] ?? 0)
+                : ($estimate->tax_rate ?? 0);
+            $lines = array_map(
+                fn (array $item) => $this->buildLine($item, $estimateType),
+                $data['items']
+            );
+            $totals = $this->totals($lines, $estimateType, $details, $taxRate);
 
             $estimate->update([
                 'customer_id' => $data['customer_id'],
+                'estimate_type' => $estimateType,
                 'estimate_date' => $data['estimate_date'],
-                'valid_until' => $data['valid_until'] ?? null,
-                'pickup' => $data['pickup'],
-                'destination' => $data['destination'],
+                'valid_until' => array_key_exists('valid_until', $data) ? $data['valid_until'] : $estimate->valid_until,
+                'pickup' => array_key_exists('pickup', $data)
+                    ? ($data['pickup'] ?? ($details['job_location'] ?? ''))
+                    : ($details['job_location'] ?? $estimate->pickup ?? ''),
+                'destination' => array_key_exists('destination', $data)
+                    ? ($data['destination'] ?? ($estimateType === 'repair' ? 'Workshop' : ''))
+                    : ($estimateType === 'repair' ? 'Workshop' : ($estimate->destination ?? '')),
                 'service_type' => $data['service_type'],
-                'tonnage' => $data['tonnage'] ?? null,
-                'estimated_cost' => array_sum(array_column($lines, 'cost_total')),
-                'estimated_sell' => array_sum(array_column($lines, 'sell_total')),
-                'estimated_profit' => array_sum(array_column($lines, 'profit')),
+                'tonnage' => array_key_exists('tonnage', $data) ? $data['tonnage'] : $estimate->tonnage,
+                'details' => $details,
+                'terms' => array_key_exists('terms', $data) ? $data['terms'] : $estimate->terms,
+                'payment_terms' => array_key_exists('payment_terms', $data) ? $data['payment_terms'] : $estimate->payment_terms,
+                'tax_rate' => $totals['tax_rate'],
+                'tax_amount' => $totals['tax_amount'],
+                'grand_total' => $totals['grand_total'],
+                'prepared_by' => array_key_exists('prepared_by', $data) ? $data['prepared_by'] : $estimate->prepared_by,
+                'checked_by' => array_key_exists('checked_by', $data) ? $data['checked_by'] : $estimate->checked_by,
+                'approved_by' => array_key_exists('approved_by', $data) ? $data['approved_by'] : $estimate->approved_by,
+                'customer_approval' => array_key_exists('customer_approval', $data) ? $data['customer_approval'] : $estimate->customer_approval,
+                'estimated_cost' => $totals['cost'],
+                'estimated_sell' => $totals['subtotal'],
+                'estimated_profit' => $totals['profit'],
                 'status' => $data['status'] ?? $estimate->status,
-                'remarks' => $data['remarks'] ?? null,
+                'remarks' => array_key_exists('remarks', $data) ? $data['remarks'] : $estimate->remarks,
             ]);
 
             $estimate->items()->get()->each(fn ($item) => $item->delete());
@@ -190,9 +238,14 @@ class EstimateService
             }
             // $estimate->items()->createMany($lines);
 
+            if ($estimate->status === 'accepted' && ! $estimate->transportJob()->exists()) {
+                $this->transportJobs->convert($estimate);
+            }
+
             return $estimate->load(
                 'customer',
-                'items.vehicles.asset'
+                'items.vehicles.asset',
+                'transportJob'
             );
         });
     }
@@ -201,21 +254,55 @@ class EstimateService
      * Price one line. The estimate totals are just the sum of these, so the
      * arithmetic only lives here.
      */
-    private function buildLine(array $item): array
+    private function buildLine(array $item, string $estimateType): array
     {
-        $costTotal = $item['quantity'] * $item['cost_price'];
-        $sellTotal = $item['quantity'] * $item['sell_price'];
+        $partsCost = (float) ($item['parts_cost'] ?? 0);
+        $laborCost = (float) ($item['labor_cost'] ?? 0);
+        $repairCost = $partsCost + $laborCost;
+        $costPrice = $estimateType === 'repair' && $repairCost > 0
+            ? $repairCost
+            : (float) $item['cost_price'];
+        $sellPrice = $estimateType === 'repair' && $repairCost > 0
+            ? (float) ($item['sell_price'] ?? $repairCost)
+            : (float) $item['sell_price'];
+        $costTotal = $item['quantity'] * $costPrice;
+        $sellTotal = $item['quantity'] * $sellPrice;
 
         return [
             'title' => $item['title'],
             'category' => $item['category'],
             'quantity' => $item['quantity'],
-            'cost_price' => $item['cost_price'],
-            'sell_price' => $item['sell_price'],
+            'cost_price' => $costPrice,
+            'sell_price' => $sellPrice,
+            'parts_cost' => $partsCost,
+            'labor_cost' => $laborCost,
             'cost_total' => $costTotal,
             'sell_total' => $sellTotal,
             'profit' => $sellTotal - $costTotal,
             'remarks' => $item['remarks'] ?? null,
+        ];
+    }
+
+    private function totals(array $lines, string $estimateType, array $details, float|int|string $taxRate): array
+    {
+        $extraCharges = $estimateType === 'repair'
+            ? array_sum(array_map(
+                fn (string $field) => (float) ($details[$field] ?? 0),
+                ['workshop_charges', 'towing_charges', 'other_expenses']
+            ))
+            : 0;
+        $cost = array_sum(array_column($lines, 'cost_total')) + $extraCharges;
+        $subtotal = array_sum(array_column($lines, 'sell_total')) + $extraCharges;
+        $rate = (float) $taxRate;
+        $tax = round($subtotal * $rate / 100, 2);
+
+        return [
+            'cost' => $cost,
+            'subtotal' => $subtotal,
+            'profit' => $subtotal - $cost,
+            'tax_rate' => $rate,
+            'tax_amount' => $tax,
+            'grand_total' => $subtotal + $tax,
         ];
     }
 

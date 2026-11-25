@@ -208,7 +208,7 @@ class SystemFlowScenarioTest extends TestCase
         $this->assertSame(120000.0, (float) $job->fresh()->sell_price);
     }
 
-    public function test_estimate_lifecycle_can_be_walked_to_accepted_then_converted(): void
+    public function test_accepting_an_estimate_automatically_creates_a_job(): void
     {
         $customer = $this->customer();
         $estimate = $this->estimate($customer);
@@ -218,9 +218,6 @@ class SystemFlowScenarioTest extends TestCase
         $this->assertSame('sent', $estimate->fresh()->status);
 
         app(EstimateService::class)->update($estimate->fresh(), self::payload($estimate, 'accepted'));
-        $this->assertSame('accepted', $estimate->fresh()->status);
-
-        app(TransportJobService::class)->convert($estimate->fresh());
         $this->assertSame('accepted', $estimate->fresh()->status);
         $this->assertNotNull($estimate->fresh()->transportJob);
     }

@@ -8,7 +8,7 @@ const props = defineProps({
   open: Boolean,
   estimate: { type: Object, default: null },
 })
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'created'])
 
 const router = useRouter()
 const converting = ref(false)
@@ -33,6 +33,7 @@ const convert = async () => {
   try {
     const { data } = await convertEstimate(props.estimate.id)
     createdJob.value = data.data
+    emit('created', data.data)
   } catch (e) {
     error.value =
       e.response?.data?.errors?.estimate?.[0] ||
@@ -118,7 +119,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
           </div>
           <div>
             <span>Quoted amount</span>
-            <strong>{{ money(estimate?.estimated_sell) }}</strong>
+            <strong>{{ money(Number(estimate?.grand_total) || Number(estimate?.estimated_sell)) }}</strong>
           </div>
         </div>
 
@@ -136,7 +137,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
             Cancel
           </button>
           <button type="button" class="btn" :disabled="converting" @click="convert">
-            {{ converting ? 'Converting…' : 'Convert to job' }}
+            {{ converting ? 'Approving…' : 'Approve & create job' }}
           </button>
         </div>
       </template>
@@ -149,7 +150,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
 
 .success-check {
   align-items: center;
-  animation: pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: pop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   background: var(--success);
   border-radius: 50%;
   color: #fff;

@@ -41,6 +41,45 @@ const load = async () => {
 onMounted(load)
 
 const converted = computed(() => Boolean(estimate.value?.transport_job))
+const quoteTotal = computed(() => Number(estimate.value?.grand_total) || Number(estimate.value?.estimated_sell) || 0)
+const estimateTypeLabel = computed(() => ({
+  rental: 'Transportation / rent-a-car',
+  transportation: 'Transportation job',
+  repair: 'Vehicle repair & maintenance',
+}[estimate.value?.estimate_type] || 'Transportation job'))
+const detailLabels = {
+  customer_company: 'Company',
+  customer_location: 'Customer location',
+  job_name: 'Job / project',
+  vehicle_required: 'Vehicle required',
+  vehicle_model: 'Vehicle model',
+  quantity: 'Quantity',
+  service_mode: 'Service type',
+  route_location: 'Route / location',
+  duty_hours: 'Duty hours',
+  monthly_daily_km: 'Monthly / daily KM',
+  contract_period: 'Contract period',
+  job_type: 'Job type',
+  vehicle_type: 'Vehicle type',
+  vehicle_quantity: 'Vehicle quantity',
+  route: 'Route',
+  daily_running_km: 'Daily running (KM)',
+  working_days: 'Working days',
+  vehicle_make: 'Vehicle make',
+  registration_number: 'Registration No.',
+  engine_number: 'Engine No.',
+  current_km: 'Current KM',
+  job_location: 'Job location',
+  estimated_completion_days: 'Estimated completion (working days)',
+  workshop_charges: 'Workshop charges',
+  towing_charges: 'Transportation / towing',
+  other_expenses: 'Other expenses',
+}
+const specifications = computed(() =>
+  Object.entries(estimate.value?.details || {})
+    .filter(([, value]) => value !== '' && value !== null && value !== undefined)
+    .map(([key, value]) => ({ label: detailLabels[key] || key, value })),
+)
 
 // Expiry awareness — only meaningful while the customer hasn't answered.
 const OPEN_STATUSES = ['draft', 'sent']
@@ -129,7 +168,7 @@ const when = (value) => (value ? String(value).slice(0, 10) : '—')
                 Edit quote
               </RouterLink>
               <button class="btn" type="button" @click="converting = true">
-                Convert to job
+                Approve estimate
               </button>
             </template>
           </div>
@@ -141,7 +180,7 @@ const when = (value) => (value ? String(value).slice(0, 10) : '—')
               Quoted amount
               <InfoTip label="The price shown to the customer. Internal costs are tracked on the job, never on the quote." />
             </span>
-            <strong>{{ money(estimate.estimated_sell) }}</strong>
+            <strong>{{ money(quoteTotal) }}</strong>
           </div>
           <div class="hero-stat">
             <span>
@@ -184,7 +223,7 @@ const when = (value) => (value ? String(value).slice(0, 10) : '—')
               <li>
                 <span class="fact-label">Route</span>
                 <span class="fact-value">
-                  {{ estimate.pickup || '—' }} → {{ estimate.destination || '—' }}
+                  {{ estimate.pickup || estimate.details?.route || estimate.details?.route_location || '—' }}
                 </span>
               </li>
               <li>
@@ -192,7 +231,7 @@ const when = (value) => (value ? String(value).slice(0, 10) : '—')
                   Service type
                   <InfoTip label="What is being moved — goods or a vehicle. It affects how the job is planned." />
                 </span>
-                <span class="fact-value fact-cap">{{ estimate.service_type || '—' }}</span>
+                <span class="fact-value fact-cap">                {{ estimateTypeLabel }}</span>
               </li>
               <li>
                 <span class="fact-label">Estimate date</span>
@@ -233,7 +272,7 @@ const when = (value) => (value ? String(value).slice(0, 10) : '—')
                   <p class="block-hint">Quote items and the vehicles required to fulfil this estimate.</p>
                 </div>
               </div>
-              <span class="block-total">{{ money(estimate.estimated_sell) }}</span>
+              <span class="block-total">{{ money(quoteTotal) }}</span>
             </header>
 
             <div class="detail-tabs">
@@ -267,6 +306,7 @@ const when = (value) => (value ? String(value).slice(0, 10) : '—')
               <EstimateItems
                 v-if="estimate.items?.length"
                 :items="estimate.items"
+                :estimate-type="estimate.estimate_type"
               />
 
               <div v-else class="block-empty">
@@ -291,10 +331,46 @@ const when = (value) => (value ? String(value).slice(0, 10) : '—')
         </RouterLink>
       </div>
 
+      <section v-if="estimate.terms || specifications.length || estimate.payment_terms || estimate.prepared_by || estimate.checked_by || estimate.approved_by || estimate.customer_approval" class="card commercial-card">
+        <div class="commercial-heading">
+          <div>
+            <h2>Commercial terms & estimate details</h2>
+            <p>{{ estimateTypeLabel }}</p>
+          </div>
+          <strong>{{ money(quoteTotal) }}</strong>
+        </div>
+
+        <dl v-if="specifications.length" class="specification-list">
+          <div v-for="item in specifications" :key="item.label">
+            <dt>{{ item.label }}</dt>
+            <dd>{{ item.value }}</dd>
+          </div>
+        </dl>
+
+        <div class="commercial-totals">
+          <span>Subtotal <strong>{{ money(estimate.estimated_sell) }}</strong></span>
+          <span>GST / tax ({{ Number(estimate.tax_rate || 0).toFixed(2) }}%) <strong>{{ money(estimate.tax_amount || 0) }}</strong></span>
+          <span>Payment terms <strong>{{ estimate.payment_terms || '—' }}</strong></span>
+        </div>
+
+        <div v-if="estimate.terms" class="terms-copy">
+          <h3>Terms & conditions</h3>
+          <p>{{ estimate.terms }}</p>
+        </div>
+
+        <div v-if="estimate.prepared_by || estimate.checked_by || estimate.approved_by || estimate.customer_approval" class="signoff-list">
+          <span v-if="estimate.prepared_by">Prepared by <strong>{{ estimate.prepared_by }}</strong></span>
+          <span v-if="estimate.checked_by">Checked by <strong>{{ estimate.checked_by }}</strong></span>
+          <span v-if="estimate.approved_by">Approved by <strong>{{ estimate.approved_by }}</strong></span>
+          <span v-if="estimate.customer_approval">Customer approval <strong>{{ estimate.customer_approval }}</strong></span>
+        </div>
+      </section>
+
       <EstimateConversionDialog
         :open="converting"
         :estimate="estimate"
         @close="converting = false"
+        @created="job => { estimate.transport_job = job; estimate.status = 'accepted' }"
       />
     </template>
   </div>
@@ -576,6 +652,34 @@ const when = (value) => (value ? String(value).slice(0, 10) : '—')
 @keyframes shimmer { 100% { transform: translateX(100%); } }
 
 .detail-footer { display: flex; }
+
+.commercial-card { padding: 20px; }
+.commercial-heading { align-items: flex-start; display: flex; justify-content: space-between; gap: 16px; }
+.commercial-heading h2 { font-size: 15px; font-weight: 600; margin: 0; }
+.commercial-heading p { color: var(--text-muted); font-size: 13px; margin: 3px 0 0; }
+.commercial-heading > strong { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.specification-list {
+  display: grid;
+  gap: 14px 20px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin: 18px 0 0;
+}
+.specification-list div { min-width: 0; }
+.specification-list dt { color: var(--text-muted); font-size: 11px; }
+.specification-list dd { color: var(--text-primary); font-size: 13px; margin: 2px 0 0; overflow-wrap: anywhere; }
+.commercial-totals, .signoff-list {
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-top: 18px;
+  padding-top: 14px;
+}
+.commercial-totals span, .signoff-list span { color: var(--text-muted); display: flex; flex-direction: column; font-size: 11px; gap: 3px; }
+.commercial-totals strong, .signoff-list strong { color: var(--text-primary); font-size: 13px; font-weight: 600; }
+.terms-copy { border-top: 1px solid var(--border); margin-top: 16px; padding-top: 14px; }
+.terms-copy h3 { font-size: 13px; font-weight: 600; margin: 0 0 7px; }
+.terms-copy p { color: var(--text-secondary); font-size: 13px; line-height: 1.65; margin: 0; white-space: pre-line; }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1024px) {

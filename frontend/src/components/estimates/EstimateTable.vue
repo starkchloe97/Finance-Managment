@@ -59,7 +59,7 @@ defineProps({
             </span>
             <span v-else>—</span>
           </td>
-          <td class="right row-amount">{{ money(estimate.estimated_sell) }}</td>
+          <td class="right row-amount">{{ money(Number(estimate.grand_total) || Number(estimate.estimated_sell)) }}</td>
           <td>
             <EstimateStatus :status="estimate.status" />
           </td>

@@ -217,6 +217,12 @@ class InvoiceService
             }
             $customer = $job->customer;
             $estimate = $job->estimate;
+            $subtotal = (float) ($estimate?->estimated_sell ?? $job->sell_price);
+            $tax = (float) ($estimate?->tax_amount ?? 0);
+            $total = (float) ($estimate?->grand_total ?? 0);
+            if ($total <= 0) {
+                $total = $subtotal + $tax;
+            }
             $truckNumbers = $estimate?->items
                 ->flatMap(fn ($item) => $item->vehicles)
                 ->map(fn ($vehicle) => $vehicle->registration_number ?? $vehicle->asset?->registration_number)
@@ -244,17 +250,18 @@ class InvoiceService
                 'company_bank_details' => config('invoice.company_bank_details'),
                 'company_logo_url' => config('invoice.company_logo_url'),
                 'invoice_date' => today(),
-                'subtotal' => $job->sell_price,
-                'tax_amount' => 0,
-                'total' => $job->sell_price,
+                'subtotal' => $subtotal,
+                'tax_amount' => $tax,
+                'tax_label' => $tax > 0 ? 'GST / applicable tax' : null,
+                'total' => $total,
                 'created_by' => $userId,
             ]);
             $invoice->items()->create([
                 'description' => "Transport service for {$job->code}",
                 'quantity' => 1,
                 'unit' => 'job',
-                'unit_price' => $job->sell_price,
-                'amount' => $job->sell_price,
+                'unit_price' => $subtotal,
+                'amount' => $subtotal,
                 'details' => [
                     'job_code' => $job->code,
                     'truck_no' => $truckNumbers ?: null,

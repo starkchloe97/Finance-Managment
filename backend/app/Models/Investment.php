@@ -71,6 +71,11 @@ class Investment extends Model
         return $this->hasMany(InvestmentSettlement::class);
     }
 
+    public function monthlyReturns(): HasMany
+    {
+        return $this->hasMany(InvestmentMonthlyReturn::class);
+    }
+
     public function getAllocatedAmountAttribute(): float
     {
         return round((float) $this->allocations()->where('status', 'active')->sum('amount'), 2);
@@ -104,9 +109,23 @@ class Investment extends Model
 
     public function getExpectedSettlementAmountAttribute(): float
     {
+        if ($this->monthlyReturns()->exists()) {
+            return round((float) $this->amount - (float) ($this->deduction_amount ?? 0), 2);
+        }
+
         return round(
             (float) $this->amount + $this->calculated_return_amount - (float) ($this->deduction_amount ?? 0),
             2
         );
+    }
+
+    public function getTotalScheduledReturnAmountAttribute(): float
+    {
+        return round((float) $this->calculated_return_amount * (int) $this->period_months, 2);
+    }
+
+    public function getTotalPaidMonthlyReturnAmountAttribute(): float
+    {
+        return round((float) $this->monthlyReturns()->where('status', 'paid')->sum('paid_amount'), 2);
     }
 }

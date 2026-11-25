@@ -14,10 +14,17 @@ class EstimateItem extends Model
         'quantity',
         'cost_price',
         'sell_price',
+        'parts_cost',
+        'labor_cost',
         'cost_total',
         'sell_total',
         'profit',
         'remarks',
+    ];
+
+    protected $casts = [
+        'parts_cost' => 'decimal:2',
+        'labor_cost' => 'decimal:2',
     ];
 
     public function estimate()

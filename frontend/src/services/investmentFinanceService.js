@@ -7,6 +7,10 @@ export const releaseAllocation = (allocationId) =>
   api.delete(`/investment-allocations/${allocationId}`)
 export const getInvestmentDistributions = (investmentId) =>
   api.get(`/investments/${investmentId}/profit-distributions`)
+export const getMonthlyReturns = (investmentId) =>
+  api.get(`/investments/${investmentId}/monthly-returns`)
+export const payMonthlyReturn = (investmentId, monthlyReturnId, payload = {}) =>
+  api.post(`/investments/${investmentId}/monthly-returns/${monthlyReturnId}/pay`, payload)
 export const getJobDistributions = (jobId) => api.get(`/jobs/${jobId}/profit-distributions`)
 export const createDistribution = (jobId, payload) =>
   api.post(`/jobs/${jobId}/profit-distributions`, payload)
