@@ -311,14 +311,14 @@ onUnmounted(() => {
    to re-theme without touching this component.
 ------------------------------------------------------------------ */
 .sidebar {
-  --sb-surface: var(--sidebar-surface, #ffffff);
-  --sb-line: var(--sidebar-border, #e7ebf1);
-  --sb-ink: var(--sidebar-ink, #475467);
-  --sb-ink-strong: var(--sidebar-ink-strong, #101828);
-  --sb-ink-muted: var(--sidebar-ink-muted, #98a2b3);
-  --sb-hover-bg: var(--sidebar-hover-bg, #f5f7fa);
-  --sb-active-bg: var(--sidebar-active-bg, #eef4ff);
-  --sb-active-ink: var(--sidebar-active-ink, #2563eb);
+  --sb-surface: var(--sidebar-surface, #0f172a);
+  --sb-line: var(--sidebar-border, rgb(255 255 255 / 8%));
+  --sb-ink: var(--sidebar-ink, #9aa6bb);
+  --sb-ink-strong: var(--sidebar-ink-strong, #ffffff);
+  --sb-ink-muted: var(--sidebar-ink-muted, #5f6c85);
+  --sb-hover-bg: var(--sidebar-hover-bg, rgb(255 255 255 / 6%));
+  --sb-active-bg: var(--sidebar-active-bg, rgb(59 130 246 / 18%));
+  --sb-active-ink: var(--sidebar-active-ink, #ffffff);
   --sb-width: var(--sidebar-width, 264px);
   --sb-collapsed-width: var(--header-height, 76px);
 }
@@ -370,7 +370,9 @@ onUnmounted(() => {
   align-items: center;
   background: linear-gradient(135deg, #2563eb, #60a5fa);
   border-radius: 10px;
-  box-shadow: 0 4px 12px rgb(37 99 235 / 28%);
+  box-shadow:
+    0 4px 14px rgb(37 99 235 / 40%),
+    inset 0 1px 0 rgb(255 255 255 / 25%);
   color: #fff;
   display: inline-flex;
   flex: 0 0 36px;
@@ -462,20 +464,20 @@ onUnmounted(() => {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
-  margin: 0 10px 4px;
+  margin: 0 10px 6px;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .nav-item {
   align-items: center;
-  border-radius: 10px;
+  border-radius: 8px;
   color: var(--sb-ink);
   display: flex;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
   gap: 12px;
-  height: 40px;
+  height: 38px;
   padding: 0 10px;
   position: relative;
   text-decoration: none;
@@ -494,6 +496,25 @@ onUnmounted(() => {
   background: var(--sb-active-bg);
   color: var(--sb-active-ink);
   font-weight: 600;
+}
+
+.nav-item.is-active::before {
+  background: #60a5fa;
+  border-radius: 0 3px 3px 0;
+  bottom: 10px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 10px;
+  width: 3px;
+}
+
+.nav-item.is-active .nav-item-icon {
+  color: #93c5fd;
+}
+
+.nav-subitem.is-active::before {
+  display: none;
 }
 
 .nav-item-icon {
@@ -579,9 +600,9 @@ onUnmounted(() => {
 
 .nav-badge {
   align-items: center;
-  background: var(--sb-active-bg);
+  background: rgb(255 255 255 / 10%);
   border-radius: 999px;
-  color: var(--sb-active-ink);
+  color: #e2e8f0;
   display: inline-flex;
   flex: 0 0 auto;
   font-size: 11px;
@@ -593,15 +614,15 @@ onUnmounted(() => {
 }
 
 .nav-item.is-active .nav-badge {
-  background: var(--sb-active-ink);
-  color: #fff;
+  background: #fff;
+  color: #0f172a;
 }
 
 .nav-item:focus-visible,
 .collapse-toggle:focus-visible,
 .logout-btn:focus-visible,
 .brand:focus-visible {
-  outline: 2px solid var(--sb-active-ink);
+  outline: 2px solid #60a5fa;
   outline-offset: 2px;
 }
 
@@ -613,6 +634,8 @@ onUnmounted(() => {
   gap: 10px;
   margin-top: 12px;
   padding: 14px 6px 2px;
+  /* Reserve the footer's space; the navigation is the part that scrolls. */
+  flex: 0 0 auto;
 }
 
 .user-avatar {
@@ -676,8 +699,8 @@ onUnmounted(() => {
 }
 
 .logout-btn:hover {
-  background: var(--danger-soft, #fdeeee);
-  color: var(--danger, #dc2626);
+  background: rgb(239 68 68 / 16%);
+  color: #fca5a5;
 }
 
 /* ---------- Collapsed (desktop) ---------- */
@@ -712,6 +735,10 @@ onUnmounted(() => {
   width: 100%;
 }
 
+.sidebar-collapsed .nav-item.is-active::before {
+  left: 0;
+}
+
 .sidebar-collapsed .collapse-toggle svg {
   transform: rotate(180deg);
 }
@@ -724,14 +751,11 @@ onUnmounted(() => {
 
 /* Tooltips while collapsed */
 @media (min-width: 821px) {
-  .sidebar-collapsed .sidebar-nav {
-    overflow: visible;
-  }
-
   .sidebar-collapsed .nav-item::after {
-    background: #101828;
+    background: #1e293b;
+    border: 1px solid rgb(255 255 255 / 10%);
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgb(16 24 40 / 16%);
+    box-shadow: 0 6px 16px rgb(15 23 42 / 35%);
     color: #fff;
     content: attr(data-tooltip);
     font-size: 12px;
@@ -776,7 +800,6 @@ onUnmounted(() => {
   }
 
   .sidebar {
-    box-shadow: 0 8px 30px rgb(16 24 40 / 18%);
     height: 100vh;
     left: 0;
     max-width: var(--sb-width);
@@ -788,6 +811,7 @@ onUnmounted(() => {
   }
 
   .sidebar.sidebar-open {
+    box-shadow: 0 8px 30px rgb(15 23 42 / 35%);
     transform: translateX(0);
   }
 
@@ -819,7 +843,7 @@ onUnmounted(() => {
   }
 
   .sidebar-collapsed .nav-item {
-    height: 40px;
+    height: 38px;
     justify-content: flex-start;
     padding: 0 10px;
     width: auto;

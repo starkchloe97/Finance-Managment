@@ -40,7 +40,12 @@ defineExpose({ focusMenuButton })
       >
         ☰
       </button>
-      <nav class="breadcrumb" aria-label="Breadcrumb">{{ breadcrumb }}</nav>
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <template v-for="(part, index) in breadcrumb.split(' / ')" :key="index">
+          <span v-if="index > 0" class="crumb-sep" aria-hidden="true">/</span>
+          <span class="crumb" :class="{ 'crumb-current': index === breadcrumb.split(' / ').length - 1 }">{{ part }}</span>
+        </template>
+      </nav>
     </div>
 
     <div class="navbar-actions">
@@ -70,6 +75,7 @@ defineExpose({ focusMenuButton })
   align-items: center;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 0 rgb(15 23 42 / 2%);
   display: flex;
   gap: var(--space-3);
   height: var(--header-height);
@@ -86,8 +92,24 @@ defineExpose({ focusMenuButton })
 }
 
 .breadcrumb {
-  color: var(--text-secondary);
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
   font-size: var(--text-sm);
+  gap: 6px;
+}
+
+.crumb {
+  color: var(--text-muted);
+}
+
+.crumb-sep {
+  color: var(--border-strong);
+}
+
+.crumb-current {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
 }
 
 .user {
@@ -132,21 +154,34 @@ defineExpose({ focusMenuButton })
 
 .profile-avatar {
   align-items: center;
-  background: var(--accent-soft);
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
   border-radius: 50%;
-  color: var(--accent-hover);
+  color: #fff;
   display: inline-flex;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: var(--font-weight-semibold);
-  height: var(--space-6);
+  height: 28px;
   justify-content: center;
-  width: var(--space-6);
+  text-transform: uppercase;
+  width: 28px;
+}
+
+.profile-trigger {
+  border-radius: var(--radius-pill);
+  box-shadow: none;
+  padding: 3px 12px 3px 4px;
 }
 
 .profile-trigger:hover {
   background: var(--surface-hover);
   border-color: var(--surface-hover);
+  box-shadow: none;
   color: var(--text-primary);
+}
+
+.user {
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
 }
 
 .profile-dropdown {
@@ -157,7 +192,7 @@ defineExpose({ focusMenuButton })
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  min-width: var(--timeline-width);
+  min-width: 200px;
   padding: var(--space-3);
   position: absolute;
   right: var(--space-0);
@@ -176,6 +211,7 @@ defineExpose({ focusMenuButton })
 }
 
 .profile-logout {
+  box-shadow: none;
   background: var(--danger-soft);
   border-color: var(--danger-soft);
   color: var(--danger);

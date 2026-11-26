@@ -73,7 +73,7 @@ const areaPath = computed(() => (linePath.value ? `${linePath.value} L100 32 L0 
     :aria-label="ariaLabel"
     :tabindex="hasTooltip ? 0 : undefined"
   >
-    <div class="kpi-main">
+    <div class="kpi-head">
       <span class="kpi-icon" aria-hidden="true">
         <svg
           viewBox="0 0 24 24"
@@ -85,7 +85,10 @@ const areaPath = computed(() => (linePath.value ? `${linePath.value} L100 32 L0 
           v-html="icon"
         />
       </span>
+      <span class="kpi-title">{{ title }}</span>
+    </div>
 
+    <div class="kpi-main">
       <strong class="kpi-value">{{ value }}</strong>
 
       <p
@@ -99,6 +102,8 @@ const areaPath = computed(() => (linePath.value ? `${linePath.value} L100 32 L0 
         <span class="sr-only"> — {{ trendLabel }}</span>
       </p>
     </div>
+
+    <span v-if="subtitle" class="kpi-sub">{{ subtitle }}</span>
 
     <svg
       v-if="areaPath"
@@ -134,32 +139,67 @@ const areaPath = computed(() => (linePath.value ? `${linePath.value} L100 32 L0 
   box-shadow: var(--shadow-xs);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
-  padding: 12px 14px;
+  overflow: visible;
+  padding: 14px 16px 12px;
   position: relative;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
 }
-.kpi-card:hover { box-shadow: var(--shadow-md); border-color: var(--border-strong); }
+.kpi-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+  /* The transform creates a stacking context. Keep the active card above
+     neighbouring grid cards so its tooltip is never painted underneath them. */
+  z-index: 10;
+}
 .kpi-card:focus-visible { outline: none; }
 
-/* ---------- Single row: icon · value · trend ---------- */
+/* ---------- Header: icon · label ---------- */
+.kpi-head {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.kpi-title {
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Value row: value · trend ---------- */
 .kpi-main {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 4px 8px;
   min-height: 30px;
+}
+
+.kpi-sub {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .kpi-icon {
   align-items: center;
   border-radius: 8px;
   display: flex;
-  flex: 0 0 28px;
-  height: 28px;
+  flex: 0 0 26px;
+  height: 26px;
   justify-content: center;
-  width: 28px;
+  width: 26px;
 }
 .kpi-icon svg { height: 15px; width: 15px; }
 
@@ -171,7 +211,7 @@ const areaPath = computed(() => (linePath.value ? `${linePath.value} L100 32 L0 
 
 .kpi-value {
   color: var(--text-primary);
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   font-size: 22px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
@@ -203,9 +243,9 @@ const areaPath = computed(() => (linePath.value ? `${linePath.value} L100 32 L0 
 .kpi-spark {
   color: var(--accent);
   display: block;
-  height: 22px;
-  margin: -2px -2px 0; /* bleed slightly into padding */
-  width: calc(100% + 4px);
+  height: 24px;
+  margin: 2px -4px -4px; /* bleed slightly into padding */
+  width: calc(100% + 8px);
 }
 .kpi-spark-cost { color: var(--warning); }
 .kpi-spark-profit { color: var(--success); }
@@ -216,19 +256,19 @@ const areaPath = computed(() => (linePath.value ? `${linePath.value} L100 32 L0 
 /* ---------- Tooltip (whole card is the trigger) ---------- */
 .kpi-tip {
   background: #101828;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgb(16 24 40 / 18%);
+  border-radius: 6px;
+  box-shadow: 0 4px 10px rgb(16 24 40 / 20%);
   color: #fff;
   display: flex;
   flex-direction: column;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 400;
-  gap: 3px;
+  gap: 2px;
   left: auto;
   line-height: 1.5;
-  max-width: 260px;
+  max-width: 210px;
   opacity: 0;
-  padding: 9px 12px;
+  padding: 6px 9px;
   pointer-events: none;
   position: absolute;
   right: 0;
@@ -253,5 +293,6 @@ const areaPath = computed(() => (linePath.value ? `${linePath.value} L100 32 L0 
 .kpi-card.has-tip:focus-visible {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--focus-ring);
+  z-index: 10;
 }
 </style>
