@@ -18,6 +18,9 @@ const form = reactive({
 const selectedAccount = computed(
   () => store.accounts.find((account) => String(account.id) === String(selectedId.value)) || null,
 )
+const isOutflow = (transaction) => transaction.type === 'payment' || Number(transaction.amount) < 0
+const signedAmount = (transaction) =>
+  `${isOutflow(transaction) ? '-' : '+'}${money(Math.abs(Number(transaction.amount) || 0))}`
 
 const load = async () => {
   try {
@@ -146,8 +149,8 @@ onMounted(load)
               >
             </div>
             <div>
-              <strong :class="transaction.type === 'payment' ? 'outflow' : 'inflow'">
-                {{ transaction.type === 'payment' ? '−' : '+' }}{{ money(transaction.amount) }}
+              <strong :class="isOutflow(transaction) ? 'outflow' : 'inflow'">
+                {{ signedAmount(transaction) }}
               </strong>
               <span>Balance {{ money(transaction.balance_after) }}</span>
             </div>
@@ -235,6 +238,9 @@ input {
 .account-card strong,
 .ledger-heading > strong {
   font-size: var(--text-lg);
+}
+button:hover {
+  background: #1d4ed80a;
 }
 .ledger-heading,
 .transaction-row {

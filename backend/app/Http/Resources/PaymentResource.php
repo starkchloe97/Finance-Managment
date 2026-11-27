@@ -21,6 +21,7 @@ class PaymentResource extends JsonResource
             'reference' => $this->reference,
             'notes' => $this->notes,
             'created_by' => $this->created_by,
+            'receipt' => $this->whenLoaded('receipt', fn () => new TransactionReceiptResource($this->receipt)),
             'allocations' => $this->whenLoaded('allocations', fn () => $this->allocations->map(fn ($allocation) => [
                 'invoice_id' => $allocation->invoice_id,
                 'invoice_no' => $allocation->invoice?->invoice_no,

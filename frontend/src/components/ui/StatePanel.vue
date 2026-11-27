@@ -1,4 +1,6 @@
 <script setup>
+import InlineNotice from '@/components/ui/InlineNotice.vue'
+
 defineProps({
   loading: Boolean,
   error: String,
@@ -12,7 +14,7 @@ defineProps({
 <template>
   <!-- Error state — never render a blank page on failure -->
   <div v-if="error" class="state-panel state-error">
-    <p>{{ error }}</p>
+    <InlineNotice title="We couldn't load this information." :message="error" />
     <slot name="error-action"></slot>
   </div>
 

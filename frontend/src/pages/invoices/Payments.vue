@@ -37,6 +37,7 @@ onMounted(load)
               <th>Method</th>
               <th>Reference</th>
               <th>Invoices</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -56,6 +57,15 @@ onMounted(load)
                   class="invoice-link"
                   >{{ allocation.invoice_no }} ({{ money(allocation.amount) }})</RouterLink
                 >
+              </td>
+              <td>
+                <RouterLink
+                  v-if="payment.receipt"
+                  class="btn-light btn-sm"
+                  :to="{ name: 'receipts.show', params: { id: payment.receipt.id } }"
+                >
+                  Receipt
+                </RouterLink>
               </td>
             </tr>
           </tbody>

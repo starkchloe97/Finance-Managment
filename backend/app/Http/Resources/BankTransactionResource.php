@@ -18,6 +18,8 @@ class BankTransactionResource extends JsonResource
             'transaction_date' => $this->transaction_date?->toDateString(),
             'payment_id' => $this->payment_id,
             'payment_no' => $this->payment?->payment_no,
+            'investment_id' => $this->investment_id,
+            'investment_code' => $this->investment?->investment_code,
             'created_at' => $this->created_at,
         ];
     }

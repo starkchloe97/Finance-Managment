@@ -13,8 +13,12 @@ use Illuminate\Validation\ValidationException;
 
 class InvestmentAllocationService
 {
+    public function __construct(private AccountingPeriodService $periods) {}
+
     public function allocate(Investment $investment, TransportJob $job, float $amount, ?string $notes = null): InvestmentAllocation
     {
+        $this->periods->assertOpen($job->job_date?->toDateString());
+
         return DB::transaction(function () use ($investment, $job, $amount, $notes) {
             $investment = Investment::query()->lockForUpdate()->findOrFail($investment->id);
 
@@ -58,6 +62,8 @@ class InvestmentAllocationService
     {
         DB::transaction(function () use ($allocation, $status) {
             $allocation = InvestmentAllocation::query()->lockForUpdate()->findOrFail($allocation->id);
+            $this->periods->assertOpen($allocation->transportJob->job_date?->toDateString());
+
             if ($allocation->transportJob()->value('financially_locked_at')) {
                 $this->reject('allocation', 'Allocations on financially locked jobs cannot change.');
             }

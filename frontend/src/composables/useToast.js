@@ -6,12 +6,13 @@ const toast = ref(null)
 let timer = null
 
 export function useToast() {
-  const show = (message, type = 'success', duration = 3400) => {
+  const show = (message, type = 'success', duration, title = '') => {
     clearTimeout(timer)
-    toast.value = { message, type }
+    const timeout = duration ?? (type === 'error' ? 7000 : 3400)
+    toast.value = { message, type, title }
     timer = setTimeout(() => {
       toast.value = null
-    }, duration)
+    }, timeout)
   }
 
   const dismiss = () => {

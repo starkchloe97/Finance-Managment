@@ -19,6 +19,8 @@ class InvestmentMonthlyReturn extends Model
         'status',
         'paid_at',
         'notes',
+        'payout_location',
+        'bank_account_id',
     ];
 
     protected $casts = [
@@ -32,5 +34,10 @@ class InvestmentMonthlyReturn extends Model
     public function investment(): BelongsTo
     {
         return $this->belongsTo(Investment::class);
+    }
+
+    public function bankAccount(): BelongsTo
+    {
+        return $this->belongsTo(BankAccount::class);
     }
 }

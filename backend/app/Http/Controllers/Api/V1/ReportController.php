@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DashboardRequest;
+use App\Http\Requests\FinancialReportRequest;
 use App\Models\Customer;
 use App\Models\Estimate;
 use App\Models\TransportJob;
 use App\Services\CompanyProfitCapitalService;
 use App\Services\InvoiceService;
+use App\Services\FinancialReportService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 
@@ -129,6 +131,16 @@ class ReportController extends Controller
             'base_profit' => $totals->base_profit,
             'extra_costs' => $totals->extra_costs,
             'final_profit' => $totals->final_profit,
+        ]);
+    }
+
+    public function financialReport(FinancialReportRequest $request, FinancialReportService $reports): JsonResponse
+    {
+        return response()->json([
+            'data' => $reports->build(
+                $request->validated('from'),
+                $request->validated('to'),
+            ),
         ]);
     }
 

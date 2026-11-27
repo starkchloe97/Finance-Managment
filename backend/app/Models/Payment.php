@@ -6,6 +6,7 @@ use App\Enums\PaymentDirection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class Payment extends Model
 {
@@ -30,5 +31,10 @@ class Payment extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function receipt(): MorphOne
+    {
+        return $this->morphOne(TransactionReceipt::class, 'receiptable');
     }
 }

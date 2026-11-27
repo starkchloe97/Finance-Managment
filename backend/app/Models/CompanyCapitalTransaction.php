@@ -6,6 +6,7 @@ use App\Enums\CompanyCapitalTransactionType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class CompanyCapitalTransaction extends Model
 {
@@ -32,5 +33,10 @@ class CompanyCapitalTransaction extends Model
     public function reference(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    public function receipt(): MorphOne
+    {
+        return $this->morphOne(TransactionReceipt::class, 'receiptable');
     }
 }

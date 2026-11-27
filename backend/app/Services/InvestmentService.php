@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\InvestmentReturnType;
 use App\Enums\InvestmentStatus;
+use App\Models\BankAccount;
 use App\Models\Investment;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -11,12 +12,16 @@ use Illuminate\Validation\ValidationException;
 
 class InvestmentService
 {
-    public function __construct(private InvestmentMonthlyReturnService $monthlyReturns) {}
+    public function __construct(
+        private InvestmentMonthlyReturnService $monthlyReturns,
+        private ReceiptService $receipts,
+        private AccountingPeriodService $periods,
+    ) {}
 
     public function paginate(int $perPage = 15): LengthAwarePaginator
     {
         return Investment::query()
-            ->with('investor')
+            ->with(['investor', 'bankAccount', 'receipt'])
             ->latest()
             ->paginate($perPage);
     }
@@ -24,12 +29,14 @@ class InvestmentService
     public function find(int $id): Investment
     {
         return Investment::query()
-            ->with('investor')
+            ->with(['investor', 'bankAccount', 'receipt'])
             ->findOrFail($id);
     }
 
     public function create(array $data): Investment
     {
+        $this->periods->assertOpen($data['investment_date'] ?? null);
+
         return DB::transaction(function () use ($data) {
             $data = $this->normalizeReturnConfiguration($data);
             $data['investment_code'] = $this->generateInvestmentCode();
@@ -37,9 +44,21 @@ class InvestmentService
 
             $investment = Investment::create($data);
 
+            $this->recordBankReceipt($investment);
+            $this->receipts->issue(
+                $investment,
+                'investment_receipt',
+                'received',
+                (float) $investment->amount,
+                $investment->investment_date->toDateString(),
+                "Investment {$investment->investment_code} received",
+                $investment->investor->name,
+                $investment->notes,
+            );
+
             $this->monthlyReturns->createSchedule($investment);
 
-            return $investment->load('investor');
+            return $investment->load(['investor', 'bankAccount', 'receipt']);
         });
     }
 
@@ -47,6 +66,9 @@ class InvestmentService
         Investment $investment,
         array $data
     ): Investment {
+        $this->periods->assertOpen($investment->investment_date?->toDateString());
+        $this->periods->assertOpen($data['investment_date'] ?? null);
+
         return DB::transaction(function () use (
             $investment,
             $data
@@ -87,12 +109,14 @@ class InvestmentService
 
             return $investment
                 ->refresh()
-                ->load('investor');
+                ->load(['investor', 'bankAccount', 'receipt']);
         });
     }
 
     public function delete(Investment $investment): void
     {
+        $this->periods->assertOpen($investment->investment_date?->toDateString());
+
         DB::transaction(function () use ($investment) {
             $investment = Investment::query()->lockForUpdate()->findOrFail($investment->id);
 
@@ -119,6 +143,34 @@ class InvestmentService
         }
 
         return $data;
+    }
+
+    private function recordBankReceipt(Investment $investment): void
+    {
+        if ($investment->funds_location !== 'bank') {
+            return;
+        }
+
+        $bankAccount = BankAccount::query()
+            ->lockForUpdate()
+            ->findOrFail($investment->bank_account_id);
+        $balanceAfter = round((float) $bankAccount->current_balance + (float) $investment->amount, 2);
+
+        if ($balanceAfter > 9999999999999.99) {
+            throw ValidationException::withMessages([
+                'bank_account_id' => ['This receipt would exceed the maximum bank account balance.'],
+            ]);
+        }
+
+        $bankAccount->update(['current_balance' => $balanceAfter]);
+        $bankAccount->transactions()->create([
+            'investment_id' => $investment->id,
+            'type' => 'investment_receipt',
+            'amount' => $investment->amount,
+            'balance_after' => $balanceAfter,
+            'description' => "Investment {$investment->investment_code} received",
+            'transaction_date' => $investment->investment_date,
+        ]);
     }
 
     private function generateInvestmentCode(): string

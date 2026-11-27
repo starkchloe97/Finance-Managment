@@ -46,8 +46,8 @@ const investmentService = {
     return response.data
   },
 
-  async settleInvestment(id) {
-    const response = await api.post(`/investments/${id}/settle`)
+  async settleInvestment(id, data) {
+    const response = await api.post(`/investments/${id}/settle`, data)
 
     return response.data
   },

@@ -9,6 +9,7 @@ use App\Http\Resources\InvestorResource;
 use App\Models\Investor;
 use App\Services\InvestorService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class InvestorController extends Controller
@@ -22,6 +23,13 @@ class InvestorController extends Controller
         $investors = $this->investorService->paginate($request->validated());
 
         return InvestorResource::collection($investors);
+    }
+
+    public function mine(Request $request): JsonResponse
+    {
+        return (new InvestorResource(
+            $this->investorService->ensureOwnerProfile($request->user())
+        ))->response()->setStatusCode(200);
     }
 
     public function store(InvestorRequest $request): InvestorResource

@@ -23,6 +23,12 @@ const actionError = ref('')
 const pendingAction = ref(null)
 const releasing = ref(null)
 const payingReturn = ref(null)
+const pendingReturn = ref(null)
+const payoutLocation = ref('hand')
+const payoutBankAccountId = ref('')
+const bankAccounts = ref([])
+const payoutLoading = ref(false)
+const payoutError = ref('')
 
 // ---- Derived ----
 const isPool = computed(() => investment.value?.investment_category === 'pool')
@@ -45,8 +51,12 @@ const principal = computed(() => Number(investment.value?.amount || 0))
 const expectedReturn = computed(() => Number(investment.value?.calculated_return_amount || 0))
 const deduction = computed(() => Number(investment.value?.deduction_amount || 0))
 const settlement = computed(() => Number(investment.value?.expected_settlement_amount || 0))
-const totalScheduledReturns = computed(() => Number(investment.value?.total_scheduled_return_amount || 0))
-const totalPaidMonthlyReturns = computed(() => Number(investment.value?.total_paid_monthly_return_amount || 0))
+const totalScheduledReturns = computed(() =>
+  Number(investment.value?.total_scheduled_return_amount || 0),
+)
+const totalPaidMonthlyReturns = computed(() =>
+  Number(investment.value?.total_paid_monthly_return_amount || 0),
+)
 
 const allocated = computed(() => Number(investment.value?.allocated_amount || 0))
 const remaining = computed(() => Number(investment.value?.remaining_capital || 0))
@@ -131,19 +141,37 @@ const load = async () => {
 const requestAction = (action) => {
   actionError.value = ''
   pendingAction.value = action
+  payoutLocation.value = 'hand'
+  payoutBankAccountId.value = ''
+  payoutError.value = ''
 }
 
 const performAction = async () => {
   if (!pendingAction.value || !investment.value) return
   const action = pendingAction.value
+  if (action === 'settle' && payoutLocation.value === 'bank' && !payoutBankAccountId.value) {
+    payoutError.value = 'Select a bank account before settling this investment.'
+    return
+  }
+  payoutLoading.value = true
+  payoutError.value = ''
   try {
-    await investmentStore[action](investment.value.id)
+    if (action === 'settle') {
+      await investmentStore.settle(investment.value.id, {
+        payout_location: payoutLocation.value,
+        bank_account_id: payoutLocation.value === 'bank' ? Number(payoutBankAccountId.value) : null,
+      })
+    } else {
+      await investmentStore[action](investment.value.id)
+    }
     pendingAction.value = null
     await loadFinance()
   } catch (requestError) {
     actionError.value =
       requestError.response?.data?.message || `Could not ${action} this investment.`
     pendingAction.value = null
+  } finally {
+    payoutLoading.value = false
   }
 }
 
@@ -169,26 +197,49 @@ const allocationCreated = async () => {
 }
 
 const isReturnDue = (monthlyReturn) =>
-  monthlyReturn.status === 'pending' && monthlyReturn.due_date <= new Date().toISOString().slice(0, 10)
+  monthlyReturn.status === 'pending' &&
+  monthlyReturn.due_date <= new Date().toISOString().slice(0, 10)
 
 const payReturn = async (monthlyReturn) => {
-  if (payingReturn.value) return
+  pendingReturn.value = monthlyReturn
+  payoutLocation.value = 'hand'
+  payoutBankAccountId.value = ''
+  payoutError.value = ''
+}
 
-  payingReturn.value = monthlyReturn.id
-  financeError.value = ''
+const confirmReturnPayment = async () => {
+  if (!pendingReturn.value || payingReturn.value) return
+  if (payoutLocation.value === 'bank' && !payoutBankAccountId.value) {
+    payoutError.value = 'Select a bank account before recording this payout.'
+    return
+  }
+
+  payingReturn.value = pendingReturn.value.id
+  payoutError.value = ''
   try {
-    await payMonthlyReturn(investment.value.id, monthlyReturn.id)
+    await payMonthlyReturn(investment.value.id, pendingReturn.value.id, {
+      payout_location: payoutLocation.value,
+      bank_account_id: payoutLocation.value === 'bank' ? Number(payoutBankAccountId.value) : null,
+    })
+    pendingReturn.value = null
     await investmentStore.fetchInvestment(route.params.id)
     await loadFinance()
   } catch (requestError) {
-    financeError.value = requestError.response?.data?.message || 'Could not record the monthly return payment.'
+    payoutError.value =
+      requestError.response?.data?.message || 'Could not record the monthly return payment.'
   } finally {
     payingReturn.value = null
   }
 }
 
-onMounted(() => {
-  load().catch(() => {})
+onMounted(async () => {
+  await load().catch(() => {})
+  try {
+    const response = await getBankAccounts()
+    bankAccounts.value = response.data.data
+  } catch {
+    bankAccounts.value = []
+  }
 })
 
 // Services imported at bottom of script for readability — hoisted anyway.
@@ -199,6 +250,7 @@ import {
   payMonthlyReturn,
   releaseAllocation,
 } from '@/services/investmentFinanceService'
+import { getBankAccounts } from '@/services/bankAccountService'
 </script>
 
 <template>
@@ -224,7 +276,11 @@ import {
       <header class="card hero-card">
         <div class="hero-top">
           <div class="hero-id">
-            <span class="hero-avatar" :style="avatarStyle(investment.investor?.name || 'I')" aria-hidden="true">
+            <span
+              class="hero-avatar"
+              :style="avatarStyle(investment.investor?.name || 'I')"
+              aria-hidden="true"
+            >
               {{ initialOf(investment.investor?.name || 'I') }}
             </span>
             <div class="hero-copy">
@@ -234,10 +290,7 @@ import {
                 <FinanceStatus :status="investment.status" kind="investment" />
               </div>
               <div v-if="investment.investor" class="hero-customer">
-                <RouterLink
-                  class="hero-customer-link"
-                  :to="`/investors/${investment.investor.id}`"
-                >
+                <RouterLink class="hero-customer-link" :to="`/investors/${investment.investor.id}`">
                   {{ investment.investor.name }}
                 </RouterLink>
                 <span class="hero-sep" aria-hidden="true">·</span>
@@ -251,10 +304,13 @@ import {
 
           <div class="hero-actions">
             <RouterLink
-              v-if="isActive"
-              class="btn"
-              :to="`/investments/${investment.id}/edit`"
+              v-if="investment.receipt"
+              class="btn-light"
+              :to="{ name: 'receipts.show', params: { id: investment.receipt.id } }"
             >
+              View receipt
+            </RouterLink>
+            <RouterLink v-if="isActive" class="btn" :to="`/investments/${investment.id}/edit`">
               Edit investment
             </RouterLink>
             <RouterLink
@@ -286,14 +342,18 @@ import {
           <div class="hero-stat">
             <span>
               Deduction
-              <InfoTip label="An agreed amount held back from the payout — for example to cover fees or risk share." />
+              <InfoTip
+                label="An agreed amount held back from the payout — for example to cover fees or risk share."
+              />
             </span>
             <strong>{{ money(deduction) }}</strong>
           </div>
           <div class="hero-stat">
             <span>
               Final principal payout
-              <InfoTip label="The principal returned at the end of the term, less any agreed deduction. Monthly returns are paid separately." />
+              <InfoTip
+                label="The principal returned at the end of the term, less any agreed deduction. Monthly returns are paid separately."
+              />
             </span>
             <strong class="money-profit">{{ money(settlement) }}</strong>
           </div>
@@ -305,7 +365,9 @@ import {
         <header class="flow-head">
           <div>
             <h2>How the payout works</h2>
-            <p class="hint">Monthly returns are paid during the term; principal is returned at the end.</p>
+            <p class="hint">
+              Monthly returns are paid during the term; principal is returned at the end.
+            </p>
           </div>
         </header>
 
@@ -329,7 +391,9 @@ import {
           <div class="flow-step">
             <span class="flow-label">
               Deduction
-                <InfoTip label="Held back from the final principal payout, as agreed when the investment was made." />
+              <InfoTip
+                label="Held back from the final principal payout, as agreed when the investment was made."
+              />
             </span>
             <strong>{{ money(deduction) }}</strong>
           </div>
@@ -355,16 +419,37 @@ import {
               <li>
                 <span class="fact-label">
                   Category
-                  <InfoTip :label="isPool
-                    ? 'Pool capital is spread automatically across transport jobs.'
-                    : 'Direct capital — you choose which jobs it is allocated to.'" />
+                  <InfoTip
+                    :label="
+                      isPool
+                        ? 'Pool capital is spread automatically across transport jobs.'
+                        : 'Direct capital — you choose which jobs it is allocated to.'
+                    "
+                  />
                 </span>
                 <span class="fact-value fact-cap">{{ investment.investment_category || '—' }}</span>
               </li>
               <li>
                 <span class="fact-label">
+                  Received into
+                  <InfoTip
+                    label="Where the investor's capital was received when this investment was created."
+                  />
+                </span>
+                <span class="fact-value">
+                  {{
+                    investment.funds_location === 'bank'
+                      ? `Bank — ${investment.bank_account?.name || '—'}`
+                      : 'Cash in hand'
+                  }}
+                </span>
+              </li>
+              <li>
+                <span class="fact-label">
                   Return terms
-                  <InfoTip label="Percentage returns pay a rate on the investment amount each month. Fixed returns pay a set monthly amount." />
+                  <InfoTip
+                    label="Percentage returns pay a rate on the investment amount each month. Fixed returns pay a set monthly amount."
+                  />
                 </span>
                 <span class="fact-value">{{ returnTerms }}</span>
               </li>
@@ -377,16 +462,22 @@ import {
               <li>
                 <span class="fact-label">
                   Payment policy
-                  <InfoTip label="Internal policy setting, in days, for handling monthly return payments." />
+                  <InfoTip
+                    label="Internal policy setting, in days, for handling monthly return payments."
+                  />
                 </span>
                 <span class="fact-value">
-                  {{ investment.return_policy_days ? `${investment.return_policy_days} days` : '—' }}
+                  {{
+                    investment.return_policy_days ? `${investment.return_policy_days} days` : '—'
+                  }}
                 </span>
               </li>
               <li>
                 <span class="fact-label">
                   Maturity date
-                  <InfoTip label="The term ends on this date — the investment can then be matured and settled." />
+                  <InfoTip
+                    label="The term ends on this date — the investment can then be matured and settled."
+                  />
                 </span>
                 <span class="fact-value" :class="{ 'fact-warn': canMature && isActive }">
                   {{ investment.maturity_date || '—' }}
@@ -404,7 +495,9 @@ import {
           <section class="card side-card">
             <h2 class="side-title">
               Lifecycle
-              <InfoTip label="Every investment moves from placed → ended → settled. Actions below move it forward." />
+              <InfoTip
+                label="Every investment moves from placed → ended → settled. Actions below move it forward."
+              />
             </h2>
             <ol class="lifecycle-list">
               <li
@@ -414,13 +507,21 @@ import {
                 :title="stage.tip"
               >
                 <span class="lifecycle-dot" aria-hidden="true">
-                  <svg v-if="stage.done" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <svg
+                    v-if="stage.done"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
                     <path d="M20 6 9 17l-5-5" />
                   </svg>
                 </span>
                 <div class="lifecycle-body">
                   <b>{{ stage.label }}</b>
-                  <span>{{ stage.done ? (stage.date || '—') : 'Pending' }}</span>
+                  <span>{{ stage.done ? stage.date || '—' : 'Pending' }}</span>
                 </div>
               </li>
             </ol>
@@ -444,7 +545,10 @@ import {
                 Cancel
               </button>
             </div>
-            <div v-else-if="investment.status === 'matured' || investment.status === 'withdrawn'" class="lifecycle-actions">
+            <div
+              v-else-if="investment.status === 'matured' || investment.status === 'withdrawn'"
+              class="lifecycle-actions"
+            >
               <button class="btn btn-sm" type="button" @click="requestAction('settle')">
                 Settle — pay out {{ money(settlement) }}
               </button>
@@ -458,15 +562,30 @@ import {
             <header class="block-head">
               <div class="block-title">
                 <span class="block-icon icon-violet" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" /><path d="M15 18H9" /><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14" /><circle cx="17" cy="18" r="2" /><circle cx="7" cy="18" r="2" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+                    <path d="M15 18H9" />
+                    <path
+                      d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"
+                    />
+                    <circle cx="17" cy="18" r="2" />
+                    <circle cx="7" cy="18" r="2" />
                   </svg>
                 </span>
                 <div>
                   <h2>Capital on jobs</h2>
                   <p class="block-hint">
                     Where this capital is committed.
-                    <InfoTip label="Direct investments fund specific transport jobs. Released capital becomes available again." />
+                    <InfoTip
+                      label="Direct investments fund specific transport jobs. Released capital becomes available again."
+                    />
                   </p>
                 </div>
               </div>
@@ -474,7 +593,11 @@ import {
             </header>
 
             <div class="alloc-progress">
-              <div class="alloc-bar" role="img" :aria-label="`${allocatedShare}% allocated to jobs`">
+              <div
+                class="alloc-bar"
+                role="img"
+                :aria-label="`${allocatedShare}% allocated to jobs`"
+              >
                 <span class="alloc-fill" :style="{ width: `${allocatedShare}%` }"></span>
               </div>
               <div class="alloc-legend">
@@ -489,7 +612,9 @@ import {
               </div>
             </div>
 
-            <div v-if="financeLoading" class="block-loading"><div class="sk" style="height: 120px"></div></div>
+            <div v-if="financeLoading" class="block-loading">
+              <div class="sk" style="height: 120px"></div>
+            </div>
             <div v-else-if="financeError" class="block-error">
               <p>{{ financeError }}</p>
               <button class="btn-light btn-sm" type="button" @click="loadFinance">Try again</button>
@@ -512,7 +637,11 @@ import {
                   <tbody>
                     <tr v-for="allocation in allocations" :key="allocation.id">
                       <td>
-                        <RouterLink v-if="allocation.job" class="row-code" :to="`/jobs/${allocation.job.id}`">
+                        <RouterLink
+                          v-if="allocation.job"
+                          class="row-code"
+                          :to="`/jobs/${allocation.job.id}`"
+                        >
                           {{ allocation.job.code }}
                         </RouterLink>
                         <span v-else>—</span>
@@ -544,7 +673,9 @@ import {
               <div v-if="isActive" class="allocation-form-wrap">
                 <h3 class="sub-head">
                   Allocate available capital
-                  <InfoTip label="Commit some of the available capital to a transport job. It will earn from that job's profit." />
+                  <InfoTip
+                    label="Commit some of the available capital to a transport job. It will earn from that job's profit."
+                  />
                 </h3>
                 <AllocationForm :investment="investment" @created="allocationCreated" />
               </div>
@@ -556,24 +687,45 @@ import {
             <header class="block-head">
               <div class="block-title">
                 <span class="block-icon icon-success" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 8v8" /><path d="M9 11c0-1.1 1.3-2 3-2s3 .9 3 2-1.3 2-3 2-3 .9-3 2 1.3 2 3 2 3-.9 3-2" /><circle cx="12" cy="12" r="9" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M12 8v8" />
+                    <path
+                      d="M9 11c0-1.1 1.3-2 3-2s3 .9 3 2-1.3 2-3 2-3 .9-3 2 1.3 2 3 2 3-.9 3-2"
+                    />
+                    <circle cx="12" cy="12" r="9" />
                   </svg>
                 </span>
                 <div>
                   <h2>Monthly return schedule</h2>
-                  <p class="block-hint">Record each return when it has been paid to the investor.</p>
+                  <p class="block-hint">
+                    Record each return when it has been paid to the investor.
+                  </p>
                 </div>
               </div>
-              <span class="count-badge money-profit">{{ money(totalPaidMonthlyReturns) }} paid</span>
+              <span class="count-badge money-profit"
+                >{{ money(totalPaidMonthlyReturns) }} paid</span
+              >
             </header>
 
             <div class="return-summary">
-              <span>Monthly amount <strong>{{ money(expectedReturn) }}</strong></span>
-              <span>Total scheduled <strong>{{ money(totalScheduledReturns) }}</strong></span>
+              <span
+                >Monthly amount <strong>{{ money(expectedReturn) }}</strong></span
+              >
+              <span
+                >Total scheduled <strong>{{ money(totalScheduledReturns) }}</strong></span
+              >
             </div>
 
-            <div v-if="financeLoading" class="block-loading"><div class="sk" style="height: 120px"></div></div>
+            <div v-if="financeLoading" class="block-loading">
+              <div class="sk" style="height: 120px"></div>
+            </div>
             <div v-else-if="financeError" class="block-error">
               <p>{{ financeError }}</p>
               <button class="btn-light btn-sm" type="button" @click="loadFinance">Try again</button>
@@ -587,6 +739,7 @@ import {
                     <th class="right">Return</th>
                     <th>Status</th>
                     <th>Paid</th>
+                    <th>Paid from</th>
                     <th class="right">Action</th>
                   </tr>
                 </thead>
@@ -595,8 +748,17 @@ import {
                     <td>Month {{ monthlyReturn.installment_number }}</td>
                     <td>{{ monthlyReturn.due_date }}</td>
                     <td class="right money-profit">{{ money(monthlyReturn.amount) }}</td>
-                    <td><span class="status status-info capitalize">{{ monthlyReturn.status }}</span></td>
+                    <td>
+                      <span class="status status-info capitalize">{{ monthlyReturn.status }}</span>
+                    </td>
                     <td>{{ formatDateTime(monthlyReturn.paid_at) }}</td>
+                    <td>
+                      <span v-if="monthlyReturn.payout_location === 'bank'">
+                        Bank account #{{ monthlyReturn.bank_account_id }}
+                      </span>
+                      <span v-else-if="monthlyReturn.payout_location === 'hand'">Cash in hand</span>
+                      <span v-else>—</span>
+                    </td>
                     <td class="right">
                       <button
                         v-if="isReturnDue(monthlyReturn)"
@@ -620,8 +782,16 @@ import {
             <header class="block-head">
               <div class="block-title">
                 <span class="block-icon icon-success" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                    <polyline points="16 7 22 7 22 13" />
                   </svg>
                 </span>
                 <div>
@@ -636,15 +806,22 @@ import {
               </span>
             </header>
 
-            <div v-if="financeLoading" class="block-loading"><div class="sk" style="height: 120px"></div></div>
+            <div v-if="financeLoading" class="block-loading">
+              <div class="sk" style="height: 120px"></div>
+            </div>
             <div v-else-if="financeError" class="block-error">
               <p>{{ financeError }}</p>
               <button class="btn-light btn-sm" type="button" @click="loadFinance">Try again</button>
             </div>
             <div v-else-if="!distributions.length" class="block-empty">
-              <p>No profit has been distributed yet.
-                <template v-if="isPool">Pool distributions are calculated automatically as jobs complete.</template>
-                <template v-else>Run "Calculate distribution" on a funded job to pay out profit.</template>
+              <p>
+                No profit has been distributed yet.
+                <template v-if="isPool"
+                  >Pool distributions are calculated automatically as jobs complete.</template
+                >
+                <template v-else
+                  >Run "Calculate distribution" on a funded job to pay out profit.</template
+                >
               </p>
             </div>
             <div v-else class="table-wrap">
@@ -672,7 +849,9 @@ import {
                         class="row-code"
                         :to="`/jobs/${distribution.transport_job.id}`"
                       >
-                        {{ distribution.transport_job.code || `Job #${distribution.transport_job_id}` }}
+                        {{
+                          distribution.transport_job.code || `Job #${distribution.transport_job_id}`
+                        }}
                       </RouterLink>
                       <span v-else>Job #{{ distribution.transport_job_id }}</span>
                     </td>
@@ -692,8 +871,17 @@ import {
 
       <div class="detail-footer">
         <RouterLink class="btn-light" to="/investments">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M19 12H5" /><path d="m12 19-7-7 7-7" />
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M19 12H5" />
+            <path d="m12 19-7-7 7-7" />
           </svg>
           Back to investments
         </RouterLink>
@@ -707,9 +895,72 @@ import {
           pendingAction ? pendingAction.charAt(0).toUpperCase() + pendingAction.slice(1) : 'Confirm'
         "
         :variant="pendingAction === 'cancel' ? 'danger' : 'primary'"
+        :loading="payoutLoading"
         @confirm="performAction"
         @cancel="pendingAction = null"
-      />
+      >
+        <template v-if="pendingAction === 'settle'" #body>
+          <div class="payout-fields">
+            <label>Where will the principal payout be paid from?</label>
+            <select v-model="payoutLocation" class="form-control">
+              <option value="hand">Cash in hand</option>
+              <option value="bank">Bank account</option>
+            </select>
+            <label v-if="payoutLocation === 'bank'">Bank account</label>
+            <select
+              v-if="payoutLocation === 'bank'"
+              v-model="payoutBankAccountId"
+              class="form-control"
+            >
+              <option value="">Select bank account</option>
+              <option v-for="account in bankAccounts" :key="account.id" :value="account.id">
+                {{ account.name }} — {{ money(account.current_balance) }}
+              </option>
+            </select>
+            <p v-if="payoutError" class="action-error" role="alert">{{ payoutError }}</p>
+          </div>
+        </template>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        :open="Boolean(pendingReturn)"
+        :title="
+          pendingReturn
+            ? `Record Month ${pendingReturn.installment_number} return payment?`
+            : 'Record payment?'
+        "
+        :message="
+          pendingReturn
+            ? `${money(pendingReturn.amount)} is being paid to ${investment.investor?.name || 'the investor'}.`
+            : ''
+        "
+        confirm-label="Record paid"
+        :loading="payingReturn === pendingReturn?.id"
+        @confirm="confirmReturnPayment"
+        @cancel="pendingReturn = null"
+      >
+        <template #body>
+          <div class="payout-fields">
+            <label>Payout location</label>
+            <select v-model="payoutLocation" class="form-control">
+              <option value="hand">Cash in hand</option>
+              <option value="bank">Bank account</option>
+            </select>
+            <label v-if="payoutLocation === 'bank'">Bank account</label>
+            <select
+              v-if="payoutLocation === 'bank'"
+              v-model="payoutBankAccountId"
+              class="form-control"
+            >
+              <option value="">Select bank account</option>
+              <option v-for="account in bankAccounts" :key="account.id" :value="account.id">
+                {{ account.name }} — {{ money(account.current_balance) }}
+              </option>
+            </select>
+            <p v-if="payoutError" class="action-error" role="alert">{{ payoutError }}</p>
+          </div>
+        </template>
+      </ConfirmDialog>
     </template>
   </div>
 </template>
@@ -723,7 +974,9 @@ import {
 }
 
 /* ---------- Hero ---------- */
-.hero-card { padding: 24px; }
+.hero-card {
+  padding: 24px;
+}
 
 .hero-top {
   align-items: flex-start;
@@ -732,7 +985,12 @@ import {
   justify-content: space-between;
 }
 
-.hero-id { align-items: center; display: flex; gap: 16px; min-width: 0; }
+.hero-id {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  min-width: 0;
+}
 
 .hero-avatar {
   align-items: center;
@@ -748,8 +1006,12 @@ import {
   width: 56px;
 }
 
-.hero-copy { min-width: 0; }
-.hero-copy .section-kicker { margin-bottom: 4px; }
+.hero-copy {
+  min-width: 0;
+}
+.hero-copy .section-kicker {
+  margin-bottom: 4px;
+}
 
 .hero-title-row {
   align-items: center;
@@ -772,9 +1034,16 @@ import {
   gap: 8px;
   margin-top: 6px;
 }
-.hero-customer-link { color: var(--text-secondary); font-weight: 500; }
-.hero-customer-link:hover { color: var(--accent); }
-.hero-sep { color: var(--text-muted); }
+.hero-customer-link {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.hero-customer-link:hover {
+  color: var(--accent);
+}
+.hero-sep {
+  color: var(--text-muted);
+}
 .hero-category {
   background: var(--surface-2);
   border-radius: 999px;
@@ -784,7 +1053,11 @@ import {
   padding: 2px 9px;
   text-transform: capitalize;
 }
-.hero-date { color: var(--text-muted); font-size: 14px; margin-top: 6px; }
+.hero-date {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-top: 6px;
+}
 
 .hero-actions {
   align-items: center;
@@ -810,7 +1083,10 @@ import {
   min-width: 0;
   padding: 0 16px;
 }
-.hero-stat:first-child { border-left: 0; padding-left: 0; }
+.hero-stat:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
 .hero-stat > span {
   align-items: center;
   color: var(--text-muted);
@@ -837,10 +1113,17 @@ import {
 }
 
 /* ---------- Money flow ---------- */
-.flow-card { min-width: 0; }
+.flow-card {
+  min-width: 0;
+}
 
-.flow-head { margin-bottom: 18px; }
-.flow-head h2 { font-size: 15px; font-weight: 600; }
+.flow-head {
+  margin-bottom: 18px;
+}
+.flow-head h2 {
+  font-size: 15px;
+  font-weight: 600;
+}
 
 .flow-chain {
   align-items: stretch;
@@ -884,8 +1167,13 @@ import {
   padding: 0 2px;
 }
 
-.flow-final { background: var(--success-soft); flex: 1.4 1 150px; }
-.flow-final strong { color: var(--success); }
+.flow-final {
+  background: var(--success-soft);
+  flex: 1.4 1 150px;
+}
+.flow-final strong {
+  color: var(--success);
+}
 
 /* ---------- Grid ---------- */
 .detail-grid {
@@ -911,7 +1199,9 @@ import {
 }
 
 /* ---------- Sidebar ---------- */
-.side-card { padding: 20px; }
+.side-card {
+  padding: 20px;
+}
 
 .side-title {
   align-items: center;
@@ -933,7 +1223,11 @@ import {
   margin: 0;
   padding: 0;
 }
-.fact-list li { display: flex; flex-direction: column; gap: 2px; }
+.fact-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 .fact-label {
   align-items: center;
   color: var(--text-muted);
@@ -942,9 +1236,18 @@ import {
   font-weight: 500;
   gap: 5px;
 }
-.fact-value { color: var(--text-primary); font-size: 14px; font-weight: 500; }
-.fact-cap { text-transform: capitalize; }
-.fact-warn { color: var(--warning); font-weight: 600; }
+.fact-value {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+}
+.fact-cap {
+  text-transform: capitalize;
+}
+.fact-warn {
+  color: var(--warning);
+  font-weight: 600;
+}
 
 .notes-text {
   color: var(--text-secondary);
@@ -970,7 +1273,9 @@ import {
   padding-bottom: 16px;
   position: relative;
 }
-.lifecycle-list li:last-child { padding-bottom: 0; }
+.lifecycle-list li:last-child {
+  padding-bottom: 0;
+}
 
 .lifecycle-list li:not(:last-child)::before {
   background: var(--border);
@@ -981,7 +1286,9 @@ import {
   top: 22px;
   width: 2px;
 }
-.lifecycle-list li.done:not(:last-child)::before { background: var(--success); }
+.lifecycle-list li.done:not(:last-child)::before {
+  background: var(--success);
+}
 
 .lifecycle-dot {
   align-items: center;
@@ -995,15 +1302,30 @@ import {
   justify-content: center;
   width: 20px;
 }
-.lifecycle-dot svg { height: 10px; width: 10px; }
+.lifecycle-dot svg {
+  height: 10px;
+  width: 10px;
+}
 .lifecycle-list li.done .lifecycle-dot {
   background: var(--success);
   border-color: var(--success);
 }
 
-.lifecycle-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.lifecycle-body b { color: var(--text-primary); font-size: 13px; font-weight: 600; }
-.lifecycle-body span { color: var(--text-muted); font-size: 12px; }
+.lifecycle-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.lifecycle-body b {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.lifecycle-body span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
 
 .lifecycle-actions {
   border-top: 1px solid var(--border);
@@ -1013,7 +1335,10 @@ import {
   margin-top: 16px;
   padding-top: 14px;
 }
-.lifecycle-actions .btn-sm { flex: 1 1 auto; justify-content: center; }
+.lifecycle-actions .btn-sm {
+  flex: 1 1 auto;
+  justify-content: center;
+}
 
 .lifecycle-hint {
   color: var(--text-muted);
@@ -1023,7 +1348,9 @@ import {
 }
 
 /* ---------- Blocks ---------- */
-.block-card { padding: 20px; }
+.block-card {
+  padding: 20px;
+}
 
 .block-head {
   align-items: flex-start;
@@ -1033,8 +1360,16 @@ import {
   margin-bottom: 14px;
 }
 
-.block-title { align-items: flex-start; display: flex; gap: 12px; }
-.block-title h2 { font-size: 15px; font-weight: 600; margin: 0; }
+.block-title {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+}
+.block-title h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
 .block-hint {
   align-items: center;
   color: var(--text-muted);
@@ -1054,9 +1389,18 @@ import {
   justify-content: center;
   width: 32px;
 }
-.block-icon svg { height: 15px; width: 15px; }
-.icon-violet { background: var(--violet-soft); color: var(--violet); }
-.icon-success { background: var(--success-soft); color: var(--success); }
+.block-icon svg {
+  height: 15px;
+  width: 15px;
+}
+.icon-violet {
+  background: var(--violet-soft);
+  color: var(--violet);
+}
+.icon-success {
+  background: var(--success-soft);
+  color: var(--success);
+}
 
 .count-badge {
   align-items: center;
@@ -1080,12 +1424,23 @@ import {
   padding: 0 10px;
 }
 
-.row-code { color: var(--text-primary); font-weight: 600; text-decoration: none; }
-.row-code:hover { color: var(--accent); }
-.row-amount { color: var(--text-primary); font-weight: 600; }
+.row-code {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+.row-code:hover {
+  color: var(--accent);
+}
+.row-amount {
+  color: var(--text-primary);
+  font-weight: 600;
+}
 
 /* Allocation progress */
-.alloc-progress { margin-bottom: 16px; }
+.alloc-progress {
+  margin-bottom: 16px;
+}
 
 .alloc-bar {
   background: var(--surface-2);
@@ -1097,7 +1452,25 @@ import {
   background: var(--violet);
   display: block;
   height: 100%;
-  transition: width 0.4s ease;
+  transition: transform 0.3s ease;
+  transform-origin: left;
+}
+
+.payout-fields {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  text-align: left;
+}
+
+.payout-fields label {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.payout-fields .form-control {
+  width: 100%;
 }
 
 .alloc-legend {
@@ -1126,7 +1499,10 @@ import {
   height: 9px;
   width: 9px;
 }
-.alloc-dot.filled { background: var(--violet); border-color: var(--violet); }
+.alloc-dot.filled {
+  background: var(--violet);
+  border-color: var(--violet);
+}
 
 .sub-head {
   align-items: center;
@@ -1157,7 +1533,9 @@ import {
   justify-content: space-between;
   padding: 12px 14px;
 }
-.block-error p { margin: 0; }
+.block-error p {
+  margin: 0;
+}
 
 .block-empty {
   border: 1px dashed var(--border-strong);
@@ -1167,7 +1545,9 @@ import {
   padding: 18px 16px;
   text-align: center;
 }
-.block-empty p { margin: 0; }
+.block-empty p {
+  margin: 0;
+}
 
 .return-summary {
   background: var(--success-soft);
@@ -1178,8 +1558,14 @@ import {
   margin-bottom: 16px;
   padding: 10px 14px;
 }
-.return-summary span { color: var(--text-secondary); font-size: 13px; }
-.return-summary strong { color: var(--success); font-variant-numeric: tabular-nums; }
+.return-summary span {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.return-summary strong {
+  color: var(--success);
+  font-variant-numeric: tabular-nums;
+}
 
 /* ---------- Error / skeleton / footer ---------- */
 .detail-error {
@@ -1190,9 +1576,16 @@ import {
   gap: 16px;
   justify-content: space-between;
 }
-.detail-error p { color: var(--text-secondary); margin: 4px 0 0; }
+.detail-error p {
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+}
 
-.detail-skeleton { display: flex; flex-direction: column; gap: 20px; }
+.detail-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
 .sk {
   background: var(--surface-2);
@@ -1209,26 +1602,61 @@ import {
   position: absolute;
   transform: translateX(-100%);
 }
-@keyframes shimmer { 100% { transform: translateX(100%); } }
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
 
-.detail-footer { display: flex; }
+.detail-footer {
+  display: flex;
+}
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1024px) {
-  .detail-grid { grid-template-columns: 1fr; }
-  .detail-side { position: static; }
-  .hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 18px; }
-  .hero-stat:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .detail-side {
+    position: static;
+  }
+  .hero-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 18px;
+  }
+  .hero-stat:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
 }
 
 @media (max-width: 700px) {
-  .hero-top { flex-direction: column; }
-  .hero-actions { width: 100%; }
-  .hero-actions .btn { flex: 1; justify-content: center; }
-  .detail-error { align-items: flex-start; flex-direction: column; }
-  .block-error { flex-direction: column; align-items: flex-start; }
-  .flow-op { display: none; }
-  .flow-step { flex-basis: calc(50% - 5px); }
-  .flow-final { flex-basis: 100%; }
+  .hero-top {
+    flex-direction: column;
+  }
+  .hero-actions {
+    width: 100%;
+  }
+  .hero-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+  .detail-error {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .block-error {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .flow-op {
+    display: none;
+  }
+  .flow-step {
+    flex-basis: calc(50% - 5px);
+  }
+  .flow-final {
+    flex-basis: 100%;
+  }
 }
 </style>

@@ -80,7 +80,9 @@ class InvestmentLifecycleTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'matured');
 
-        $this->postJson("/api/v1/investments/{$investment->id}/settle")
+        $this->postJson("/api/v1/investments/{$investment->id}/settle", [
+            'payout_location' => 'hand',
+        ])
             ->assertOk()
             ->assertJsonPath('data.status', 'settled')
             ->assertJsonPath('data.calculated_return_amount', 15000)

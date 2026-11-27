@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\InvestmentRequest;
+use App\Http\Requests\InvestmentSettlementRequest;
 use App\Http\Resources\InvestmentResource;
 use App\Models\Investment;
 use App\Models\Investor;
@@ -72,7 +73,7 @@ class InvestmentController extends Controller
     ): AnonymousResourceCollection {
         $investments = Investment::query()
             ->where('investor_id', $investor->id)
-            ->with('investor')
+            ->with(['investor', 'bankAccount', 'receipt'])
             ->latest()
             ->paginate(15);
 
@@ -114,10 +115,11 @@ class InvestmentController extends Controller
     }
 
     public function settle(
+        InvestmentSettlementRequest $request,
         Investment $investment,
         InvestmentLifecycleService $lifecycle
     ) {
-        $investment = $lifecycle->settle($investment);
+        $investment = $lifecycle->settle($investment, $request->validated());
 
         return new InvestmentResource($investment);
     }

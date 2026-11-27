@@ -137,12 +137,12 @@ export const useInvestmentStore = defineStore('investment', {
       }
     },
 
-    async transitionInvestment(action, id) {
+    async transitionInvestment(action, id, data = {}) {
       this.loading = true
       this.error = null
 
       try {
-        const response = await investmentService[lifecycleActions[action]](id)
+        const response = await investmentService[lifecycleActions[action]](id, data)
 
         this.investment = response.data
 
@@ -164,8 +164,8 @@ export const useInvestmentStore = defineStore('investment', {
       return this.transitionInvestment('withdraw', id)
     },
 
-    async settle(id) {
-      return this.transitionInvestment('settle', id)
+    async settle(id, data = {}) {
+      return this.transitionInvestment('settle', id, data)
     },
 
     async cancel(id) {

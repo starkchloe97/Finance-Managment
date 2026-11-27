@@ -21,6 +21,7 @@ class LoanRepaymentResource extends JsonResource
                 'id' => $this->creator?->id,
                 'name' => $this->creator?->name,
             ]),
+            'receipt' => $this->whenLoaded('receipt', fn () => new TransactionReceiptResource($this->receipt)),
         ];
     }
 }

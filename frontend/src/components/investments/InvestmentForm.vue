@@ -7,6 +7,7 @@ const props = defineProps({
   mode: { type: String, default: 'create' },
   initialValues: { type: Object, default: () => ({}) },
   investors: { type: Array, default: () => [] },
+  bankAccounts: { type: Array, default: () => [] },
   errors: { type: Object, default: () => ({}) },
   submitting: { type: Boolean, default: false },
   error: { type: String, default: '' },
@@ -18,6 +19,8 @@ const form = reactive({
   investor_id: props.initialValues.investor_id ?? '',
   investment_date: props.initialValues.investment_date ?? '',
   amount: props.initialValues.amount ?? '',
+  funds_location: props.initialValues.funds_location ?? 'hand',
+  bank_account_id: props.initialValues.bank_account_id ?? '',
   investment_category: props.initialValues.investment_category ?? 'normal',
   return_type: props.initialValues.return_type ?? 'percentage',
   return_percentage: props.initialValues.return_percentage ?? '',
@@ -37,6 +40,13 @@ watch(
     }
   },
   { immediate: true },
+)
+
+watch(
+  () => form.funds_location,
+  (location) => {
+    if (location !== 'bank') form.bank_account_id = ''
+  },
 )
 
 // ---- Live preview math (mirrors the detail page's payout flow) ----
@@ -87,6 +97,8 @@ const submit = () => {
 
   if (props.mode === 'create') {
     data.investor_id = Number(form.investor_id)
+    data.funds_location = form.funds_location
+    data.bank_account_id = form.funds_location === 'bank' ? Number(form.bank_account_id) : null
   }
 
   emit('submit', data)
@@ -164,6 +176,70 @@ const submit = () => {
                 {{ fieldError('amount') }}
               </small>
             </div>
+          </div>
+
+          <fieldset v-if="mode === 'create'" class="field">
+            <legend>
+              Receive investment into
+              <InfoTip label="Record where the investor's capital was received. A bank receipt also updates that bank account's balance." />
+            </legend>
+            <div class="choice-group">
+              <label class="choice-option">
+                <input v-model="form.funds_location" type="radio" value="hand" />
+                <span>
+                  <b>Cash in hand</b>
+                  <small>Cash received directly</small>
+                </span>
+              </label>
+              <label class="choice-option">
+                <input v-model="form.funds_location" type="radio" value="bank" />
+                <span>
+                  <b>Bank</b>
+                  <small>Credit a company bank account</small>
+                </span>
+              </label>
+              <label class="choice-option choice-option-disabled" title="Adjustment is not available yet.">
+                <input type="radio" disabled />
+                <span>
+                  <b>Adjustment</b>
+                  <small>Coming soon</small>
+                </span>
+              </label>
+            </div>
+            <small v-if="fieldError('funds_location')" id="funds_location-error" class="error">
+              {{ fieldError('funds_location') }}
+            </small>
+          </fieldset>
+
+          <div v-if="mode === 'create' && form.funds_location === 'bank'" class="field">
+            <label for="bank_account_id">Bank account</label>
+            <select
+              id="bank_account_id"
+              v-model="form.bank_account_id"
+              v-bind="fieldAttrs('bank_account_id')"
+              required
+            >
+              <option value="">Select bank account</option>
+              <option v-for="account in bankAccounts" :key="account.id" :value="account.id">
+                {{ account.name }} — {{ money(account.current_balance) }}
+              </option>
+            </select>
+            <small v-if="!bankAccounts.length" class="error">Add a bank account before receiving this investment in the bank.</small>
+            <small v-if="fieldError('bank_account_id')" id="bank_account_id-error" class="error">
+              {{ fieldError('bank_account_id') }}
+            </small>
+          </div>
+
+          <div v-else-if="mode === 'edit'" class="field">
+            <label>Received into</label>
+            <input
+              :value="initialValues.funds_location === 'bank'
+                ? `Bank — ${initialValues.bank_account?.name || 'Bank account'}`
+                : 'Cash in hand'"
+              type="text"
+              disabled
+            />
+            <small>Receipt location cannot be changed after the investment is created.</small>
           </div>
 
           <fieldset class="field">
@@ -482,6 +558,14 @@ legend {
   border-color: var(--text-muted);
 }
 
+.choice-option-disabled,
+.choice-option-disabled:hover {
+  background: var(--surface-muted);
+  border-color: var(--border);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .choice-option:has(input:checked) {
   background: var(--accent-soft);
   border-color: var(--accent);
@@ -497,6 +581,7 @@ legend {
   color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
+  margin-right: 5px;
 }
 
 .choice-option:has(input:checked) b {

@@ -12,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class InvestorPayoutService
 {
+    public function __construct(private AccountingPeriodService $periods) {}
+
     public function calculateDistribution(TransportJob $job, Investment $investment, ?string $notes = null): InvestorProfitDistribution
     {
         return DB::transaction(function () use ($job, $investment, $notes) {
@@ -20,6 +22,8 @@ class InvestorPayoutService
             }
 
             $job = TransportJob::query()->lockForUpdate()->findOrFail($job->id);
+            $this->periods->assertOpen($job->job_date?->toDateString());
+
             if ($job->financially_locked_at) {
                 $this->reject('job', 'This job is financially locked.');
             }

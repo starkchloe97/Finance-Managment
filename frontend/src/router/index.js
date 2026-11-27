@@ -14,6 +14,7 @@ const routes = [
     meta: secure('Dashboard'),
     children: [
       { path: '', name: 'dashboard', component: Dashboard, meta: secure('Dashboard') },
+      { path: 'reports', name: 'reports.index', component: () => import('@/pages/reports/Reports.vue'), meta: secure('Finance / Reports') },
       { path: 'activities', name: 'activities.index', component: () => import('@/pages/Activity.vue'), meta: secure('Activity') },
       { path: 'queries', name: 'queries.index', component: () => import('@/pages/queries/QueriesList.vue'), meta: secure('Operations / Queries') },
       { path: 'queries/create', name: 'queries.create', component: () => import('@/pages/queries/QueryCreate.vue'), meta: secure('Operations / Queries / New query') },
@@ -27,6 +28,8 @@ const routes = [
       { path: 'commission-receivables', name: 'commission-receivables.index', component: () => import('@/pages/invoices/Invoices.vue'), meta: secure('Finance / Commission Receivable') },
       { path: 'payments', name: 'payments.index', component: () => import('@/pages/invoices/Payments.vue'), meta: secure('Finance / Payments') },
       { path: 'bank-accounts', name: 'bank-accounts.index', component: () => import('@/pages/BankAccounts.vue'), meta: secure('Finance / Bank accounts') },
+      { path: 'receipts', name: 'receipts.index', component: () => import('@/pages/receipts/Receipts.vue'), meta: secure('Finance / Receipts') },
+      { path: 'receipts/:id', name: 'receipts.show', component: () => import('@/pages/receipts/ReceiptShow.vue'), meta: secure('Finance / Receipts / View') },
       {
         path: 'customers',
         component: () => import('@/pages/customers/CustomersList.vue'),
@@ -118,6 +121,12 @@ const routes = [
         name: 'loans.show',
         component: () => import('@/pages/loans/LoanShow.vue'),
         meta: secure('Finance / Loans / Loan details'),
+      },
+      {
+        path: 'my-investments',
+        name: 'my-investments.index',
+        component: () => import('@/pages/investments/MyInvestments.vue'),
+        meta: secure('Finance / My investments'),
       },
       {
         path: 'investments',

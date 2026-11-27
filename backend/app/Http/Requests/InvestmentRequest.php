@@ -9,6 +9,13 @@ use Illuminate\Validation\Rule;
 
 class InvestmentRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->isMethod('post') && ! $this->has('funds_location')) {
+            $this->merge(['funds_location' => 'hand']);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -24,6 +31,19 @@ class InvestmentRequest extends FormRequest
             ],
             'investment_date' => ['required', 'date'],
             'amount' => ['required', 'numeric', 'min:0.01'],
+            'funds_location' => [
+                $this->isMethod('post') ? 'required' : 'prohibited',
+                Rule::in(['hand', 'bank']),
+            ],
+            'bank_account_id' => [
+                $this->isMethod('post')
+                    ? Rule::requiredIf(fn () => $this->input('funds_location') === 'bank')
+                    : 'prohibited',
+                Rule::prohibitedIf(fn () => $this->input('funds_location') !== 'bank' && $this->filled('bank_account_id')),
+                'nullable',
+                'integer',
+                Rule::exists('bank_accounts', 'id'),
+            ],
             'investment_category' => ['required', Rule::enum(InvestmentCategory::class)],
             'return_type' => [
                 'required',

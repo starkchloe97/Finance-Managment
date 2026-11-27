@@ -11,7 +11,8 @@ class InvestmentLifecycleService
 {
     public function __construct(
         private InvestmentSettlementService $settlements,
-        private InvestmentMonthlyReturnService $monthlyReturns
+        private InvestmentMonthlyReturnService $monthlyReturns,
+        private AccountingPeriodService $periods,
     ) {}
 
     public function mature(Investment $investment): Investment
@@ -45,10 +46,10 @@ class InvestmentLifecycleService
         return $investment;
     }
 
-    public function settle(Investment $investment): Investment
+    public function settle(Investment $investment, array $data = []): Investment
     {
-        return DB::transaction(function () use ($investment) {
-            $this->settlements->calculateActualSettlement($investment);
+        return DB::transaction(function () use ($investment, $data) {
+            $this->settlements->calculateActualSettlement($investment, $data);
 
             return $this->transition(
                 $investment,
@@ -80,6 +81,8 @@ class InvestmentLifecycleService
         string $timestampColumn,
         ?callable $beforeTransition = null
     ): Investment {
+        $this->periods->assertOpen(today()->toDateString());
+
         return DB::transaction(function () use (
             $investment,
             $target,

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { createAllocation } from '@/services/investmentFinanceService'
 import { getJobs } from '@/services/transportJobService'
 
@@ -10,6 +10,7 @@ const jobId = ref('')
 const amount = ref('')
 const error = ref('')
 const saving = ref(false)
+const jobsError = ref('')
 const canSubmit = computed(
   () =>
     Number(amount.value) > 0 &&
@@ -17,9 +18,17 @@ const canSubmit = computed(
     jobId.value,
 )
 
-getJobs().then((response) => {
-  jobs.value = response.data.data
+onMounted(async () => {
+  try {
+    const response = await getJobs({ per_page: 100 })
+    jobs.value = response.data.data.filter(
+      (job) => job.status !== 'completed' && !job.financially_locked_at,
+    )
+  } catch (requestError) {
+    jobsError.value = requestError.response?.data?.message || 'Could not load eligible jobs.'
+  }
 })
+
 const submit = async () => {
   if (!canSubmit.value || saving.value) return
   saving.value = true
@@ -70,6 +79,7 @@ const submit = async () => {
 
 <template>
   <form class="allocation-form" @submit.prevent="submit">
+    <small v-if="jobsError" class="error">{{ jobsError }}</small>
     <select v-model="jobId" :disabled="saving">
       <option value="">Choose a job</option>
       <option v-for="job in jobs" :key="job.id" :value="job.id">{{ job.code }}</option>
@@ -83,7 +93,7 @@ const submit = async () => {
       placeholder="Amount"
       :disabled="saving"
     />
-    <button type="submit" :disabled="!canSubmit || saving">Allocate</button>
+    <button type="submit" :disabled="!canSubmit || saving || Boolean(jobsError)">Allocate</button>
     <small v-if="error" class="error">{{ error }}</small>
   </form>
 </template>

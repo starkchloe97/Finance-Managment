@@ -23,11 +23,15 @@ class TransportJobExpenseService
 {
     public function __construct(
         private ActivityService $activity,
-        private InvoiceService $invoices
+        private InvoiceService $invoices,
+        private AccountingPeriodService $periods,
     ) {}
 
     public function add(TransportJob $job, array $data, ?int $userId = null): TransportJobExpense
     {
+        $this->periods->assertOpen($data['expense_date'] ?? null);
+        $this->periods->assertOpen($job->job_date?->toDateString());
+
         return DB::transaction(function () use ($job, $data, $userId) {
 
             $job = TransportJob::query()->lockForUpdate()->findOrFail($job->id);
@@ -52,6 +56,10 @@ class TransportJobExpenseService
 
     public function update(TransportJobExpense $expense, array $data): TransportJobExpense
     {
+        $this->periods->assertOpen($expense->expense_date?->toDateString());
+        $this->periods->assertOpen($data['expense_date'] ?? null);
+        $this->periods->assertOpen($expense->transportJob->job_date?->toDateString());
+
         return DB::transaction(function () use ($expense, $data) {
 
             $job = $expense->transportJob;
@@ -81,6 +89,9 @@ class TransportJobExpenseService
 
     public function remove(TransportJobExpense $expense): void
     {
+        $this->periods->assertOpen($expense->expense_date?->toDateString());
+        $this->periods->assertOpen($expense->transportJob->job_date?->toDateString());
+
         DB::transaction(function () use ($expense) {
 
             $job = $expense->transportJob;

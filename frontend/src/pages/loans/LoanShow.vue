@@ -160,6 +160,13 @@ onMounted(() => load().catch(() => {}))
           </div>
 
           <div class="hero-actions">
+            <RouterLink
+              v-if="loan.receipt"
+              class="btn-light"
+              :to="{ name: 'receipts.show', params: { id: loan.receipt.id } }"
+            >
+              Loan receipt
+            </RouterLink>
             <button v-if="canManage" type="button" class="btn" @click="openRepayment">
               Record repayment
             </button>
@@ -327,6 +334,7 @@ onMounted(() => load().catch(() => {}))
                     <th>Notes</th>
                     <th>Recorded by</th>
                     <th class="right">Amount</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -336,11 +344,20 @@ onMounted(() => load().catch(() => {}))
                     <td>{{ repayment.notes || '—' }}</td>
                     <td>{{ repayment.created_by?.name || '—' }}</td>
                     <td class="right money-profit">{{ money(repayment.amount) }}</td>
+                    <td>
+                      <RouterLink
+                        v-if="repayment.receipt"
+                        class="btn-light btn-sm"
+                        :to="{ name: 'receipts.show', params: { id: repayment.receipt.id } }"
+                      >
+                        Receipt
+                      </RouterLink>
+                    </td>
                   </tr>
                 </tbody>
                 <tfoot>
                   <tr class="grand-total">
-                    <td colspan="4">Total repaid</td>
+                    <td colspan="5">Total repaid</td>
                     <td class="right">{{ money(repaid) }}</td>
                   </tr>
                 </tfoot>

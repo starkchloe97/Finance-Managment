@@ -23,6 +23,17 @@ class InvestmentResource extends JsonResource
             ),
             'investment_date' => $this->investment_date?->format('Y-m-d'),
             'amount' => $this->amount,
+            'funds_location' => $this->funds_location,
+            'bank_account_id' => $this->bank_account_id,
+            'bank_account' => $this->whenLoaded(
+                'bankAccount',
+                fn () => [
+                    'id' => $this->bankAccount->id,
+                    'name' => $this->bankAccount->name,
+                    'bank_name' => $this->bankAccount->bank_name,
+                ]
+            ),
+            'receipt' => $this->whenLoaded('receipt', fn () => new TransactionReceiptResource($this->receipt)),
             'investment_category' => $this->investment_category?->value,
             'return_type' => $this->return_type?->value,
             'return_percentage' => $this->return_percentage,

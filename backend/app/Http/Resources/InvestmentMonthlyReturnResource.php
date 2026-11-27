@@ -19,6 +19,8 @@ class InvestmentMonthlyReturnResource extends JsonResource
             'status' => $this->status,
             'paid_at' => $this->paid_at?->toISOString(),
             'notes' => $this->notes,
+            'payout_location' => $this->payout_location,
+            'bank_account_id' => $this->bank_account_id,
         ];
     }
 }

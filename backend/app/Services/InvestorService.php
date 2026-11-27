@@ -6,12 +6,49 @@ use App\Helpers\NumberGenerator;
 use App\Models\Investment;
 use App\Models\Investor;
 use App\Models\Loan;
+use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class InvestorService
 {
+    public function ensureOwnerProfile(User $user): Investor
+    {
+        return DB::transaction(function () use ($user) {
+            $investor = Investor::query()
+                ->where('user_id', $user->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($investor) {
+                return $investor;
+            }
+
+            $investor = $user->email
+                ? Investor::query()
+                    ->whereNull('user_id')
+                    ->whereRaw('LOWER(email) = ?', [mb_strtolower($user->email)])
+                    ->lockForUpdate()
+                    ->first()
+                : null;
+
+            if ($investor) {
+                $investor->update(['user_id' => $user->id]);
+
+                return $investor->refresh();
+            }
+
+            return Investor::create([
+                'investor_code' => NumberGenerator::generate('INV', Investor::class),
+                'user_id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'status' => 'active',
+            ]);
+        });
+    }
+
     public function paginate(array $filters = []): LengthAwarePaginator
     {
         return Investor::query()

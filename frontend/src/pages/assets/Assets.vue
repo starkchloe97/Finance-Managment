@@ -7,7 +7,6 @@ import { money } from '@/utils/money'
 import Pagination from '@/components/ui/Pagination.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import InfoTip from '@/components/ui/InfoTip.vue'
-import AppToast from '@/components/ui/AppToast.vue'
 import { useToast } from '@/composables/useToast'
 import { avatarStyle } from '@/utils/avatar'
 
@@ -468,7 +467,6 @@ watch(status, () => {
       @cancel="pendingDelete = null"
     />
 
-    <AppToast />
   </div>
 </template>
 

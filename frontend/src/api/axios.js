@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useToast } from '@/composables/useToast'
 
 // Override with VITE_API_URL in .env when the API is not on the default port.
 const api = axios.create({
@@ -31,6 +32,29 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !isLoginAttempt) {
       localStorage.removeItem('token')
       window.location.href = '/login'
+    }
+
+    if (
+      !isLoginAttempt &&
+      !axios.isCancel(error) &&
+      (!error.response || error.response.status >= 500)
+    ) {
+      const { show } = useToast()
+      if (error.response) {
+        show(
+          'The server could not complete that request. Your changes were not confirmed. Try again.',
+          'error',
+          undefined,
+          'Request failed',
+        )
+      } else {
+        show(
+          'Could not connect to the server. Check your connection and try again.',
+          'error',
+          undefined,
+          'Connection problem',
+        )
+      }
     }
 
     return Promise.reject(error)

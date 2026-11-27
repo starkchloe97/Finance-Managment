@@ -85,9 +85,19 @@ const navigation = [
         icon: '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
       },
       {
+        label: 'My investments',
+        to: { name: 'my-investments.index' },
+        icon: '<path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+      },
+      {
         label: 'Bank accounts',
         to: { name: 'bank-accounts.index' },
         icon: '<rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/>',
+      },
+      {
+        label: 'Receipts',
+        to: { name: 'receipts.index' },
+        icon: '<path d="M4 3h16v18l-3-2-3 2-3-2-3 2-3-2V3z"/><path d="M8 8h8M8 12h8"/>',
       },
       {
         label: 'Invoices',
@@ -104,6 +114,11 @@ const navigation = [
         label: 'Loans',
         to: { name: 'loans.index' },
         icon: '<path d="M7 7h10v10H7z"/><path d="M4 10V5a1 1 0 0 1 1-1h5"/><path d="M20 14v5a1 1 0 0 1-1 1h-5"/>',
+      },
+      {
+        label: 'Reports & period close',
+        to: { name: 'reports.index' },
+        icon: '<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-5 5"/><path d="M17 9h2v2"/>',
       },
       
     ],

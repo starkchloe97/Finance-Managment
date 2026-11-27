@@ -15,6 +15,10 @@ use Illuminate\Validation\ValidationException;
 
 class CompanyCapitalService
 {
+    public function __construct(
+        private ReceiptService $receipts,
+        private AccountingPeriodService $periods,
+    ) {}
     public function snapshot(): array
     {
         $account = CompanyCapitalAccount::query()->where('code', 'MAIN')->first();
@@ -53,7 +57,7 @@ class CompanyCapitalService
                 $this->reject('amount', 'Opening capital is already configured and cannot be changed after transactions exist.');
             }
 
-            $this->recordLocked(
+            $transaction = $this->recordLocked(
                 $account,
                 CompanyCapitalTransactionType::OpeningBalance,
                 $amount,
@@ -73,7 +77,7 @@ class CompanyCapitalService
         return DB::transaction(function () use ($amount, $transactionDate, $available, $notes, $user) {
             $account = $this->activeAccountForUpdate();
 
-            $this->recordLocked(
+            $transaction = $this->recordLocked(
                 $account,
                 CompanyCapitalTransactionType::CapitalAdded,
                 $amount,
@@ -82,6 +86,18 @@ class CompanyCapitalService
                 $notes ?? 'Additional company capital',
                 $user,
                 $available,
+            );
+
+            $this->receipts->issue(
+                $transaction,
+                'capital_deposit',
+                'received',
+                $amount,
+                $transactionDate,
+                'Company capital added',
+                null,
+                $notes,
+                $user,
             );
 
             return $this->snapshot();
@@ -101,7 +117,7 @@ class CompanyCapitalService
                 );
             }
 
-            $this->recordLocked(
+            $transaction = $this->recordLocked(
                 $account,
                 CompanyCapitalTransactionType::CapitalWithdrawn,
                 -$amount,
@@ -110,6 +126,18 @@ class CompanyCapitalService
                 $notes ?? 'Capital withdrawn',
                 $user,
                 true,
+            );
+
+            $this->receipts->issue(
+                $transaction,
+                'capital_withdrawal',
+                'paid',
+                $amount,
+                $transactionDate,
+                'Company capital withdrawn',
+                null,
+                $notes,
+                $user,
             );
 
             return $this->snapshot();
@@ -127,6 +155,7 @@ class CompanyCapitalService
                 ->lockForUpdate()
                 ->findOrFail($transactionId);
 
+            $this->periods->assertOpen($transaction->transaction_date?->toDateString());
             $transaction->update(['available' => true]);
 
             $this->recordLocked(
@@ -155,6 +184,7 @@ class CompanyCapitalService
                 ->lockForUpdate()
                 ->findOrFail($transactionId);
 
+            $this->periods->assertOpen($transaction->transaction_date?->toDateString());
             $available = $this->availableBalance($account);
             if ($available < (float) $transaction->amount) {
                 $this->reject(
@@ -208,6 +238,8 @@ class CompanyCapitalService
 
     public function createDraft(float $amount, string $transactionDate, string $note, ?User $user): CompanyCapitalDraft
     {
+        $this->periods->assertOpen($transactionDate);
+
         return DB::transaction(function () use ($amount, $transactionDate, $note, $user) {
             $account = CompanyCapitalAccount::query()->where('code', 'MAIN')->first();
 
@@ -429,6 +461,8 @@ class CompanyCapitalService
         ?User $user,
         bool $available = true,
     ): CompanyCapitalTransaction {
+        $this->periods->assertOpen($transactionDate);
+
         $lastId = (int) (CompanyCapitalTransaction::query()->max('id') ?? 0) + 1;
 
         return CompanyCapitalTransaction::create([

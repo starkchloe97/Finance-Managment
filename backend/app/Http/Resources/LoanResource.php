@@ -44,6 +44,7 @@ class LoanResource extends JsonResource
             'paid_at' => $this->paid_at?->toISOString(),
             'cancelled_at' => $this->cancelled_at?->toISOString(),
             'notes' => $this->notes,
+            'receipt' => $this->whenLoaded('receipt', fn () => new TransactionReceiptResource($this->receipt)),
             'repayments' => LoanRepaymentResource::collection($this->whenLoaded('repayments')),
             'created_at' => $this->created_at,
         ];

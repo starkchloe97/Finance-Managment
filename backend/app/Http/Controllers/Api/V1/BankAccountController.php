@@ -33,7 +33,7 @@ class BankAccountController extends Controller
     public function transactions(BankAccount $bankAccount)
     {
         return BankTransactionResource::collection(
-            $bankAccount->transactions()->with('payment')->latest('transaction_date')->latest('id')->paginate(50)
+            $bankAccount->transactions()->with(['payment', 'investment'])->latest('transaction_date')->latest('id')->paginate(50)
         );
     }
 }

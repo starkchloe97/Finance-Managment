@@ -1,11 +1,14 @@
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import InlineNotice from '@/components/ui/InlineNotice.vue'
+import { getErrorMessage } from '@/utils/errors'
 
 const router = useRouter()
 
 const auth = useAuthStore()
+const loginError = ref('')
 
 const form = reactive({
   email: '',
@@ -13,12 +16,13 @@ const form = reactive({
 })
 
 const submit = async () => {
+  loginError.value = ''
   try {
     await auth.login(form)
 
     router.push('/')
   } catch (error) {
-    alert(error.response?.data?.message || 'Login failed')
+    loginError.value = getErrorMessage(error, 'Check your email and password, then try again.')
   }
 }
 </script>
@@ -45,6 +49,13 @@ const submit = async () => {
         <h2>Welcome back</h2>
 
         <p class="sub">Sign in to your Transport ERP account</p>
+
+        <InlineNotice
+          v-if="loginError"
+          class="login-error"
+          title="We couldn't sign you in."
+          :message="loginError"
+        />
 
         <div class="field">
           <label>Email</label>
@@ -75,8 +86,7 @@ const submit = async () => {
 .login-aside {
   background:
     radial-gradient(900px 500px at 0% 0%, rgb(59 130 246 / 38%), transparent 60%),
-    radial-gradient(700px 500px at 100% 100%, rgb(124 58 237 / 32%), transparent 60%),
-    #0f172a;
+    radial-gradient(700px 500px at 100% 100%, rgb(124 58 237 / 32%), transparent 60%), #0f172a;
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -84,19 +94,6 @@ const submit = async () => {
   overflow: hidden;
   padding: var(--space-10) 56px;
   position: relative;
-}
-
-.login-aside::after {
-  background-image:
-    linear-gradient(rgb(255 255 255 / 5%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 5%) 1px, transparent 1px);
-  background-size: 44px 44px;
-  content: '';
-  inset: 0;
-  mask-image: radial-gradient(ellipse at 30% 40%, #000 0%, transparent 70%);
-  -webkit-mask-image: radial-gradient(ellipse at 30% 40%, #000 0%, transparent 70%);
-  pointer-events: none;
-  position: absolute;
 }
 
 .login-aside > * {
@@ -179,6 +176,10 @@ const submit = async () => {
 .login .sub {
   color: var(--text-muted);
   margin: var(--space-2) var(--space-0) var(--space-8);
+}
+
+.login-error {
+  margin-bottom: var(--space-5);
 }
 
 .login .field {

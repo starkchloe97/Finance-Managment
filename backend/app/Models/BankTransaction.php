@@ -10,6 +10,7 @@ class BankTransaction extends Model
     protected $fillable = [
         'bank_account_id',
         'payment_id',
+        'investment_id',
         'type',
         'amount',
         'balance_after',
@@ -31,5 +32,10 @@ class BankTransaction extends Model
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
+    }
+
+    public function investment(): BelongsTo
+    {
+        return $this->belongsTo(Investment::class);
     }
 }

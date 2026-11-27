@@ -20,6 +20,8 @@ class LoanService
     public function __construct(
         private CompanyCapitalService $capital,
         private LoanBorrowerService $borrowers,
+        private ReceiptService $receipts,
+        private AccountingPeriodService $periods,
     ) {}
 
     public function paginate(array $filters): LengthAwarePaginator
@@ -27,7 +29,7 @@ class LoanService
         $this->refreshOverdueStatuses();
 
         return Loan::query()
-            ->with(['investor', 'borrower'])
+            ->with(['investor', 'borrower', 'receipt'])
             ->withSum('repayments', 'amount')
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->when($filters['investor_id'] ?? null, fn ($query, $investorId) => $query->where('investor_id', $investorId))
@@ -49,13 +51,15 @@ class LoanService
         $this->refreshOverdueStatus($loan);
 
         return Loan::query()
-            ->with(['investor', 'borrower', 'repayments.creator'])
+            ->with(['investor', 'borrower', 'receipt', 'repayments.creator', 'repayments.receipt'])
             ->withSum('repayments', 'amount')
             ->findOrFail($loan->id);
     }
 
     public function create(array $data, ?User $user): Loan
     {
+        $this->periods->assertOpen($data['loan_date'] ?? null);
+
         return DB::transaction(function () use ($data, $user) {
             $amount = round((float) $data['amount'], 2);
             $this->capital->assertAvailable($amount);
@@ -83,12 +87,26 @@ class LoanService
                 $user,
             );
 
+            $this->receipts->issue(
+                $loan,
+                'loan_disbursement',
+                'paid',
+                $amount,
+                $data['loan_date'],
+                "Loan {$loan->loan_code} issued",
+                $loan->borrowerName(),
+                $loan->notes,
+                $user,
+            );
+
             return $this->find($loan);
         });
     }
 
     public function update(Loan $loan, array $data): Loan
     {
+        $this->periods->assertOpen($loan->loan_date?->toDateString());
+
         return DB::transaction(function () use ($loan, $data) {
             $loan = Loan::query()->lockForUpdate()->findOrFail($loan->id);
             $this->refreshOverdueStatus($loan);
@@ -110,6 +128,8 @@ class LoanService
 
     public function repay(Loan $loan, array $data, ?User $user): LoanRepayment
     {
+        $this->periods->assertOpen($data['payment_date'] ?? null);
+
         return DB::transaction(function () use ($loan, $data, $user) {
             $loan = Loan::query()->withSum('repayments', 'amount')->lockForUpdate()->findOrFail($loan->id);
             $this->refreshOverdueStatus($loan);
@@ -141,6 +161,18 @@ class LoanService
                 $user,
             );
 
+            $this->receipts->issue(
+                $repayment,
+                'loan_repayment',
+                'received',
+                $amount,
+                $data['payment_date'],
+                "Repayment for {$loan->loan_code}",
+                $loan->borrowerName(),
+                $data['notes'] ?? null,
+                $user,
+            );
+
             $loan->loadSum('repayments', 'amount');
             if ($loan->outstanding_amount === 0.0) {
                 $loan->update(['status' => LoanStatus::Paid, 'paid_at' => now()]);
@@ -148,7 +180,7 @@ class LoanService
                 $this->refreshOverdueStatus($loan);
             }
 
-            return $repayment->load('creator');
+            return $repayment->load(['creator', 'receipt']);
         });
     }
 
@@ -188,7 +220,7 @@ class LoanService
 
         return [
             'loans' => $query
-                ->with(['investor', 'borrower'])
+                ->with(['investor', 'borrower', 'receipt'])
                 ->withSum('repayments', 'amount')
                 ->latest('loan_date')
                 ->latest('id')

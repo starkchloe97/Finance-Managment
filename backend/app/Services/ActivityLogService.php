@@ -37,6 +37,7 @@ class ActivityLogService
         'Payment',
         'TransportJob',
         'TransportJobExpense',
+        'TransactionReceipt',
         'VehicleContract',
         'VehicleDailyReport',
     ];
@@ -52,6 +53,8 @@ class ActivityLogService
         'invoice_no',
         'payment_no',
         'transaction_code',
+        'receipt_no',
+        'receipt_type',
         'amount',
         'total',
         'subtotal',
@@ -152,7 +155,7 @@ class ActivityLogService
 
     private function identifier(Model $model): ?string
     {
-        foreach (['invoice_no', 'payment_no', 'transaction_code', 'code', 'name', 'title'] as $field) {
+        foreach (['receipt_no', 'invoice_no', 'payment_no', 'transaction_code', 'code', 'name', 'title'] as $field) {
             $value = $model->getAttribute($field);
             if (is_scalar($value) && (string) $value !== '') {
                 return (string) $value;

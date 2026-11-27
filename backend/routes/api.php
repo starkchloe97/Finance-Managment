@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\ActivityLogController;
+use App\Http\Controllers\Api\V1\AccountingPeriodController;
 use App\Http\Controllers\Api\V1\AssetController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BankAccountController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\TransportJobActivityController;
 use App\Http\Controllers\Api\V1\TransportJobController;
 use App\Http\Controllers\Api\V1\TransportJobExpenseController;
+use App\Http\Controllers\Api\V1\TransactionReceiptController;
 use App\Http\Controllers\Api\V1\VehicleContractController;
 use App\Http\Controllers\Api\V1\VehicleDailyReportController;
 use Illuminate\Support\Facades\Route;
@@ -70,7 +72,12 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/dashboard', [ReportController::class, 'dashboard']);
         Route::get('/reports/summary', [ReportController::class, 'summary']);
+        Route::get('/reports/financial', [ReportController::class, 'financialReport']);
+        Route::get('/accounting-periods', [AccountingPeriodController::class, 'index']);
+        Route::post('/accounting-periods', [AccountingPeriodController::class, 'store']);
+        Route::get('/accounting-periods/{period}', [AccountingPeriodController::class, 'show']);
 
+        Route::post('my-investor', [InvestorController::class, 'mine']);
         Route::apiResource('investors', InvestorController::class);
         Route::get('investors/{investor}/investments', [InvestmentController::class, 'investorInvestments']);
         Route::apiResource('investments', InvestmentController::class);
@@ -134,6 +141,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/commission/receivables', [InvoiceController::class, 'commission']);
         Route::get('/payments', [InvoiceController::class, 'paymentList']);
         Route::post('/payments', [InvoiceController::class, 'storePayment']);
+        Route::get('/receipts', [TransactionReceiptController::class, 'index']);
+        Route::get('/receipts/{receipt}', [TransactionReceiptController::class, 'show']);
         Route::post('/jobs/{job}/invoice', [InvoiceController::class, 'forJob']);
     });
 });

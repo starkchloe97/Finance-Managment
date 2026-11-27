@@ -7,6 +7,8 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class AssetService
 {
+    public function __construct(private AccountingPeriodService $periods) {}
+
     public function paginate(
         array $filters
     ): LengthAwarePaginator {
@@ -87,6 +89,8 @@ class AssetService
         array $data,
         ?int $userId = null
     ): Asset {
+        $this->periods->assertOpen($data['purchase_date'] ?? null);
+
         return Asset::create([
             ...$data,
 
@@ -100,6 +104,12 @@ class AssetService
         Asset $asset,
         array $data
     ): Asset {
+        $asset->fill($data);
+        if ($asset->isDirty(['purchase_date', 'purchase_price', 'current_value'])) {
+            $this->periods->assertOpen($asset->getRawOriginal('purchase_date'));
+            $this->periods->assertOpen($asset->purchase_date?->toDateString());
+        }
+
         $asset->update($data);
 
         return $asset->refresh();
@@ -108,6 +118,8 @@ class AssetService
     public function delete(
         Asset $asset
     ): void {
+        $this->periods->assertOpen($asset->purchase_date?->toDateString());
+
         $asset->delete();
     }
 

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Investment extends Model
@@ -21,6 +22,8 @@ class Investment extends Model
         'investor_id',
         'investment_date',
         'amount',
+        'funds_location',
+        'bank_account_id',
         'investment_category',
         'return_type',
         'return_percentage',
@@ -54,6 +57,16 @@ class Investment extends Model
     public function investor(): BelongsTo
     {
         return $this->belongsTo(Investor::class);
+    }
+
+    public function bankAccount(): BelongsTo
+    {
+        return $this->belongsTo(BankAccount::class);
+    }
+
+    public function receipt(): MorphOne
+    {
+        return $this->morphOne(TransactionReceipt::class, 'receiptable');
     }
 
     public function allocations(): HasMany

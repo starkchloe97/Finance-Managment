@@ -19,6 +19,11 @@ use Illuminate\Validation\ValidationException;
 
 class InvoiceService
 {
+    public function __construct(
+        private ReceiptService $receipts,
+        private AccountingPeriodService $periods,
+    ) {}
+
     public function list(array $filters, ?string $direction = null): LengthAwarePaginator
     {
         $query = Invoice::query()
@@ -77,6 +82,8 @@ class InvoiceService
 
     public function create(array $data, int $userId): Invoice
     {
+        $this->periods->assertOpen($data['invoice_date'] ?? null);
+
         return DB::transaction(function () use ($data, $userId) {
             $customer = ! empty($data['customer_id']) ? Customer::findOrFail($data['customer_id']) : null;
             [$subtotal, $tax, $total, $lines] = $this->calculateTotals($data);
@@ -134,6 +141,9 @@ class InvoiceService
 
     public function update(Invoice $invoice, array $data): Invoice
     {
+        $this->periods->assertOpen($invoice->invoice_date?->toDateString());
+        $this->periods->assertOpen($data['invoice_date'] ?? null);
+
         return DB::transaction(function () use ($invoice, $data) {
             $invoice = Invoice::query()->lockForUpdate()->findOrFail($invoice->id);
             if ($invoice->transport_job_id || $invoice->allocations()->exists()) {
@@ -198,6 +208,8 @@ class InvoiceService
 
     public function createForJob(TransportJob $job, int $userId): Invoice
     {
+        $this->periods->assertOpen(today()->toDateString());
+
         return DB::transaction(function () use ($job, $userId) {
             $job = TransportJob::query()->with(['customer', 'estimate.items.vehicles.asset'])->lockForUpdate()->findOrFail($job->id);
             if ($job->status->value !== 'completed') {
@@ -279,6 +291,8 @@ class InvoiceService
 
     public function createForJobExpense(TransportJobExpense $expense, ?int $userId = null): Invoice
     {
+        $this->periods->assertOpen($expense->expense_date?->toDateString());
+
         return DB::transaction(function () use ($expense, $userId) {
             $expense = TransportJobExpense::query()
                 ->with('transportJob')
@@ -324,6 +338,8 @@ class InvoiceService
 
     public function syncJobExpensePayable(TransportJobExpense $expense): void
     {
+        $this->periods->assertOpen($expense->expense_date?->toDateString());
+
         $invoice = Invoice::query()
             ->where('job_expense_id', $expense->id)
             ->lockForUpdate()
@@ -387,6 +403,8 @@ class InvoiceService
      */
     public function createForJobHiredVehicles(TransportJob $job, ?int $userId = null): void
     {
+        $this->periods->assertOpen(today()->toDateString());
+
         DB::transaction(function () use ($job, $userId) {
             $job = TransportJob::query()
                 ->with(['estimate.items.vehicles'])
@@ -437,6 +455,7 @@ class InvoiceService
                     ])->filter()->first() ?: 'Hired vehicle';
 
                     $invoiceDate = $job->job_date?->toDateString() ?? today()->toDateString();
+                    $this->periods->assertOpen($invoiceDate);
 
                     $invoice = Invoice::create([
                         'invoice_no' => NumberGenerator::generate('PI', Invoice::class),
@@ -477,6 +496,8 @@ class InvoiceService
 
     public function createForVehicleContractMonth(VehicleContract $contract, ?int $userId = null): ?Invoice
     {
+        $this->periods->assertOpen(today()->toDateString());
+
         return DB::transaction(function () use ($contract, $userId) {
             $contract = VehicleContract::query()->lockForUpdate()->findOrFail($contract->id);
             $today = today();
@@ -561,6 +582,8 @@ class InvoiceService
 
     public function recordPayment(array $data, int $userId): Payment
     {
+        $this->periods->assertOpen($data['payment_date'] ?? null);
+
         return DB::transaction(function () use ($data, $userId) {
             $allocations = collect($data['allocations'])->sortBy('invoice_id')->values();
             $allocationTotal = round($allocations->sum(fn ($allocation) => (float) $allocation['amount']), 2);
@@ -649,13 +672,25 @@ class InvoiceService
                 'transaction_date' => $data['payment_date'],
             ]);
 
-            return $payment->load(['bankAccount', 'allocations.invoice']);
+            $partyName = $invoices->first()?->party_name;
+            $this->receipts->issue(
+                $payment,
+                $data['direction'] === PaymentDirection::Received->value ? 'payment_receipt' : 'payment_voucher',
+                $data['direction'],
+                $paymentAmount,
+                $data['payment_date'],
+                "Payment {$payment->payment_no} recorded",
+                $partyName,
+                $data['notes'] ?? null,
+            );
+
+            return $payment->load(['bankAccount', 'allocations.invoice', 'receipt']);
         });
     }
 
     public function paymentList(): LengthAwarePaginator
     {
-        return Payment::with(['bankAccount', 'allocations.invoice'])->latest('payment_date')->paginate(20);
+        return Payment::with(['bankAccount', 'allocations.invoice', 'receipt'])->latest('payment_date')->paginate(20);
     }
 
     public function dashboardSummary(): array
